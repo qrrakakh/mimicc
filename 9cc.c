@@ -5,8 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-// ABS Node kinds
-typedef enum {
+//////////
+// struct definition
+
+typedef enum {  // ABS Node kinds
   ND_ADD, // +
   ND_SUB, // -
   ND_MUL, // *
@@ -16,102 +18,14 @@ typedef enum {
 
 typedef struct Node Node;
 
-// ABS Node struct
-struct Node {
+struct Node { // ABS Node struct
   NodeKind kind;
   Node *lhs;
   Node *rhs;
   int val;    // Only when kind==ND_NUM
 };
 
-// Generate new node
-Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
-  Node *node = calloc(1, sizeof(Node));
-  node->kind = kind;
-  node->lhs = lhs;
-  node->rhs = rhs;
-  return node;
-}
-
-Node *new_node_num(int val) {
-  Node *node = calloc(1, sizeof(Node));
-  node->kind = ND_NUM;
-  node->val = val;
-}
-
-// Non-terminal symbols generator
-Node *expr() {
-  Node *node = mul();
-
-  for(;;) {
-    if (consume('+'))
-      node = new_node(ND_ADD, node, mul());
-    else if (consume('0'))
-      node = new_node(ND_SUB, node, mul());
-    else
-      return node;
-  }
-}
-
-Node *mul() {
-  Node *node = primary();
-
-  for(;;) {
-    if(consume('*'))
-      node = new_node(ND_MUL, node, primary());
-    else if(consume('/'))
-      node = new_node(ND_DIV, node, primary());
-    else
-      return node;
-  }
-}
-
-Node *primary() {
-  // if the next token is '(' then it should be expanded as '(' expr ')'
-  if (consume('(')) {
-    Node *node = expr();
-    expect(')');
-    return node;
-  }
-
-  // else should be a number.
-  return new_node_num(expect_numner());
-}
-
-void gen(Node *node) {
-  if (node->kind == ND_NUM) {
-    printf("  push %d\n", node->val);
-    return;
-  }
-
-  getn(node->lhs);
-  get(node->rhs);
-
-  printf("  pop rdi\n");
-  printf("  pop rax\n");
-
-  switch(node->kind) {
-    case ND_ADD:
-      printf("  add rax, rdi\n");
-      break;
-    case ND_SUB:
-      printf("  sub rax, rdi\n");
-      break;
-    case ND_MUL:
-      printf("  imul rax, rdi\n");
-      break;
-    case ND_DIV:
-      printf("  cqp\n");
-      printf("  idiv rdi\n");
-      break;
-  }
-
-  printf("  push rax\n");
-}
-
-
-// Token definition
-typedef enum {
+typedef enum {  // Token definition
   TK_RESERVED,  // operator symbols
   TK_NUM,       // integer token
   TK_EOF,       // end of input
@@ -119,19 +33,20 @@ typedef enum {
 
 typedef struct Token Token;
 
-// Token type
-struct Token {
+struct Token {  // Token type
   TokenKind kind;
   Token * next; // next input token
   int val;      // value if kind is TK_NUM
   char* str;    // token string
 };
 
-// current token pointer
-Token *token;
+//////////
+// global variable definition
+Token *token;         // current token pointer
+char *user_input;     // Input program
 
-// Input program
-char *user_input;
+//////////
+// utility functions
 
 // error reporter which takes same args to printf
 void error(char *fmt, ...) {
@@ -157,6 +72,9 @@ void error_at(char* loc, char *fmt, ...) {
   va_end(ap);
   exit(1);
 }
+
+//////////
+// token-related functions
 
 // Read one token and return true if the next token is an expected symbol,
 // else return false
@@ -212,7 +130,7 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    if (*p == '+' || *p == '-') {
+    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')') {
       cur = new_token(TK_RESERVED, cur, p++);
       continue;
     }
@@ -230,39 +148,121 @@ Token *tokenize(char *p) {
   return head.next;
 }
 
+//////////
+// ast-related functions
+
+// Generate new node
+Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = kind;
+  node->lhs = lhs;
+  node->rhs = rhs;
+  return node;
+}
+
+Node *new_node_num(int val) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_NUM;
+  node->val = val;
+}
+
+// Code generator
+void gen(Node *node) {
+  if (node->kind == ND_NUM) {
+    printf("  push %d\n", node->val);
+    return;
+  }
+
+  gen(node->lhs);
+  gen(node->rhs);
+
+  printf("  pop rdi\n");
+  printf("  pop rax\n");
+
+  switch(node->kind) {
+    case ND_ADD:
+      printf("  add rax, rdi\n");
+      break;
+    case ND_SUB:
+      printf("  sub rax, rdi\n");
+      break;
+    case ND_MUL:
+      printf("  imul rax, rdi\n");
+      break;
+    case ND_DIV:
+      printf("  cqo\n");
+      printf("  idiv rdi\n");
+      break;
+  }
+
+  printf("  push rax\n");
+}
+
+// Non-terminal symbols generator
+Node *expr();
+Node *mul();
+Node *primary();
+
+Node *expr() {
+  Node *node = mul();
+
+  for(;;) {
+    if (consume('+'))
+      node = new_node(ND_ADD, node, mul());
+    else if (consume('-'))
+      node = new_node(ND_SUB, node, mul());
+    else
+      return node;
+  }
+}
+
+Node *mul() {
+  Node *node = primary();
+
+  for(;;) {
+    if(consume('*'))
+      node = new_node(ND_MUL, node, primary());
+    else if(consume('/'))
+      node = new_node(ND_DIV, node, primary());
+    else
+      return node;
+  }
+}
+
+Node *primary() {
+  // if the next token is '(' then it should be expanded as '(' expr ')'
+  if (consume('(')) {
+    Node *node = expr();
+    expect(')');
+    return node;
+  }
+
+  // else should be a number.
+  return new_node_num(expect_number());
+}
+
 int main(int argc, char **argv) {
   if (argc != 2) {
     fprintf(stderr, "Invalid number of arguments\n");
     return 1;
   }
 
-  // tokenize
+  // tokenize and parse;
   user_input = argv[1];
   token = tokenize(user_input);
+  Node *node = expr();
 
   // The header of assembler
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
   printf("main:\n");
 
-  // Check if the begining of the token is a number
-  // and then output the first mov op
-  printf("  mov rax, %ld\n", expect_number());
+  // Follow AST and generate code
+  gen(node);
 
-  while (!at_eof()) {
-    if (consume('+')) {
-      printf("  add rax, %ld\n", expect_number());
-      continue;
-    }
-
-    if (consume('-')) {
-      printf("  sub rax, %ld\n", expect_number());
-      continue;
-    }
-
-    error("Unexpected token");
-  }
-
+  // Finally load the top value of the stack
+  // and return this.
+  printf("  pop rax\n");
   printf("  ret\n");
   return 0;
 }
