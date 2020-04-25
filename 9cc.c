@@ -25,10 +25,28 @@ struct Token {
 // current token pointer
 Token *token;
 
+// Input program
+char *user_input;
+
 // error reporter which takes same args to printf
 void error(char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
+  vfprintf(stderr, fmt, ap);
+  fprintf(stderr, "\n");
+  va_end(ap);
+  exit(1);
+}
+
+// error reporter with failed position
+void error_at(char* loc, char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+
+  int pos = loc - user_input;
+  fprintf(stderr, "%s\n", user_input);
+  fprintf(stderr, "%*s", pos, "");
+  fprintf(stderr, "^");
   vfprintf(stderr, fmt, ap);
   fprintf(stderr, "\n");
   va_end(ap);
@@ -49,7 +67,7 @@ bool consume(char op) {
 // else report an error
 void expect(char op) {
   if(token->kind != TK_RESERVED || token->str[0] != op)
-    error("The expected operator '%c' is not input.", op);
+    error_at(token->str, "The expected operator '%c' is not input.", op);
   token = token->next;
 }
 
@@ -57,7 +75,7 @@ void expect(char op) {
 // else report an error
 int expect_number() {
   if(token->kind != TK_NUM)
-    error("The number is expected.");
+    error_at(token->str, "The number is expected.");
   int val = token->val;
   token = token->next;
   return val;
@@ -100,7 +118,7 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    error("Failed to tokenize");
+    error_at(p, "Failed to tokenize");
   }
 
   new_token(TK_EOF, cur, p);
@@ -114,7 +132,8 @@ int main(int argc, char **argv) {
   }
 
   // tokenize
-  token = tokenize(argv[1]);
+  user_input = argv[1];
+  token = tokenize(user_input);
 
   // The header of assembler
   printf(".intel_syntax noprefix\n");
