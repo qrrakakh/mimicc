@@ -9,6 +9,9 @@ int main(int argc, char **argv) {
   // tokenize and parse;
   user_input = argv[1];
   token = tokenize(user_input);
+  // dummy lvar
+  locals = calloc(1, sizeof(LVar)); 
+  locals->next = NULL;
   program();
 
   // The header of assembler
@@ -19,7 +22,7 @@ int main(int argc, char **argv) {
   // allocate 26 variables
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
-  printf("  sub rsp, 208\n"); // 208 = 8 x 26
+  printf("  sub rsp, %d\n", get_num_lvars() * 8); // 208 = 8 x 26
 
   // Follow AST and generate code
   for(int i=0;code[i];i++) {
