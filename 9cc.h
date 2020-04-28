@@ -18,8 +18,8 @@ typedef enum {  // ABS Node kinds
   ND_INEQUIV,  // !=
   ND_LT,        // <
   ND_LE,        // <=
-//  ND_GT,        // >
-//  ND_GE,        // >=
+  ND_LVAR,      // Local variable,
+  ND_ASSIGN,    // =
 } NodeKind;
 
 typedef struct Node Node;
@@ -29,10 +29,12 @@ struct Node { // ABS Node struct
   Node *lhs;
   Node *rhs;
   int val;    // Only when kind==ND_NUM
+  int offset; // Only when kind=ND_LVAR
 };
 
 typedef enum {  // Token definition
   TK_RESERVED,  // operator symbols
+  TK_IDENT,     // identifier
   TK_NUM,       // integer token
   TK_EOF,       // end of input
 } TokenKind;
@@ -50,6 +52,7 @@ struct Token {  // Token type
 //////////
 // global variable definition
 Token *token;         // current token pointer
+Node *code[100];
 char *user_input;     // Input program
 
 //////////
@@ -62,6 +65,7 @@ void error_at(char* loc, char *fmt, ...);
 // token-related functions
 bool consume(char* op);
 void expect(char* op);
+Token* consume_ident();
 int expect_number();
 bool at_eof();
 Token *new_token(TokenKind kind, Token *cur, char *str, int len);
@@ -75,7 +79,10 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int val);
 
 // Non-terminal symbols generator
+void program();
+Node* stmt();
 Node *expr();
+Node *assign();
 Node *equality();
 Node *relational();
 Node *add();

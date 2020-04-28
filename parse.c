@@ -25,6 +25,16 @@ void expect(char* op) {
   token = token->next;
 }
 
+// Read one token and return the pointed token if the next token is a identifier,
+// else report an error
+Token *consume_ident() {
+  if(token->kind != TK_IDENT)
+    return NULL;
+  Token *tok = token;
+  token = token->next;
+  return tok;
+}
+
 // Read one token and return the current value if the next token is a value,
 // else report an error
 int expect_number() {
@@ -39,7 +49,7 @@ bool at_eof() {
   return token->kind == TK_EOF;
 }
 
-// Generate new token and concatenate to cur
+// Gennm erate new token and concatenate to cur
 Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
   Token *tok = calloc(1, sizeof(Token));
   tok->kind = kind;
@@ -72,8 +82,14 @@ Token *tokenize(char *p) {
     }
 
     // one char operator
-    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '<' || *p == '>') {
+    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '<' || *p == '>' || *p == '=' || *p == ';') {
       cur = new_token(TK_RESERVED, cur, p++, 1);
+      continue;
+    }
+
+    // identifier
+    if ('a' <= *p && *p <= 'z') {
+      cur = new_token(TK_IDENT, cur, p++, 1);
       continue;
     }
 
@@ -109,8 +125,33 @@ Node *new_node_num(int val) {
 }
 
 // Non-terminal symbols generator
+void program() {
+  int i=0;
+  while(!at_eof()) {
+    code[i++] = stmt();
+  }
+  code[i] = NULL;
+}
+
+Node *stmt() {
+  Node *node = expr();
+  expect(";");
+  return node;
+}
+
 Node *expr() {
-  return equality();
+  return assign();
+}
+
+Node *assign() {
+  Node *node = equality();
+  for(;;) {
+    if(consume("=")) {
+      node = new_node(ND_ASSIGN, node, assign());
+    } else {
+      return node;
+    }
+  }
 }
 
 Node *equality() {
@@ -186,6 +227,12 @@ Node *primary() {
     return node;
   }
 
-  // else should be a number.
-  return new_node_num(expect_number());
+  Token *tok = consume_ident();
+  if(tok) {
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_LVAR;
+    node->offset = (tok->str[0] - 'a' + 1) * 8; // assume that we define 26 lvars (a to z)
+  } else { // else should be a number.
+    return new_node_num(expect_number());
+  }
 }
