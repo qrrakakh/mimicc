@@ -35,6 +35,16 @@ Token *consume_ident() {
   return tok;
 }
 
+// Read one token and return the pointed token if the next token is a identifier,
+// else report an error
+Token *consume_return() {
+  if(token->kind != TK_RETURN)
+    return NULL;
+  Token *tok = token;
+  token = token->next;
+  return tok;
+}
+
 // Read one token and return the current value if the next token is a value,
 // else report an error
 int expect_number() {
@@ -59,16 +69,43 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
   return tok;
 }
 
+int isidentchar(int p) {
+  if (('a' <= p && p <= 'z') || ('A' <= p && p <= 'Z') || p == '_') {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+int isreturn(char *p) {
+  return strncmp(p, "return", 6)==0 && p+6 && isspace(*(p+6));
+}
+
 // Tokenize input string p
 Token *tokenize(char *p) {
   Token head;
   head.next = NULL;
   Token *cur = &head;
+  int l;
 
   while (*p) {
     // skip blank
     if (isspace(*p)) {
       p++;
+      continue;
+    }
+
+    if (isreturn(p)) {
+      cur = new_token(TK_RETURN, cur, p, 6);
+      p+=6;
+      continue;
+    }
+
+    // local variable (starting from [a-z][A-Z]_ and following[a-z][A-Z][0-9]_)
+    if (isidentchar(*p)) {
+      for(l=1;(p+l)&&(isidentchar(*(p+l)) || isdigit(*(p+l)));++l);
+      cur = new_token(TK_IDENT, cur, p, l);
+      p+=l;
       continue;
     }
 
@@ -84,12 +121,6 @@ Token *tokenize(char *p) {
     // one char operator
     if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '<' || *p == '>' || *p == '=' || *p == ';') {
       cur = new_token(TK_RESERVED, cur, p++, 1);
-      continue;
-    }
-
-    // identifier
-    if ('a' <= *p && *p <= 'z') {
-      cur = new_token(TK_IDENT, cur, p++, 1);
       continue;
     }
 
@@ -124,6 +155,28 @@ Node *new_node_num(int val) {
   node->val = val;
 }
 
+// find if the local var is already defined
+LVar *find_lvar(Token *tok) {
+  LVar *var;
+  for(var=locals;var;var=var->next) {
+    if(var->len == tok->len && !memcmp(var->name, tok->str, var->len)) {
+      return var;
+    }
+  }
+  return NULL;
+}
+
+// get a number of local variables
+int get_num_lvars() {
+  LVar *var = locals;
+  int i = 0;
+  while (var->next) {
+    ++i;
+    var = var->next;
+  } 
+  return i;
+}
+
 // Non-terminal symbols generator
 void program() {
   int i=0;
@@ -134,7 +187,13 @@ void program() {
 }
 
 Node *stmt() {
-  Node *node = expr();
+  Node *node;
+  Token *tok = consume_return();
+  if (tok) {
+    node = new_node(ND_RETURN, expr(), NULL);
+  } else {
+    node = expr();
+  }
   expect(";");
   return node;
 }
@@ -220,6 +279,8 @@ Node *unary() {
 }
 
 Node *primary() {
+  LVar* var;
+
   // if the next token is '(' then it should be expanded as '(' expr ')'
   if (consume("(")) {
     Node *node = expr();
@@ -231,7 +292,16 @@ Node *primary() {
   if(tok) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_LVAR;
-    node->offset = (tok->str[0] - 'a' + 1) * 8; // assume that we define 26 lvars (a to z)
+
+    var = find_lvar(tok);
+    if(!var) {
+      var = calloc(1, sizeof(LVar));
+      var->next = locals; locals = var;
+      var->name = tok->str;
+      var->len = tok->len;
+      var->offset = var->next->offset + 8;
+    }
+    node->offset = var->offset;
   } else { // else should be a number.
     return new_node_num(expect_number());
   }

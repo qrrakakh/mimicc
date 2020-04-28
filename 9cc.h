@@ -20,6 +20,7 @@ typedef enum {  // ABS Node kinds
   ND_LE,        // <=
   ND_LVAR,      // Local variable,
   ND_ASSIGN,    // =
+  ND_RETURN,    // return
 } NodeKind;
 
 typedef struct Node Node;
@@ -37,6 +38,7 @@ typedef enum {  // Token definition
   TK_IDENT,     // identifier
   TK_NUM,       // integer token
   TK_EOF,       // end of input
+  TK_RETURN,    // return
 } TokenKind;
 
 typedef struct Token Token;
@@ -49,11 +51,21 @@ struct Token {  // Token type
   int len;
 };
 
+typedef struct LVar LVar;
+
+struct LVar {  // defined local variables
+  LVar *next;
+  char *name;
+  int len;
+  int offset;
+};
+
 //////////
 // global variable definition
 Token *token;         // current token pointer
 Node *code[100];
 char *user_input;     // Input program
+LVar *locals;
 
 //////////
 // utility functions
@@ -77,6 +89,13 @@ Token *tokenize(char *p);
 // Generate new node
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int val);
+
+// find if the local var is already defined
+LVar *find_lvar(Token *tok);
+
+// get a number of local variables
+int get_num_lvars();
+
 
 // Non-terminal symbols generator
 void program();
