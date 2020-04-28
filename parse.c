@@ -35,6 +35,16 @@ Token *consume_ident() {
   return tok;
 }
 
+// Read one token and return the pointed token if the next token is a identifier,
+// else report an error
+Token *consume_return() {
+  if(token->kind != TK_RETURN)
+    return NULL;
+  Token *tok = token;
+  token = token->next;
+  return tok;
+}
+
 // Read one token and return the current value if the next token is a value,
 // else report an error
 int expect_number() {
@@ -67,6 +77,10 @@ int isidentchar(int p) {
   }
 }
 
+int isreturn(char *p) {
+  return strncmp(p, "return", 6)==0 && p+6 && isspace(*(p+6));
+}
+
 // Tokenize input string p
 Token *tokenize(char *p) {
   Token head;
@@ -78,6 +92,12 @@ Token *tokenize(char *p) {
     // skip blank
     if (isspace(*p)) {
       p++;
+      continue;
+    }
+
+    if (isreturn(p)) {
+      cur = new_token(TK_RETURN, cur, p, 6);
+      p+=6;
       continue;
     }
 
@@ -167,7 +187,13 @@ void program() {
 }
 
 Node *stmt() {
-  Node *node = expr();
+  Node *node;
+  Token *tok = consume_return();
+  if (tok) {
+    node = new_node(ND_RETURN, expr(), NULL);
+  } else {
+    node = expr();
+  }
   expect(";");
   return node;
 }
@@ -246,7 +272,7 @@ Node *mul() {
 Node *unary() {
   if(consume("+"))
     return primary();
-  else if(consume("-"))
+   else if(consume("-"))
     return new_node(ND_SUB, new_node_num(0), primary());
   else
     return primary();

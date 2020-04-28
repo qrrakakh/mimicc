@@ -20,6 +20,7 @@ typedef enum {  // ABS Node kinds
   ND_LE,        // <=
   ND_LVAR,      // Local variable,
   ND_ASSIGN,    // =
+  ND_RETURN,    // return
 } NodeKind;
 
 typedef struct Node Node;
@@ -37,6 +38,7 @@ typedef enum {  // Token definition
   TK_IDENT,     // identifier
   TK_NUM,       // integer token
   TK_EOF,       // end of input
+  TK_RETURN,    // return
 } TokenKind;
 
 typedef struct Token Token;

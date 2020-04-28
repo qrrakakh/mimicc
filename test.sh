@@ -42,5 +42,7 @@ assert 1 '4>=2+1;'
 assert 14 'a=3;b=5*6-8;a+b/2;'
 assert 4 'a=1;b=2;c=4;(b+c)/2+a;'
 assert 4 'f2o=1;bar_a=2;b1zz=4;(bar_a+b1zz)/2+f2o;'
+assert 1 'return 1;'
+assert 10 'f2o=1;bar_a=2;b1zz=4;(bar_a+b1zz)/2+f2o;return (f2o+b1zz)*bar_a;'
 
 echo OK
