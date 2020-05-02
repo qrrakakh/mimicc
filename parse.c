@@ -141,24 +141,26 @@ Token *tokenize(char *p) {
 // ast-related functions
 
 // Generate new node
-Node *new_node_unaryop(NodeKind kind, Node *lhs) {
+Node *new_node_unaryop(NodeKind kind, Node *valnode) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = kind;
-  node->lhs = lhs;
-  node->rhs = NULL;
+  node->children = calloc(1, sizeof(Node*));
+  node->children[0] = valnode;
   return node;
 }
 
 Node *new_node_binop(NodeKind kind, Node *lhs, Node *rhs) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = kind;
-  node->lhs = lhs;
-  node->rhs = rhs;
+  node->children = calloc(2, sizeof(Node*));
+  node->children[0] = lhs;
+  node->children[1] = rhs;
   return node;
 }
 
 Node *new_node_num(int val) {
   Node *node = calloc(1, sizeof(Node));
+  node->children = NULL;
   node->kind = ND_NUM;
   node->val = val;
 }
@@ -166,7 +168,7 @@ Node *new_node_num(int val) {
 Node *new_node_lvar(Token *tok) {
   Node *node = calloc(1, sizeof(Node));
   LVar *var = find_lvar(tok);
-  
+
   if(!var) {
     var = calloc(1, sizeof(LVar));
     var->next = locals; locals = var;
@@ -175,6 +177,7 @@ Node *new_node_lvar(Token *tok) {
     var->offset = var->next->offset + 8;
   }
 
+  node->children = NULL;
   node->kind = ND_LVAR;
   node->offset = var->offset;
 }

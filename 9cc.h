@@ -27,8 +27,7 @@ typedef struct Node Node;
 
 struct Node { // ABS Node struct
   NodeKind kind;
-  Node *lhs;
-  Node *rhs;
+  Node** children;
   int val;    // Only when kind==ND_NUM
   int offset; // Only when kind=ND_LVAR
 };
@@ -87,7 +86,7 @@ Token *tokenize(char *p);
 // ast-related functions
 
 // Generate new node
-Node *new_node_unaryop(NodeKind kind, Node *lhs);
+Node *new_node_unaryop(NodeKind kind, Node *valnode);
 Node *new_node_binop(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int val);
 Node *new_node_lvar(Token* tok);
