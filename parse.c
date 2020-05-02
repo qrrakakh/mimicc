@@ -141,7 +141,15 @@ Token *tokenize(char *p) {
 // ast-related functions
 
 // Generate new node
-Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
+Node *new_node_unaryop(NodeKind kind, Node *lhs) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = kind;
+  node->lhs = lhs;
+  node->rhs = NULL;
+  return node;
+}
+
+Node *new_node_binop(NodeKind kind, Node *lhs, Node *rhs) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = kind;
   node->lhs = lhs;
@@ -153,6 +161,22 @@ Node *new_node_num(int val) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_NUM;
   node->val = val;
+}
+
+Node *new_node_lvar(Token *tok) {
+  Node *node = calloc(1, sizeof(Node));
+  LVar *var = find_lvar(tok);
+  
+  if(!var) {
+    var = calloc(1, sizeof(LVar));
+    var->next = locals; locals = var;
+    var->name = tok->str;
+    var->len = tok->len;
+    var->offset = var->next->offset + 8;
+  }
+
+  node->kind = ND_LVAR;
+  node->offset = var->offset;
 }
 
 // find if the local var is already defined
@@ -190,7 +214,7 @@ Node *stmt() {
   Node *node;
   Token *tok = consume_return();
   if (tok) {
-    node = new_node(ND_RETURN, expr(), NULL);
+    node = new_node_unaryop(ND_RETURN, expr());
   } else {
     node = expr();
   }
@@ -206,7 +230,7 @@ Node *assign() {
   Node *node = equality();
   for(;;) {
     if(consume("=")) {
-      node = new_node(ND_ASSIGN, node, assign());
+      node = new_node_binop(ND_ASSIGN, node, assign());
     } else {
       return node;
     }
@@ -218,9 +242,9 @@ Node *equality() {
 
   for(;;) {
     if (consume("=="))
-      node = new_node(ND_EQUIV, node, relational());
+      node = new_node_binop(ND_EQUIV, node, relational());
     else if (consume("!="))
-      node = new_node(ND_INEQUIV, node, relational());
+      node = new_node_binop(ND_INEQUIV, node, relational());
     else
       return node;
   }
@@ -231,13 +255,13 @@ Node *relational() {
 
   for(;;) {
     if (consume("<="))
-      node = new_node(ND_LE, node, add());
+      node = new_node_binop(ND_LE, node, add());
     else if (consume(">="))
-      node = new_node(ND_LE, add(), node);
+      node = new_node_binop(ND_LE, add(), node);
     else if (consume("<"))
-      node = new_node(ND_LT, node, add());
+      node = new_node_binop(ND_LT, node, add());
     else if (consume(">"))
-      node = new_node(ND_LT, add(), node);
+      node = new_node_binop(ND_LT, add(), node);
     else
       return node;
   }
@@ -248,9 +272,9 @@ Node *add() {
 
   for(;;) {
     if (consume("+"))
-      node = new_node(ND_ADD, node, mul());
+      node = new_node_binop(ND_ADD, node, mul());
     else if (consume("-"))
-      node = new_node(ND_SUB, node, mul());
+      node = new_node_binop(ND_SUB, node, mul());
     else
       return node;
   }
@@ -261,9 +285,9 @@ Node *mul() {
 
   for(;;) {
     if(consume("*"))
-      node = new_node(ND_MUL, node, unary());
+      node = new_node_binop(ND_MUL, node, unary());
     else if(consume("/"))
-      node = new_node(ND_DIV, node, unary());
+      node = new_node_binop(ND_DIV, node, unary());
     else
       return node;
   }
@@ -273,35 +297,24 @@ Node *unary() {
   if(consume("+"))
     return primary();
    else if(consume("-"))
-    return new_node(ND_SUB, new_node_num(0), primary());
+    return new_node_binop(ND_SUB, new_node_num(0), primary());
   else
     return primary();
 }
 
 Node *primary() {
-  LVar* var;
+  Node *node;
 
   // if the next token is '(' then it should be expanded as '(' expr ')'
   if (consume("(")) {
-    Node *node = expr();
+    node = expr();
     expect(")");
     return node;
   }
 
   Token *tok = consume_ident();
   if(tok) {
-    Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_LVAR;
-
-    var = find_lvar(tok);
-    if(!var) {
-      var = calloc(1, sizeof(LVar));
-      var->next = locals; locals = var;
-      var->name = tok->str;
-      var->len = tok->len;
-      var->offset = var->next->offset + 8;
-    }
-    node->offset = var->offset;
+    return new_node_lvar(tok);
   } else { // else should be a number.
     return new_node_num(expect_number());
   }

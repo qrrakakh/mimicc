@@ -87,8 +87,10 @@ Token *tokenize(char *p);
 // ast-related functions
 
 // Generate new node
-Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
+Node *new_node_unaryop(NodeKind kind, Node *lhs);
+Node *new_node_binop(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int val);
+Node *new_node_lvar(Token* tok);
 
 // find if the local var is already defined
 LVar *find_lvar(Token *tok);
