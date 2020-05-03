@@ -219,6 +219,16 @@ Node *new_node_for(Node *init, Node *cond, Node *next, Node* stmt) {
   return node;
 }
 
+Node *new_node_if(Node *cond, Node *stmt1, Node* stmt2) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_IF;
+  node->children = calloc(3, sizeof(Node*));
+  node->children[0] = cond;
+  node->children[1] = stmt1;
+  node->children[2] = stmt2;
+  return node;
+}
+
 // find if the local var is already defined
 LVar *find_lvar(Token *tok) {
   LVar *var;
@@ -271,6 +281,16 @@ Node *stmt() {
     Node* next = expr();
     expect(")");
     node = new_node_for(init, cond, next, stmt());
+  } else if(tok = consume("if")) {
+    expect("(");
+    Node* cond = expr();
+    expect(")");
+    Node* stmt1 = stmt();
+    Node* stmt2 = NULL;
+    if (tok = consume("else")) {
+      stmt2 = stmt();
+    }
+    node = new_node_if(cond, stmt1, stmt2);
   } else {
     node = expr();
     expect(";");

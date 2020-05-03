@@ -23,6 +23,7 @@ typedef enum {  // ABS Node kinds
   ND_RETURN,    // return
   ND_WHILE,     // while
   ND_FOR,       // for
+  ND_IF,        // if
 } NodeKind;
 
 typedef struct Node Node;
