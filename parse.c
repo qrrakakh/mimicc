@@ -3,16 +3,18 @@
 //////////
 // token-related functions
 
-// Read one token and return true if the next token is an expected symbol,
-// else return false
-bool consume(char* op) {
+// Read one token and return the token if the next token is an expected symbol,
+// else return NULL
+Token* consume(char* op) {
+  Token *tok;
   if(token->kind != TK_RESERVED ||
      strlen(op) != token-> len ||
      memcmp(token->str, op, token->len))
-    return false;
+    return NULL;
 
+  tok = token;
   token = token->next;
-  return true;
+  return tok;
 }
 
 // Read one token if the next token is an expected symbol,
@@ -77,8 +79,9 @@ int isidentchar(int p) {
   }
 }
 
-int isreturn(char *p) {
-  return strncmp(p, "return", 6)==0 && p+6 && isspace(*(p+6));
+int iskeyword(char *p, char* keyword) {
+  int len = strlen(keyword);
+  return strncmp(p, keyword, len)==0 && p+len && isspace(*(p+len));
 }
 
 // Tokenize input string p
@@ -95,9 +98,31 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    if (isreturn(p)) {
+    if (iskeyword(p, "return")) {
       cur = new_token(TK_RETURN, cur, p, 6);
       p+=6;
+      continue;
+    }
+
+    // control flow keywords
+    if(iskeyword(p, "for")) {
+      cur = new_token(TK_RESERVED, cur, p, 3);
+      p+=3;
+      continue;
+    }
+    if(iskeyword(p, "while")) {
+      cur = new_token(TK_RESERVED, cur, p, 5);
+      p+=5;
+      continue;
+    }
+    if(iskeyword(p, "if")) {
+      cur = new_token(TK_RESERVED, cur, p, 2);
+      p+=2;
+      continue;
+    }
+    if(iskeyword(p, "else")) {
+      cur = new_token(TK_RESERVED, cur, p, 4);
+      p+=4;
       continue;
     }
 
@@ -215,13 +240,21 @@ void program() {
 
 Node *stmt() {
   Node *node;
-  Token *tok = consume_return();
-  if (tok) {
+  Token *tok;
+
+  if (tok = consume_return()) {
     node = new_node_unaryop(ND_RETURN, expr());
+    expect(";");
+  } else if(tok = consume("while")) {
+    expect("(");
+    Node *cond = expr();
+    expect(")");
+    node = new_node_binop(ND_WHILE, cond, stmt());
   } else {
     node = expr();
+    expect(";");
   }
-  expect(";");
+  
   return node;
 }
 

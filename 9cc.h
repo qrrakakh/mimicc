@@ -21,6 +21,7 @@ typedef enum {  // ABS Node kinds
   ND_LVAR,      // Local variable,
   ND_ASSIGN,    // =
   ND_RETURN,    // return
+  ND_WHILE,     // while
 } NodeKind;
 
 typedef struct Node Node;
@@ -74,8 +75,8 @@ void error_at(char* loc, char *fmt, ...);
 
 //////////
 // token-related functions
-bool consume(char* op);
 void expect(char* op);
+Token* consume(char* op);
 Token* consume_ident();
 int expect_number();
 bool at_eof();

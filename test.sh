@@ -16,6 +16,17 @@ assert() {
   fi
 }
 
+assert 0 'a=11;a<10;'
+assert 1 'a=2;a<10;'
+assert 0 'a=10;a<10;'
+assert 1 'a=10;a<=10;'
+
+assert 4 'a=4;return a;'
+assert 12 'a=12;a;'
+assert 12 'a=12;while (a<=10) a=a+1;a;'
+assert 10 'a=0;while (a<10) a=a+1; a;'
+assert 12 'a=12;while (a<=10) a=a+1; return a;'
+assert 10 'a=0;while (a<10) a=a+1;return a;'
 assert 0 '0;'
 assert 42 '42;'
 assert 21 '5+20-4;'

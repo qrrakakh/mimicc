@@ -41,6 +41,18 @@ void gen(Node *node) {
     printf("  mov [rax], rdi\n");
     printf("  push rdi\n");
     return;
+
+    case ND_WHILE:
+    printf(".Lbegin%03d:\n", 0);
+    gen(node->children[0]);
+    printf("  pop rax\n");
+    printf("  cmp rax, 0\n");
+    printf("  je .Lend%03d\n", 0);
+    gen(node->children[1]);
+    printf("  jmp .Lbegin%03d\n", 0);
+    printf(".Lend%03d:\n", 0);
+    printf("  push 0\n");
+    return;
   }
 
   gen(node->children[0]);
@@ -64,22 +76,22 @@ void gen(Node *node) {
       printf("  idiv rdi\n");
       break;
     case ND_EQUIV:
-      printf("  cmp rax,rdi\n");
+      printf("  cmp rax, rdi\n");
       printf("  sete al\n");
       printf("  movzb rax, al\n");
       break;
     case ND_INEQUIV:
-      printf("  cmp rax,rdi\n");
+      printf("  cmp rax, rdi\n");
       printf("  setne al\n");
       printf("  movzb rax, al\n");
       break;
     case ND_LT:
-      printf("  cmp rax,rdi\n");
+      printf("  cmp rax, rdi\n");
       printf("  setl al\n");
       printf("  movzb rax, al\n");
       break;
     case ND_LE:
-      printf("  cmp rax,rdi\n");
+      printf("  cmp rax, rdi\n");
       printf("  setle al\n");
       printf("  movzb rax, al\n");
       break;
