@@ -16,6 +16,9 @@ assert() {
   fi
 }
 
+assert 4 '18%7;'
+assert 3 '23%4;'
+assert 6 '94%11;'
 assert 3 '{}{3;}'
 assert 3 '3;'
 assert 3 'a=0;b=1;if(a>1) b=2;else b=3;return b;'

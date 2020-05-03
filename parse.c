@@ -145,7 +145,7 @@ Token *tokenize(char *p) {
     }
 
     // reserved once char
-    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '<' || *p == '>' || *p == '=' || *p == ';' || *p == '{' || *p == '}') {
+    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '%' || *p == '(' || *p == ')' || *p == '<' || *p == '>' || *p == '=' || *p == ';' || *p == '{' || *p == '}') {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       continue;
     }
@@ -392,6 +392,8 @@ Node *mul() {
       node = new_node_binop(ND_MUL, node, unary());
     else if(consume("/"))
       node = new_node_binop(ND_DIV, node, unary());
+    else if(consume("\%"))
+      node = new_node_binop(ND_MOD, node, unary());
     else
       return node;
   }

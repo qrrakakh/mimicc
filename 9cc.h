@@ -13,6 +13,7 @@ typedef enum {  // ABS Node kinds
   ND_SUB,       // -
   ND_MUL,       // *
   ND_DIV,       // /
+  ND_MOD,       // %
   ND_NUM,       // integer
   ND_EQUIV,     // ==
   ND_INEQUIV,  // !=
