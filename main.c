@@ -9,9 +9,14 @@ int main(int argc, char **argv) {
   // tokenize and parse;
   user_input = argv[1];
   token = tokenize(user_input);
+
   // dummy lvar
   locals = calloc(1, sizeof(LVar)); 
   locals->next = NULL;
+
+  // init label index
+  label_index = 0;
+
   program();
 
   // The header of assembler

@@ -16,6 +16,7 @@ assert() {
   fi
 }
 
+assert 20 'b=0;for(a=0;a<10;a=a+1) b=b+2; return b;'
 assert 0 'a=11;a<10;'
 assert 1 'a=2;a<10;'
 assert 0 'a=10;a<10;'
@@ -27,6 +28,7 @@ assert 12 'a=12;while (a<=10) a=a+1;a;'
 assert 10 'a=0;while (a<10) a=a+1; a;'
 assert 12 'a=12;while (a<=10) a=a+1; return a;'
 assert 10 'a=0;while (a<10) a=a+1;return a;'
+
 assert 0 '0;'
 assert 42 '42;'
 assert 21 '5+20-4;'

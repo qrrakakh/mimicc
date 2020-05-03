@@ -43,15 +43,31 @@ void gen(Node *node) {
     return;
 
     case ND_WHILE:
-    printf(".Lbegin%03d:\n", 0);
+    printf(".Lbegin%06d:\n", label_index);
     gen(node->children[0]);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
-    printf("  je .Lend%03d\n", 0);
+    printf("  je .Lend%06d\n", label_index);
     gen(node->children[1]);
-    printf("  jmp .Lbegin%03d\n", 0);
-    printf(".Lend%03d:\n", 0);
+    printf("  jmp .Lbegin%06d\n", label_index);
+    printf(".Lend%06d:\n", label_index);
     printf("  push 0\n");
+    ++label_index;
+    return;
+
+    case ND_FOR:
+    gen(node->children[0]);
+    printf(".Lbegin%06d:\n", label_index);
+    gen(node->children[1]);
+    printf("  pop rax\n");
+    printf("  cmp rax, 0\n");
+    printf("  je .Lend%06d\n", 0);
+    gen(node->children[3]);
+    gen(node->children[2]);
+    printf("  jmp .Lbegin%06d\n", 0);
+    printf(".Lend%06d:\n", 0);
+    printf("  push 0\n");
+    ++label_index;
     return;
   }
 

@@ -79,9 +79,10 @@ int isidentchar(int p) {
   }
 }
 
-int iskeyword(char *p, char* keyword) {
+bool iskeyword(char *p, char* keyword, bool need_space) {
   int len = strlen(keyword);
-  return strncmp(p, keyword, len)==0 && p+len && isspace(*(p+len));
+  bool space_flg = (!need_space) | isspace(*(p+len));
+  return strncmp(p, keyword, len)==0 && p+len && space_flg;
 }
 
 // Tokenize input string p
@@ -98,29 +99,29 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    if (iskeyword(p, "return")) {
+    if (iskeyword(p, "return", true)) {
       cur = new_token(TK_RETURN, cur, p, 6);
       p+=6;
       continue;
     }
 
     // control flow keywords
-    if(iskeyword(p, "for")) {
+    if(iskeyword(p, "for", false)) {
       cur = new_token(TK_RESERVED, cur, p, 3);
       p+=3;
       continue;
     }
-    if(iskeyword(p, "while")) {
+    if(iskeyword(p, "while", false)) {
       cur = new_token(TK_RESERVED, cur, p, 5);
       p+=5;
       continue;
     }
-    if(iskeyword(p, "if")) {
+    if(iskeyword(p, "if", false)) {
       cur = new_token(TK_RESERVED, cur, p, 2);
       p+=2;
       continue;
     }
-    if(iskeyword(p, "else")) {
+    if(iskeyword(p, "else", false)) {
       cur = new_token(TK_RESERVED, cur, p, 4);
       p+=4;
       continue;
@@ -207,6 +208,17 @@ Node *new_node_lvar(Token *tok) {
   node->offset = var->offset;
 }
 
+Node *new_node_for(Node *init, Node *cond, Node *next, Node* stmt) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_FOR;
+  node->children = calloc(4, sizeof(Node*));
+  node->children[0] = init;
+  node->children[1] = cond;
+  node->children[2] = next;
+  node->children[3] = stmt;
+  return node;
+}
+
 // find if the local var is already defined
 LVar *find_lvar(Token *tok) {
   LVar *var;
@@ -250,6 +262,15 @@ Node *stmt() {
     Node *cond = expr();
     expect(")");
     node = new_node_binop(ND_WHILE, cond, stmt());
+  } else if(tok = consume("for")) {
+    expect("(");
+    Node* init = expr();
+    expect(";");
+    Node* cond = expr();
+    expect(";");
+    Node* next = expr();
+    expect(")");
+    node = new_node_for(init, cond, next, stmt());
   } else {
     node = expr();
     expect(";");

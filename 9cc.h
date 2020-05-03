@@ -22,6 +22,7 @@ typedef enum {  // ABS Node kinds
   ND_ASSIGN,    // =
   ND_RETURN,    // return
   ND_WHILE,     // while
+  ND_FOR,       // for
 } NodeKind;
 
 typedef struct Node Node;
@@ -66,6 +67,7 @@ Token *token;         // current token pointer
 Node *code[100];
 char *user_input;     // Input program
 LVar *locals;
+int label_index;
 
 //////////
 // utility functions
