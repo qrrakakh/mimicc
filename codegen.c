@@ -65,7 +65,6 @@ void gen(Node *node) {
     printf("  jmp .Lbegin%06d\n", label);
     printf(".Lend%06d:\n", label);
     printf("  push 0\n");
-    ++label_index;
     return;
 
     case ND_FOR:
