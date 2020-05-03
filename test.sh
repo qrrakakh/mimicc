@@ -16,6 +16,8 @@ assert() {
   fi
 }
 
+assert 3 '{}{3;}'
+assert 3 '3;'
 assert 3 'a=0;b=1;if(a>1) b=2;else b=3;return b;'
 assert 1 'a=0;b=1;if(a>1) b=2;return b;'
 assert 2 'a=2;b=1;if(a>1) b=2;else b=3;return b;'
@@ -27,6 +29,7 @@ assert 12 'a=12;while (a<=10) a=a+1; return a;'
 assert 10 'a=0;while (a<10) a=a+1;return a;'
 assert 1 'a=1;for(b=0;b<10;b=b+1) while(a<10) a=a+1; if(a==10) return 1;else return 2;'
 assert 10 'a=1;for(b=0;b<10;b=b+1) while(a<9) a=a+1; if(a==10) return 1;else return b;'
+assert 31 'a=1;c=0;for(b=0;b<10;b=b+1) { a=a+ 1;c=c+2;} if(a==10) return 1;else return a+c;'
 
 assert 0 'a=11;a<10;'
 assert 1 'a=2;a<10;'

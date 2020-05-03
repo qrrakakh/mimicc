@@ -144,8 +144,8 @@ Token *tokenize(char *p) {
       }
     }
 
-    // one char operator
-    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '<' || *p == '>' || *p == '=' || *p == ';') {
+    // reserved once char
+    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '<' || *p == '>' || *p == '=' || *p == ';' || *p == '{' || *p == '}') {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       continue;
     }
@@ -229,6 +229,13 @@ Node *new_node_if(Node *cond, Node *stmt1, Node* stmt2) {
   return node;
 }
 
+Node* new_node_block(Node **stmt_list) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_BLOCK;
+  node->children = stmt_list;
+  return node;
+}
+
 // find if the local var is already defined
 LVar *find_lvar(Token *tok) {
   LVar *var;
@@ -267,6 +274,26 @@ Node *stmt() {
   if (tok = consume_return()) {
     node = new_node_unaryop(ND_RETURN, expr());
     expect(";");
+  } else if (tok = consume("{")) {
+    Node **stmt_list;
+    int alloc_unit = 10;
+    int alloc_size = alloc_unit;
+    int cur = 0;
+    
+    stmt_list = calloc(alloc_unit, sizeof(Node*));
+    while(!(tok = consume("}"))) {
+      if(cur>=alloc_size-1) {
+        alloc_size += alloc_unit;
+        Node **_stmt_list = realloc(stmt_list, alloc_size);
+        if(_stmt_list == NULL) {
+          error("Memory allocation failure.");
+        }
+        stmt_list = _stmt_list;
+      }
+      stmt_list[cur++] = stmt();
+    }
+    stmt_list[cur] = NULL;
+    node = new_node_block(stmt_list);
   } else if(tok = consume("while")) {
     expect("(");
     Node *cond = expr();

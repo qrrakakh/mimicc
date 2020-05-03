@@ -24,6 +24,7 @@ typedef enum {  // ABS Node kinds
   ND_WHILE,     // while
   ND_FOR,       // for
   ND_IF,        // if
+  ND_BLOCK,     // {} block
 } NodeKind;
 
 typedef struct Node Node;

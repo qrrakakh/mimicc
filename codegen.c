@@ -14,6 +14,7 @@ void gen_lval(Node* node) {
 
 void gen(Node *node) {
   int label;
+  Node **stmt_list;
   switch(node->kind) {
     case ND_RETURN:
     gen(node->children[0]);
@@ -21,6 +22,16 @@ void gen(Node *node) {
     printf("  mov rsp, rbp\n");
     printf("  pop rbp\n");
     printf("  ret\n");
+    return;
+
+    case ND_BLOCK:
+    stmt_list = node->children;
+    if (*stmt_list != NULL)
+      gen(*(stmt_list++));
+    while (*stmt_list != NULL) {
+      printf("  pop rax\n");  
+      gen(*(stmt_list++));
+    }
     return;
 
     case ND_NUM:
