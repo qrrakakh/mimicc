@@ -145,7 +145,7 @@ Token *tokenize(char *p) {
     }
 
     // reserved once char
-    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '%' || *p == '(' || *p == ')' || *p == '<' || *p == '>' || *p == '=' || *p == ';' || *p == '{' || *p == '}') {
+    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '%' || *p == '(' || *p == ')' || *p == '<' || *p == '>' || *p == '=' || *p == ';' || *p == ',' || *p == '{' || *p == '}') {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       continue;
     }
@@ -238,12 +238,17 @@ Node* new_node_block(Node **stmt_list) {
   return node;
 }
 
-Node* new_node_func(Token *tok) {
+Node* new_node_func(Token *tok, int num_arg, Node *arg[]) {
+  int i;
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_CALL;
-  node->children = NULL;
+  node->children = calloc(num_arg, sizeof(Node));
+  for(i=0;i<num_arg;++i) {
+    node->children[i] = arg[i];
+  }
   node->func_name = tok->str;
   node->val = tok->len;
+  node->offset = num_arg;
   return node;
 }
 
@@ -421,6 +426,8 @@ Node *unary() {
 
 Node *primary() {
   Node *node;
+  Node *arg[6];
+  int num_arg;
 
   // if the next token is '(' then it should be expanded as '(' expr ')'
   if (consume("(")) {
@@ -432,8 +439,19 @@ Node *primary() {
   Token *tok = consume_ident();
   if(tok) {
     if (consume("(")) {
-      expect(")");
-      return new_node_func(tok);
+      num_arg = 0;
+      if(!consume(")")) {
+        arg[num_arg++] = primary();
+        while(num_arg<=6) {
+          if(consume(",")) {
+            arg[num_arg++] = primary();
+          } else {
+            break;
+          }
+        }
+        expect(")");
+      }
+      return new_node_func(tok, num_arg, arg);
     } else {
       return new_node_lvar(tok);
     }

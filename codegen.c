@@ -1,5 +1,9 @@
 #include "9cc.h"
 
+//////////
+// static value
+char x86_64_argreg[][6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+
 // Code generator
 void gen_lval(Node* node) {
   if (node->kind != ND_LVAR) {
@@ -100,6 +104,10 @@ void gen(Node *node) {
     return;
 
     case ND_CALL:
+    for(int i=0;i<node->offset;++i) {
+      gen(node->children[i]);
+      printf("  pop %s\n", x86_64_argreg[i]);
+    }
     printf("  call %.*s\n", node->val, node->func_name);
     printf("  push rax\n");
     return;
