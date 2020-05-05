@@ -529,10 +529,10 @@ Node *primary() {
     if (consume("(")) {
       num_arg = 0;
       if(!consume(")")) {
-        arg[num_arg++] = primary();
+        arg[num_arg++] = expr();
         while(num_arg<=6) {
           if(consume(",")) {
-            arg[num_arg++] = primary();
+            arg[num_arg++] = expr();
           } else {
             break;
           }

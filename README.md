@@ -23,7 +23,7 @@ unary       = "+" primary
               | "*" unary
               | "&" unary
 primary     = num
-              | ident ("(" ( | primary ("," primary){0,5}) ")")?
+              | ident ("(" ( | expr ("," expr){0,5}) ")")?
 ```
 
 ## Known issues
