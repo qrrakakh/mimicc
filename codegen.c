@@ -20,6 +20,26 @@ void gen(Node *node) {
   int label;
   Node **stmt_list;
   switch(node->kind) {
+    case ND_FUNC:
+    printf("%.*s:\n", node->val, node->func_name);
+
+    locals = node->lvars;
+    // allocate stack for local variables
+    printf("  push rbp\n");
+    printf("  mov rbp, rsp\n");
+    printf("  sub rsp, %d\n", get_num_lvars() * 8);
+
+    gen(node->children[0]);
+    printf("  pop rax\n");  
+
+    // Final evaluated value is already stored on rax, which will be returned.
+    // To back to the original address, we fix the rsp
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
+    printf("  ret\n");
+
+    return;
+
     case ND_RETURN:
     gen(node->children[0]);
     printf("  pop rax\n");

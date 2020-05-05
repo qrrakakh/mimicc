@@ -231,14 +231,25 @@ Node *new_node_if(Node *cond, Node *stmt1, Node* stmt2) {
   return node;
 }
 
-Node* new_node_block(Node **stmt_list) {
+Node *new_node_block(Node **stmt_list) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_BLOCK;
   node->children = stmt_list;
   return node;
 }
 
-Node* new_node_func(Token *tok, int num_arg, Node *arg[]) {
+Node *new_node_func(Token* tok, Node *block_node) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_FUNC;
+  node->children = calloc(1, sizeof(Node*));;
+  node->children[0] = block_node;
+  node->func_name = tok->str;
+  node->val = tok->len;
+  node->lvars = locals;
+  return node;
+}
+
+Node* new_node_funccall(Token *tok, int num_arg, Node *arg[]) {
   int i;
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_CALL;
@@ -278,26 +289,36 @@ int get_num_lvars() {
 void program() {
   int i=0;
   while(!at_eof()) {
-    code[i++] = stmt();
+    code[i++] = func();
   }
   code[i] = NULL;
 }
 
-Node *stmt() {
-  Node *node;
+Node *func() {
   Token *tok;
+  if(!(tok=consume_ident())) {
+    error_at(token->str, "Invalid function definition.");
+  }
+  expect("(");
+  expect(")");
 
-  if (tok = consume_return()) {
-    node = new_node_unaryop(ND_RETURN, expr());
-    expect(";");
-  } else if (tok = consume("{")) {
+  // dummy lvar
+  locals = calloc(1, sizeof(LVar)); 
+  locals->next = NULL;
+
+  return new_node_func(tok, block());  //new_node_func(tok, block(), num_arg, arg);
+}
+
+Node *block() {
+  if(consume("{")) {
+
     Node **stmt_list;
     int alloc_unit = 10;
     int alloc_size = alloc_unit;
     int cur = 0;
     
     stmt_list = calloc(alloc_unit, sizeof(Node*));
-    while(!(tok = consume("}"))) {
+    while(!(consume("}"))) {
       if(cur>=alloc_size-1) {
         alloc_size += alloc_unit;
         Node **_stmt_list = realloc(stmt_list, alloc_size);
@@ -309,7 +330,23 @@ Node *stmt() {
       stmt_list[cur++] = stmt();
     }
     stmt_list[cur] = NULL;
-    node = new_node_block(stmt_list);
+
+    // return new_node_func
+    return new_node_block(stmt_list);
+  } else {
+    return NULL;
+  }
+}
+
+Node *stmt() {
+  Node *node;
+  Token *tok;
+
+  if (tok = consume_return()) {
+    node = new_node_unaryop(ND_RETURN, expr());
+    expect(";");
+  } else if (node = block()) {
+    return node;
   } else if(tok = consume("while")) {
     expect("(");
     Node *cond = expr();
@@ -451,7 +488,7 @@ Node *primary() {
         }
         expect(")");
       }
-      return new_node_func(tok, num_arg, arg);
+      return new_node_funccall(tok, num_arg, arg);
     } else {
       return new_node_lvar(tok);
     }

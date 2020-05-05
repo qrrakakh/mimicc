@@ -8,6 +8,15 @@
 //////////
 // struct definition
 
+typedef struct LVar LVar;
+
+struct LVar {  // defined local variables
+  LVar *next;
+  char *name;
+  int len;
+  int offset;
+};
+
 typedef enum {  // ABS Node kinds
   ND_ADD,       // +
   ND_SUB,       // -
@@ -27,6 +36,7 @@ typedef enum {  // ABS Node kinds
   ND_IF,        // if
   ND_BLOCK,     // {} block
   ND_CALL,      // function call
+  ND_FUNC,      // function
 } NodeKind;
 
 typedef struct Node Node;
@@ -34,9 +44,10 @@ typedef struct Node Node;
 struct Node { // ABS Node struct
   NodeKind kind;
   Node** children;
-  int val;          // Only when kind==ND_NUM o ND_CALL
-  int offset;       // Only when kind=ND_LVAR
+  int val;          // Only when kind==ND_NUM or ND_CALL
+  int offset;       // Only when kind=ND_LVAR or ND_CALL
   char* func_name;  // Only when kind=ND_CALL
+  LVar* lvars;      // Only when kind=ND_FUNC
 };
 
 typedef enum {  // Token definition
@@ -55,15 +66,6 @@ struct Token {  // Token type
   int val;      // value if kind is TK_NUM
   char* str;    // token string
   int len;
-};
-
-typedef struct LVar LVar;
-
-struct LVar {  // defined local variables
-  LVar *next;
-  char *name;
-  int len;
-  int offset;
 };
 
 //////////
@@ -108,7 +110,9 @@ int get_num_lvars();
 
 // Non-terminal symbols generator
 void program();
-Node* stmt();
+Node *func();
+Node *block();
+Node *stmt();
 Node *expr();
 Node *assign();
 Node *equality();
