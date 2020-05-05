@@ -180,6 +180,17 @@ Token *tokenize(char *p) {
 //////////
 // ast-related functions
 
+// find if the local var is already defined
+LVar *find_lvar(Token *tok) {
+  LVar *var;
+  for(var=locals;var;var=var->next) {
+    if(var->len == tok->len && !memcmp(var->name, tok->str, var->len)) {
+      return var;
+    }
+  }
+  return NULL;
+}
+
 // Generate new node
 Node *new_node_unaryop(NodeKind kind, Node *valnode) {
   Node *node = calloc(1, sizeof(Node));
@@ -282,17 +293,6 @@ Node *new_node_funccall(Token *tok, int num_arg, Node *arg[]) {
   return node;
 }
 
-// find if the local var is already defined
-LVar *find_lvar(Token *tok) {
-  LVar *var;
-  for(var=locals;var;var=var->next) {
-    if(var->len == tok->len && !memcmp(var->name, tok->str, var->len)) {
-      return var;
-    }
-  }
-  return NULL;
-}
-
 // get a number of local variables
 int get_num_lvars() {
   LVar *var = locals;
@@ -305,6 +305,21 @@ int get_num_lvars() {
 }
 
 // Non-terminal symbols generator
+// void program();
+Node *func();
+Node *block();
+Node *stmt();
+Node *declare();
+Node *expr();
+Node *assign();
+Node *equality();
+Node *relational();
+Node *add();
+Node *mul();
+Node *unary();
+Node *primary();
+
+
 void program() {
   int i=0;
   while(!at_eof()) {
@@ -374,15 +389,6 @@ Node *block() {
   }
 }
 
-Node *declare() {
-  Token *tok;
-  if(!consume_type())
-    return NULL;
-  if(!(tok = consume_ident()))
-    return NULL;
-  return new_node_lvar(tok, true);
-}
-
 Node *stmt() {
   Node *node;
   Token *tok;
@@ -424,6 +430,15 @@ Node *stmt() {
   }
   
   return node;
+}
+
+Node *declare() {
+  Token *tok;
+  if(!consume_type())
+    return NULL;
+  if(!(tok = consume_ident()))
+    return NULL;
+  return new_node_lvar(tok, true);
 }
 
 Node *expr() {

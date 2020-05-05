@@ -86,46 +86,16 @@ void error_at(char* loc, char *fmt, ...);
 
 //////////
 // token-related functions
-void expect(char* op);
-Token* consume(char* op);
-Token* consume_ident();
-int expect_number();
-bool at_eof();
-Token *new_token(TokenKind kind, Token *cur, char *str, int len);
 Token *tokenize(char *p);
 
 //////////
 // ast-related functions
 
-// Generate new node
-Node *new_node_unaryop(NodeKind kind, Node *valnode);
-Node *new_node_binop(NodeKind kind, Node *lhs, Node *rhs);
-Node *new_node_num(int val);
-Node *new_node_lvar(Token* tok, bool declare);
-
-// find if the local var is already defined
-LVar *find_lvar(Token *tok);
-
 // get a number of local variables
 int get_num_lvars();
 
-
 // Non-terminal symbols generator
 void program();
-Node *func();
-Node *block();
-Node *stmt();
-Node *declare();
-Node *expr();
-Node *assign();
-Node *equality();
-Node *relational();
-Node *add();
-Node *mul();
-Node *unary();
-Node *primary();
-
-
 
 // Code generator
 void gen(Node *node);
