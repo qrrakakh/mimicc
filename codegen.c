@@ -60,29 +60,29 @@ void gen(Node *node) {
 
     case ND_WHILE:
     label = label_index++;
-    printf(".Lbegin%06d:\n", label);
+    printf(".L.begin%06d:\n", label);
     gen(node->children[0]);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
-    printf("  je .Lend%06d\n", label);
+    printf("  je .L.end%06d\n", label);
     gen(node->children[1]);
-    printf("  jmp .Lbegin%06d\n", label);
-    printf(".Lend%06d:\n", label);
+    printf("  jmp .L.begin%06d\n", label);
+    printf(".L.end%06d:\n", label);
     printf("  push 0\n");
     return;
 
     case ND_FOR:
     label = label_index++;
     gen(node->children[0]);
-    printf(".Lbegin%06d:\n", label);
+    printf(".L.begin%06d:\n", label);
     gen(node->children[1]);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
-    printf("  je .Lend%06d\n", label);
+    printf("  je .L.end%06d\n", label);
     gen(node->children[3]);
     gen(node->children[2]);
-    printf("  jmp .Lbegin%06d\n", label);
-    printf(".Lend%06d:\n", label);
+    printf("  jmp .L.begin%06d\n", label);
+    printf(".L.end%06d:\n", label);
     printf("  push 0\n");
     return;
 
@@ -91,14 +91,14 @@ void gen(Node *node) {
     gen(node->children[0]);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n"); // 0 if cond is not satisfied
-    printf("  je .Lelse%06d\n", label);
+    printf("  je .L.else%06d\n", label);
     gen(node->children[1]);
-    printf("  jmp .Lend%06d\n",  label);
-    printf(".Lelse%06d:\n",  label);
+    printf("  jmp .L.end%06d\n",  label);
+    printf(".L.else%06d:\n",  label);
     if(node->children[2]!=NULL) {
       gen(node->children[2]);
     }
-    printf(".Lend%06d:\n",  label);
+    printf(".L.end%06d:\n",  label);
     printf("  push 0\n");
 
     return;
@@ -108,7 +108,21 @@ void gen(Node *node) {
       gen(node->children[i]);
       printf("  pop %s\n", x86_64_argreg[i]);
     }
+
+    // modify rsp as a multiply of 16
+    label = label_index++;
+    printf("  mov rax, rsp\n");
+    printf("  and rax, 15\n");
+    printf("  jnz .L.call%06d\n", label);
+    printf("  mov rax, 0\n");
     printf("  call %.*s\n", node->val, node->func_name);
+    printf("  jmp .L.end%06d\n", label);
+    printf(".L.call%06d:\n", label);
+    printf("  sub rsp, 8\n");
+    printf("  mov rax, 0\n");
+    printf("  call %.*s\n", node->val, node->func_name);
+    printf("  add rsp, 8\n");
+    printf(".L.end%06d:\n", label);
     printf("  push rax\n");
     return;
   }
