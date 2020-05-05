@@ -37,7 +37,7 @@ Token *consume_ident() {
   return tok;
 }
 
-Token *consume_type() {
+Token *consume_typestr() {
   return consume("int");
 }
 
@@ -85,8 +85,15 @@ int isidentchar(int p) {
 
 bool iskeyword(char *p, char *keyword, bool need_space) {
   int len = strlen(keyword);
-  bool space_flg = (!need_space) | isspace(*(p+len));
-  return strncmp(p, keyword, len)==0 && p+len && space_flg;
+  bool space_flg = (!need_space) | (p+len && isspace(*(p+len)));
+  return strncmp(p, keyword, len)==0 && space_flg;
+}
+
+int istype(char* p) {
+  int len = strlen("int");
+  if(strncmp(p, "int", len)==0 && p+len && isspace(*(p+len)))
+    return len;
+  return 0;
 }
 
 // Tokenize input string p
@@ -110,9 +117,9 @@ Token *tokenize(char *p) {
     }
 
     // primitive type
-    if(iskeyword(p, "int", true)) {
-      cur = new_token(TK_RESERVED, cur, p, 3);
-      p+=3;
+    if(l = istype(p)) {
+      cur = new_token(TK_RESERVED, cur, p, l);
+      p+=l;
       continue;
     }
 
@@ -217,7 +224,7 @@ Node *new_node_num(int val) {
   return node;
 }
 
-Node *new_node_lvar(Token *tok, bool declare) {
+Node *new_node_lvar(Token *tok, Type *ty, bool declare) {
   Node *node = calloc(1, sizeof(Node));
   LVar *var;
   
@@ -227,6 +234,7 @@ Node *new_node_lvar(Token *tok, bool declare) {
     var->name = tok->str;
     var->len = tok->len;
     var->offset = var->next->offset + 8;
+    var->ty = ty;
   } else {
     if(!(var=find_lvar(tok))) {
       error_at(token->str, "Undefined local variable.");
@@ -309,6 +317,7 @@ int get_num_lvars() {
 Node *func();
 Node *block();
 Node *stmt();
+Type *type();
 Node *declare();
 Node *expr();
 Node *assign();
@@ -330,9 +339,10 @@ void program() {
 
 Node *func() {
   Token *type_tok, *ident_tok, *arg_tok;
+  Type *ty;
   Node *arg[6];
   int num_arg;
-  if(!(type_tok = consume_type())) {
+  if(!(ty = type())) {
     error_at(token->str, "Invalid type in function declaration.");
   }
   if(!(ident_tok=consume_ident())) {
@@ -432,13 +442,32 @@ Node *stmt() {
   return node;
 }
 
+Type *type() {
+  Type* ty, *tgt_ty;
+  Token* tok;
+  if(!(tok = consume_typestr())) {
+    return NULL;
+  } 
+  ty = calloc(1, sizeof(Type));
+  ty->ty = TYPE_INT;
+  ty->ptr_to = NULL;
+  while(consume("*")) {
+    tgt_ty = ty;
+    ty = calloc(1, sizeof(Type));
+    ty->ty = TYPE_PTR;
+    ty->ptr_to = tgt_ty;
+  }
+  return ty;
+}
+
 Node *declare() {
   Token *tok;
-  if(!consume_type())
+  Type *ty;
+  if(!(ty = type()))
     return NULL;
   if(!(tok = consume_ident()))
     return NULL;
-  return new_node_lvar(tok, true);
+  return new_node_lvar(tok, ty, true);
 }
 
 Node *expr() {
@@ -556,7 +585,7 @@ Node *primary() {
       }
       return new_node_funccall(tok, num_arg, arg);
     } else {
-      return new_node_lvar(tok, false);
+      return new_node_lvar(tok, NULL, false);
     }
   } else { // else should be a number.
     return new_node_num(expect_number());

@@ -10,7 +10,7 @@ stmt       =  block
               | "for" "(" expr ";" expr ";" expr ")" stmt
               | "if" "(" expr ")" stmt ("else" stmt)?
               | expr ";"
-type        = "int"
+type        = "int" "*"*
 declare     = type ident
 expr        = assign
 assign      = equality  ("=" assign)*;
@@ -28,3 +28,4 @@ primary     = num
 
 ## Known issues
 * The scope of local variables are only in function, not a block.
+* pointer return function is not defineable.

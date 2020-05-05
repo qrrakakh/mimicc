@@ -6,13 +6,16 @@ char x86_64_argreg[][6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
 // Code generator
 void gen_lval(Node *node) {
-  if (node->kind != ND_LVAR) {
+  if (node->kind == ND_LVAR) {
+    // save the address of lval
+    printf("  mov rax, rbp\n");
+    printf("  sub rax, %d\n", node->offset);
+    printf("  push rax\n");
+  } else if(node->kind == ND_DEREF) {
+    gen(node->children[0]);
+  } else {
     error("lval is not a variable");
   }
-  // save the address of lval
-  printf("  mov rax, rbp\n");
-  printf("  sub rax, %d\n", node->offset);
-  printf("  push rax\n");
 }
 
 
@@ -70,7 +73,7 @@ void gen(Node *node) {
     return;
 
     case ND_DEREF:
-  gen(node->children[0]);
+    gen(node->children[0]);
     printf("  pop rax\n");
     printf("  mov rax, [rax]\n");
     printf("  push rax\n");

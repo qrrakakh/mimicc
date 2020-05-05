@@ -8,6 +8,18 @@
 //////////
 // struct definition
 
+typedef struct Type Type;
+
+typedef enum {
+  TYPE_INT,
+  TYPE_PTR,
+} TypeKind;
+
+struct Type {
+  TypeKind ty;
+  struct Type *ptr_to;
+};
+
 typedef struct LVar LVar;
 
 struct LVar {  // defined local variables
@@ -15,6 +27,7 @@ struct LVar {  // defined local variables
   char *name;
   int len;
   int offset;
+  Type *ty;
 };
 
 typedef enum {  // ABS Node kinds
