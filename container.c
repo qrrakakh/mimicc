@@ -14,7 +14,7 @@ void error(char *fmt, ...) {
 }
 
 // error reporter with failed position
-void error_at(char* loc, char *fmt, ...) {
+void error_at(char *loc, char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
 

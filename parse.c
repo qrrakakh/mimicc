@@ -5,7 +5,7 @@
 
 // Read one token and return the token if the next token is an expected symbol,
 // else return NULL
-Token* consume(char* op) {
+Token *consume(char *op) {
   Token *tok;
   if(token->kind != TK_RESERVED ||
      strlen(op) != token-> len ||
@@ -19,7 +19,7 @@ Token* consume(char* op) {
 
 // Read one token if the next token is an expected symbol,
 // else report an error
-void expect(char* op) {
+void expect(char *op) {
   if(token->kind != TK_RESERVED ||
      strlen(op) != token-> len ||
      memcmp(token->str, op, token->len))
@@ -83,7 +83,7 @@ int isidentchar(int p) {
   }
 }
 
-bool iskeyword(char *p, char* keyword, bool need_space) {
+bool iskeyword(char *p, char *keyword, bool need_space) {
   int len = strlen(keyword);
   bool space_flg = (!need_space) | isspace(*(p+len));
   return strncmp(p, keyword, len)==0 && p+len && space_flg;
@@ -228,7 +228,7 @@ Node *new_node_lvar(Token *tok, bool declare) {
   return node;
 }
 
-Node *new_node_for(Node *init, Node *cond, Node *next, Node* stmt) {
+Node *new_node_for(Node *init, Node *cond, Node *next, Node *stmt) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_FOR;
   node->children = calloc(4, sizeof(Node*));
@@ -239,7 +239,7 @@ Node *new_node_for(Node *init, Node *cond, Node *next, Node* stmt) {
   return node;
 }
 
-Node *new_node_if(Node *cond, Node *stmt1, Node* stmt2) {
+Node *new_node_if(Node *cond, Node *stmt1, Node *stmt2) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_IF;
   node->children = calloc(3, sizeof(Node*));
@@ -256,7 +256,7 @@ Node *new_node_block(Node **stmt_list) {
   return node;
 }
 
-Node *new_node_func(Token* tok, int num_arg, Node *block_node) {
+Node *new_node_func(Token *tok, int num_arg, Node *block_node) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_FUNC;
   node->children = calloc(1, sizeof(Node*));;
@@ -268,7 +268,7 @@ Node *new_node_func(Token* tok, int num_arg, Node *block_node) {
   return node;
 }
 
-Node* new_node_funccall(Token *tok, int num_arg, Node *arg[]) {
+Node *new_node_funccall(Token *tok, int num_arg, Node *arg[]) {
   int i;
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_CALL;
@@ -374,7 +374,7 @@ Node *block() {
   }
 }
 
-Node* declare() {
+Node *declare() {
   Token *tok;
   if(!consume_type())
     return NULL;
@@ -401,19 +401,19 @@ Node *stmt() {
     node = new_node_binop(ND_WHILE, cond, stmt());
   } else if(tok = consume("for")) {
     expect("(");
-    Node* init = expr();
+    Node *init = expr();
     expect(";");
-    Node* cond = expr();
+    Node *cond = expr();
     expect(";");
-    Node* next = expr();
+    Node *next = expr();
     expect(")");
     node = new_node_for(init, cond, next, stmt());
   } else if(tok = consume("if")) {
     expect("(");
-    Node* cond = expr();
+    Node *cond = expr();
     expect(")");
-    Node* stmt1 = stmt();
-    Node* stmt2 = NULL;
+    Node *stmt1 = stmt();
+    Node *stmt2 = NULL;
     if (tok = consume("else")) {
       stmt2 = stmt();
     }

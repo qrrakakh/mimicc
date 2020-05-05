@@ -5,7 +5,7 @@
 char x86_64_argreg[][6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
 // Code generator
-void gen_lval(Node* node) {
+void gen_lval(Node *node) {
   if (node->kind != ND_LVAR) {
     error("lval is not a variable");
   }
