@@ -101,7 +101,7 @@ Token *tokenize(char *p);
 Node *new_node_unaryop(NodeKind kind, Node *valnode);
 Node *new_node_binop(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int val);
-Node *new_node_lvar(Token* tok);
+Node *new_node_lvar(Token* tok, bool declare);
 
 // find if the local var is already defined
 LVar *find_lvar(Token *tok);
@@ -128,7 +128,3 @@ Node *primary();
 
 // Code generator
 void gen(Node *node);
-
-
-
-

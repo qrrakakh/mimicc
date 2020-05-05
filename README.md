@@ -1,14 +1,17 @@
 ## BNF
 ```
 program    =  func*
-func       =  ident ("(" ( || primary ("," primary){0,5}) ")") block
+func       =  type ident ("(" ( || primary ("," primary){0,5}) ")") block
 block      =  "{ stmt* "}"
 stmt       =  block
+              | declare ";"
               | "return" expr ";"
               | "while" "(" expr ")" stmt
               | "for" "(" expr ";" expr ";" expr ")" stmt
               | "if" "(" expr ")" stmt ("else" stmt)?
               | expr ";"
+type        = "int"
+declare     = type ident
 expr        = assign
 assign      = equality  ("=" assign)*;
 equality    = relational ( "==" | "!=" relational )*

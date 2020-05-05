@@ -37,6 +37,10 @@ Token *consume_ident() {
   return tok;
 }
 
+Token *consume_type() {
+  return consume("int");
+}
+
 // Read one token and return the pointed token if the next token is a identifier,
 // else report an error
 Token *consume_return() {
@@ -102,6 +106,13 @@ Token *tokenize(char *p) {
     if (iskeyword(p, "return", true)) {
       cur = new_token(TK_RETURN, cur, p, 6);
       p+=6;
+      continue;
+    }
+
+    // primitive type
+    if(iskeyword(p, "int", false)) {
+      cur = new_token(TK_RESERVED, cur, p, 3);
+      p+=3;
       continue;
     }
 
@@ -195,16 +206,20 @@ Node *new_node_num(int val) {
   return node;
 }
 
-Node *new_node_lvar(Token *tok) {
+Node *new_node_lvar(Token *tok, bool declare) {
   Node *node = calloc(1, sizeof(Node));
-  LVar *var = find_lvar(tok);
-
-  if(!var) {
+  LVar *var;
+  
+  if (declare) {
     var = calloc(1, sizeof(LVar));
     var->next = locals; locals = var;
     var->name = tok->str;
     var->len = tok->len;
     var->offset = var->next->offset + 8;
+  } else {
+    if(!(var=find_lvar(tok))) {
+      error_at(token->str, "Undefined local variable.");
+    }
   }
 
   node->children = NULL;
@@ -298,10 +313,14 @@ void program() {
 }
 
 Node *func() {
-  Token *tok;
-  if(!(tok=consume_ident())) {
+  Token *type_tok, *ident_tok;
+  if(!(type_tok = consume_type())) {
+    error_at(token->str, "Invalid type in function declaration.");
+  }
+  if(!(ident_tok=consume_ident())) {
     error_at(token->str, "Invalid function definition.");
   }
+
   expect("(");
   expect(")");
 
@@ -309,7 +328,7 @@ Node *func() {
   locals = calloc(1, sizeof(LVar)); 
   locals->next = NULL;
 
-  return new_node_func(tok, block());  //new_node_func(tok, block(), num_arg, arg);
+  return new_node_func(ident_tok, block());  //new_node_func(tok, block(), num_arg, arg);
 }
 
 Node *block() {
@@ -341,12 +360,23 @@ Node *block() {
   }
 }
 
+Node* declare() {
+  Token *tok;
+  if(!consume_type())
+    return NULL;
+  if(!(tok = consume_ident()))
+    return NULL;
+  return new_node_lvar(tok, true);
+}
+
 Node *stmt() {
   Node *node;
   Token *tok;
 
   if (tok = consume_return()) {
     node = new_node_unaryop(ND_RETURN, expr());
+    expect(";");
+  } else if(node = declare()) {
     expect(";");
   } else if (node = block()) {
     return node;
@@ -497,7 +527,7 @@ Node *primary() {
       }
       return new_node_funccall(tok, num_arg, arg);
     } else {
-      return new_node_lvar(tok);
+      return new_node_lvar(tok, false);
     }
   } else { // else should be a number.
     return new_node_num(expect_number());

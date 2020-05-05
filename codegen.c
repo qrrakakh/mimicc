@@ -64,7 +64,7 @@ void gen(Node *node) {
     return;
 
     case ND_DEREF:
-    gen(node->children[0]);
+  gen(node->children[0]);
     printf("  pop rax\n");
     printf("  mov rax, [rax]\n");
     printf("  push rax\n");
