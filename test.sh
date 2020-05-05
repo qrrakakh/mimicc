@@ -22,6 +22,8 @@ assert() {
 }
 compile_test_func
 
+assert 1 'main(){a=1;b=&a;return *b;}'
+assert 3 'main(){a=3;b=5;c=&b+8;return *c;}'
 assert 0 'hoge(){a=1;return 0;}main(){18%7;foo();}'
 assert 1 'hoge(){a=1;return a;}main(){a=0;a=hoge();return a;}'
 assert 0 'hoge(){a=1;return a;}main(){a=0;b=hoge();return a;}'

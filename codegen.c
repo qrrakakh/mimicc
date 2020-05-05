@@ -19,6 +19,7 @@ void gen_lval(Node* node) {
 void gen(Node *node) {
   int label;
   Node **stmt_list;
+
   switch(node->kind) {
     case ND_FUNC:
     printf("%.*s:\n", node->val, node->func_name);
@@ -56,6 +57,17 @@ void gen(Node *node) {
       printf("  pop rax\n");  
       gen(*(stmt_list++));
     }
+    return;
+
+    case ND_ADDR:
+    gen_lval(node->children[0]);
+    return;
+
+    case ND_DEREF:
+    gen(node->children[0]);
+    printf("  pop rax\n");
+    printf("  mov rax, [rax]\n");
+    printf("  push rax\n");
     return;
 
     case ND_NUM:

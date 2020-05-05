@@ -11,13 +11,16 @@ stmt       =  block
               | expr ";"
 expr        = assign
 assign      = equality  ("=" assign)*;
-equality    = relational ( "=="|"!=" relational )*
-relational  = add ("<=" || ">=" || "<" || ">" add)*
-add         = mul ("+" || "-" mul)*
-mul         = unary ("*" || "/" || "%" unary)*
-unary       = ("+" || "-")? primary
+equality    = relational ( "==" | "!=" relational )*
+relational  = add ("<=" | ">=" | "<" | ">" add)*
+add         = mul ("+" | "-" mul)*
+mul         = unary ("*" | "/" | "%" unary)*
+unary       = "+" primary
+              | "-" primary
+              | "*" unary
+              | "&" unary
 primary     = num
-              | ident ("(" ( || primary ("," primary){0,5}) ")")?
+              | ident ("(" ( | primary ("," primary){0,5}) ")")?
 ```
 
 ## Known issues

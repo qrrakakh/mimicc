@@ -37,6 +37,8 @@ typedef enum {  // ABS Node kinds
   ND_BLOCK,     // {} block
   ND_CALL,      // function call
   ND_FUNC,      // function
+  ND_ADDR,      // address
+  ND_DEREF,     // dereference
 } NodeKind;
 
 typedef struct Node Node;

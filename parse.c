@@ -145,7 +145,10 @@ Token *tokenize(char *p) {
     }
 
     // reserved once char
-    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '%' || *p == '(' || *p == ')' || *p == '<' || *p == '>' || *p == '=' || *p == ';' || *p == ',' || *p == '{' || *p == '}') {
+    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '%' || *p == '&'
+        || *p == '(' || *p == ')'
+        || *p == '<' || *p == '>' || *p == '='
+        ||*p == ';' || *p == ',' || *p == '{' || *p == '}') {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       continue;
     }
@@ -453,7 +456,11 @@ Node *mul() {
 }
 
 Node *unary() {
-  if(consume("+"))
+  if(consume("&"))
+    return new_node_unaryop(ND_ADDR, unary());
+  else if(consume("*"))
+    return new_node_unaryop(ND_DEREF, unary());
+  else if(consume("+"))
     return primary();
    else if(consume("-"))
     return new_node_binop(ND_SUB, new_node_num(0), primary());
