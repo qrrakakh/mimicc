@@ -1,10 +1,15 @@
 #!/bin/bash
+compile_test_func() {
+  cc -c -o test_func.o test_func.c
+}
+
 assert() {
   expected="$1"
   input="$2"
 
   ./9cc "$input" > tmp.s
-  cc -o tmp tmp.s
+  cc -c -o tmp.o tmp.s
+  cc -o tmp tmp.o test_func.o
   ./tmp
   actual="$?"
 
@@ -15,7 +20,10 @@ assert() {
     exit 1
   fi
 }
+compile_test_func
 
+assert 0 '18%7;foo();'
+assert 4 'foo();18%7;'
 assert 4 '18%7;'
 assert 3 '23%4;'
 assert 6 '94%11;'
@@ -68,7 +76,7 @@ assert 1 '4>=2+1;'
 assert 14 'a=3;b=5*6-8;a+b/2;'
 assert 4 'a=1;b=2;c=4;(b+c)/2+a;'
 assert 4 'f2o=1;bar_a=2;b1zz=4;(bar_a+b1zz)/2+f2o;'
-assert 1 'return 1;'
 assert 10 'f2o=1;bar_a=2;b1zz=4;(bar_a+b1zz)/2+f2o;return (f2o+b1zz)*bar_a;'
+assert 1 'return 1;'
 
 echo OK

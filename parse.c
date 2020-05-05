@@ -189,6 +189,7 @@ Node *new_node_num(int val) {
   node->children = NULL;
   node->kind = ND_NUM;
   node->val = val;
+  return node;
 }
 
 Node *new_node_lvar(Token *tok) {
@@ -206,6 +207,7 @@ Node *new_node_lvar(Token *tok) {
   node->children = NULL;
   node->kind = ND_LVAR;
   node->offset = var->offset;
+  return node;
 }
 
 Node *new_node_for(Node *init, Node *cond, Node *next, Node* stmt) {
@@ -233,6 +235,15 @@ Node* new_node_block(Node **stmt_list) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_BLOCK;
   node->children = stmt_list;
+  return node;
+}
+
+Node* new_node_func(Token *tok) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_CALL;
+  node->children = NULL;
+  node->func_name = tok->str;
+  node->val = tok->len;
   return node;
 }
 
@@ -420,7 +431,12 @@ Node *primary() {
 
   Token *tok = consume_ident();
   if(tok) {
-    return new_node_lvar(tok);
+    if (consume("(")) {
+      expect(")");
+      return new_node_func(tok);
+    } else {
+      return new_node_lvar(tok);
+    }
   } else { // else should be a number.
     return new_node_num(expect_number());
   }

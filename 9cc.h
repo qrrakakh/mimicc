@@ -26,6 +26,7 @@ typedef enum {  // ABS Node kinds
   ND_FOR,       // for
   ND_IF,        // if
   ND_BLOCK,     // {} block
+  ND_CALL,      // function call
 } NodeKind;
 
 typedef struct Node Node;
@@ -33,8 +34,9 @@ typedef struct Node Node;
 struct Node { // ABS Node struct
   NodeKind kind;
   Node** children;
-  int val;    // Only when kind==ND_NUM
-  int offset; // Only when kind=ND_LVAR
+  int val;          // Only when kind==ND_NUM o ND_CALL
+  int offset;       // Only when kind=ND_LVAR
+  char* func_name;  // Only when kind=ND_CALL
 };
 
 typedef enum {  // Token definition

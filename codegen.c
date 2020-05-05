@@ -98,6 +98,11 @@ void gen(Node *node) {
     printf("  push 0\n");
 
     return;
+
+    case ND_CALL:
+    printf("  call %.*s\n", node->val, node->func_name);
+    printf("  push rax\n");
+    return;
   }
 
   gen(node->children[0]);
