@@ -106,6 +106,9 @@ void gen(Node *node) {
     case ND_CALL:
     for(int i=0;i<node->offset;++i) {
       gen(node->children[i]);
+    }
+
+    for(int i=node->offset-1;i>=0;--i) {
       printf("  pop %s\n", x86_64_argreg[i]);
     }
 
