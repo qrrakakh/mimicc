@@ -110,7 +110,7 @@ Token *tokenize(char *p) {
     }
 
     // primitive type
-    if(iskeyword(p, "int", false)) {
+    if(iskeyword(p, "int", true)) {
       cur = new_token(TK_RESERVED, cur, p, 3);
       p+=3;
       continue;
@@ -256,13 +256,14 @@ Node *new_node_block(Node **stmt_list) {
   return node;
 }
 
-Node *new_node_func(Token* tok, Node *block_node) {
+Node *new_node_func(Token* tok, int num_arg, Node *block_node) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_FUNC;
   node->children = calloc(1, sizeof(Node*));;
   node->children[0] = block_node;
   node->func_name = tok->str;
   node->val = tok->len;
+  node->offset = num_arg;
   node->lvars = locals;
   return node;
 }
@@ -313,7 +314,9 @@ void program() {
 }
 
 Node *func() {
-  Token *type_tok, *ident_tok;
+  Token *type_tok, *ident_tok, *arg_tok;
+  Node *arg[6];
+  int num_arg;
   if(!(type_tok = consume_type())) {
     error_at(token->str, "Invalid type in function declaration.");
   }
@@ -321,14 +324,25 @@ Node *func() {
     error_at(token->str, "Invalid function definition.");
   }
 
-  expect("(");
-  expect(")");
-
   // dummy lvar
   locals = calloc(1, sizeof(LVar)); 
   locals->next = NULL;
 
-  return new_node_func(ident_tok, block());  //new_node_func(tok, block(), num_arg, arg);
+  expect("(");
+  num_arg = 0;
+  if(!consume(")")) {
+    arg[num_arg++] = declare();
+    while(num_arg<=6) {
+      if(consume(",")) {
+          arg[num_arg++] = declare();
+      } else {
+        break;
+      }
+    }
+    expect(")");
+  }
+  
+  return new_node_func(ident_tok, num_arg, block());
 }
 
 Node *block() {

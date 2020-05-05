@@ -1,7 +1,7 @@
 ## BNF
 ```
 program    =  func*
-func       =  type ident ("(" ( || primary ("," primary){0,5}) ")") block
+func       =  type ident ("(" ( | declare ("," declare){0,5}) ")") block
 block      =  "{ stmt* "}"
 stmt       =  block
               | declare ";"

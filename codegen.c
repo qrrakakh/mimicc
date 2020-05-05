@@ -30,6 +30,12 @@ void gen(Node *node) {
     printf("  mov rbp, rsp\n");
     printf("  sub rsp, %d\n", get_num_lvars() * 8);
 
+    // copy passed argument values to the local variables
+    for(int i=0;i<node->offset;++i) {
+      printf("  mov [rbp-%d], %s\n", i*8+8, x86_64_argreg[i]);
+    }
+
+
     gen(node->children[0]);
     printf("  pop rax\n");  
 

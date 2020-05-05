@@ -115,6 +115,7 @@ void program();
 Node *func();
 Node *block();
 Node *stmt();
+Node *declare();
 Node *expr();
 Node *assign();
 Node *equality();
