@@ -14,6 +14,7 @@ int main(int argc, char **argv) {
   label_index = 0;
 
   program();
+  //print_node_tree();
 
   // The header of assembler
   printf(".intel_syntax noprefix\n");

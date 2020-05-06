@@ -116,3 +116,7 @@ void program();
 
 // Code generator
 void gen(Node *node);
+
+//////////
+// debug function
+void print_node_tree();
