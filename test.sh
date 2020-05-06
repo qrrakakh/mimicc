@@ -22,6 +22,7 @@ assert() {
 }
 compile_test_func
 
+assert 8 'int main() {int *p;alloc4(&p, 1, 2, 4, 8);int *q;q = p + 2;*q;q = p + 3;return *q;}'
 assert 3 'int main(){int x; int *y;y=&x;*y=3;return x;}'
 assert 55 'int fib(int a){if(a==0) return 0;else if(a==1) return 1; else return fib(a-2)+fib(a-1);}int main(){printint(fib(10)); return fib(10);}'
 assert 2 'int hoge(int a){return a*2;}int main(){return hoge(1);}'
