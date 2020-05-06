@@ -91,7 +91,14 @@ void gen(Node *node) {
     printf("  pop rax\n");
     printf("  mov rax, [rax]\n");
     printf("  push rax\n");
-    current_type = find_lvar_by_offset(node->offset)->ty->ptr_to;
+    var = find_lvar_by_offset(node->offset);
+    if(!var) {
+      error("lvar not found.");
+    }
+    if(!(var->ty)) {
+      error("lvar type not found.");
+    }
+    current_type = var->ty->ptr_to;
     return;
 
     case ND_NUM:
