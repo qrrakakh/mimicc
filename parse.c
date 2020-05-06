@@ -198,6 +198,16 @@ LVar *find_lvar(Token *tok) {
   return NULL;
 }
 
+LVar *find_lvar_by_offset(int offset) {
+  LVar *var;
+  for(var=locals;var;var=var->next) {
+    if(var->offset == offset) {
+      return var;
+    }
+  }
+  return NULL;
+}
+
 // Generate new node
 Node *new_node_unaryop(NodeKind kind, Node *valnode) {
   Node *node = calloc(1, sizeof(Node));

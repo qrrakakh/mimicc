@@ -90,6 +90,7 @@ Node *code[100];
 char *user_input;     // Input program
 LVar *locals;
 int label_index;
+Type *current_type;
 
 //////////
 // utility functions
@@ -103,6 +104,9 @@ Token *tokenize(char *p);
 
 //////////
 // ast-related functions
+
+// find if the local var is already defined
+LVar *find_lvar_by_offset(int offset);
 
 // get a number of local variables
 int get_num_lvars();

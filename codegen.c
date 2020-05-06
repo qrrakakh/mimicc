@@ -4,6 +4,15 @@
 // static value
 char x86_64_argreg[][6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
+// type helper function
+int size_ptr(Type* ty) {
+  if (ty->ptr_to->ty == TYPE_INT) {
+    return 4;
+  } else {
+    return 8;
+  }
+}
+
 // Code generator
 void gen_lval(Node *node) {
   if (node->kind == ND_LVAR) {
@@ -22,6 +31,8 @@ void gen_lval(Node *node) {
 void gen(Node *node) {
   int label;
   Node **stmt_list;
+  Type *lhs_ty, *rhs_ty;
+  LVar *var;
 
   switch(node->kind) {
     case ND_FUNC:
@@ -70,6 +81,9 @@ void gen(Node *node) {
 
     case ND_ADDR:
     gen_lval(node->children[0]);
+    current_type = calloc(1, sizeof(Type));
+    current_type->ty = TYPE_PTR;
+    current_type->ptr_to = find_lvar_by_offset(node->offset)->ty;
     return;
 
     case ND_DEREF:
@@ -77,10 +91,13 @@ void gen(Node *node) {
     printf("  pop rax\n");
     printf("  mov rax, [rax]\n");
     printf("  push rax\n");
+    current_type = find_lvar_by_offset(node->offset)->ty->ptr_to;
     return;
 
     case ND_NUM:
     printf("  push %d\n", node->val);
+    current_type = calloc(1, sizeof(Type));
+    current_type->ty = TYPE_INT;
     return;
 
     case ND_LVAR:
@@ -88,6 +105,7 @@ void gen(Node *node) {
     printf("  pop rax\n");
     printf("  mov rax, [rax]\n");
     printf("  push rax\n");
+    current_type = find_lvar_by_offset(node->offset)->ty;
     return;
 
     case ND_ASSIGN:
@@ -168,22 +186,54 @@ void gen(Node *node) {
     printf("  add rsp, 8\n");
     printf(".L.end%06d:\n", label);
     printf("  push rax\n");
+
+    // currently assumed that function only returns TYPE_INT
+    current_type = calloc(1, sizeof(Type));
+    current_type->ty = TYPE_INT;
     return;
   }
 
   gen(node->children[0]);
+  lhs_ty = current_type;
   gen(node->children[1]);
+  rhs_ty = current_type;
 
   printf("  pop rdi\n");
   printf("  pop rax\n");
 
+  // add
+  // support type: INT/INT, INT/PTR, PTR/INT
+  if(node->kind == ND_ADD) {
+    if(lhs_ty->ty == TYPE_PTR && rhs_ty->ty == TYPE_PTR) {
+      error("adding pointer to pointer is not valid.");
+    }
+    if(lhs_ty->ty == TYPE_PTR) {
+      printf("  imul rdi, %d\n",size_ptr(lhs_ty));
+    } else if(rhs_ty->ty == TYPE_PTR) {
+      printf("  imul rax, %d\n",size_ptr(rhs_ty));
+    }
+    printf("  add rax, rdi\n");
+  }
+
+  // sub
+  // support type: INT/INT, PTR/INT (not INT/PTR)
+  if(node->kind == ND_SUB) {
+    if(rhs_ty->ty == TYPE_PTR) {
+      error("subtracting pointer is not valid.");
+    }
+    if(lhs_ty->ty == TYPE_PTR) {
+      printf("  imul rdi, %d\n",size_ptr(lhs_ty));
+    }
+    printf("  sub rax, rdi\n");
+  }  
+
+
+  // other binary operator
+  // support type: INT/INT
+  if(lhs_ty->ty != TYPE_INT || rhs_ty->ty != TYPE_INT)
+    error("non-int binary operation is not supported; lhs type: %d, rhs type: %d, operation: %d",
+          lhs_ty->ty, rhs_ty->ty, node->kind);
   switch(node->kind) {
-    case ND_ADD:
-      printf("  add rax, rdi\n");
-      break;
-    case ND_SUB:
-      printf("  sub rax, rdi\n");
-      break;
     case ND_MUL:
       printf("  imul rax, rdi\n");
       break;
