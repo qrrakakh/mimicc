@@ -360,10 +360,10 @@ Node *func() {
   }
 
   // dummy lvar
-  //locals = calloc(1, sizeof(LVar)); 
-  //locals->next = NULL;
-  locals = NULL;
-
+  locals = calloc(1, sizeof(LVar)); 
+  locals->next = NULL;
+  locals->offset = 0;
+  
   expect("(");
   num_arg = 0;
   if(!consume(")")) {

@@ -83,7 +83,7 @@ void gen(Node *node) {
     gen_lval(node->children[0]);
     current_type = calloc(1, sizeof(Type));
     current_type->ty = TYPE_PTR;
-    current_type->ptr_to = find_lvar_by_offset(node->offset)->ty;
+    current_type->ptr_to = find_lvar_by_offset(node->children[0]->offset)->ty;
     return;
 
     case ND_DEREF:
@@ -91,12 +91,12 @@ void gen(Node *node) {
     printf("  pop rax\n");
     printf("  mov rax, [rax]\n");
     printf("  push rax\n");
-    var = find_lvar_by_offset(node->offset);
+    var = find_lvar_by_offset(node->children[0]->offset);
     if(!var) {
       error("lvar not found.");
     }
     if(!(var->ty)) {
-      error("lvar type not found.");
+      error("lvar type not found, offset: %d", node->children[0]->offset);
     }
     current_type = var->ty->ptr_to;
     return;
@@ -235,24 +235,14 @@ void gen(Node *node) {
   }  
 
 
-  // other binary operator
+  // compare operator
   // support type: INT/INT
-  if(lhs_ty->ty != TYPE_INT || rhs_ty->ty != TYPE_INT)
-    error("non-int binary operation is not supported; lhs type: %d, rhs type: %d, operation: %d",
+  if((node->kind == ND_EQUIV || node->kind == ND_INEQUIV || node->kind == ND_LT || node->kind == ND_LE)
+      && (lhs_ty->ty != rhs_ty->ty)) {
+    error("different type cannot be compared; lhs type: %d, rhs type: %d, operation: %d",
           lhs_ty->ty, rhs_ty->ty, node->kind);
+  }
   switch(node->kind) {
-    case ND_MUL:
-      printf("  imul rax, rdi\n");
-      break;
-    case ND_DIV:
-      printf("  cqo\n");
-      printf("  idiv rdi\n");
-      break;
-    case ND_MOD:
-      printf("  cqo\n");
-      printf("  idiv rdi\n");
-      printf("  mov rax, rdx\n");
-      break;
     case ND_EQUIV:
       printf("  cmp rax, rdi\n");
       printf("  sete al\n");
@@ -272,6 +262,28 @@ void gen(Node *node) {
       printf("  cmp rax, rdi\n");
       printf("  setle al\n");
       printf("  movzb rax, al\n");
+      break;
+  }
+
+  // mul/div
+  // support type: INT/INT
+  if((node->kind == ND_MUL || node->kind == ND_DIV || node->kind == ND_MOD)
+      && (lhs_ty->ty != TYPE_INT || rhs_ty->ty != TYPE_INT)) {
+    error("non-int binary operation for mul/div/mod is not supported; lhs type: %d, rhs type: %d, operation: %d",
+          lhs_ty->ty, rhs_ty->ty, node->kind);
+  }
+  switch(node->kind) {
+    case ND_MUL:
+      printf("  imul rax, rdi\n");
+      break;
+    case ND_DIV:
+      printf("  cqo\n");
+      printf("  idiv rdi\n");
+      break;
+    case ND_MOD:
+      printf("  cqo\n");
+      printf("  idiv rdi\n");
+      printf("  mov rax, rdx\n");
       break;
   }
 
