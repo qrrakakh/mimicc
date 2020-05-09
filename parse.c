@@ -60,6 +60,16 @@ Token *consume_return() {
   return tok;
 }
 
+// Read one token and return the pointed token if the next token is a identifier,
+// else report an error
+Token *consume_sizeof() {
+  if(token->kind != TK_SIZEOF)
+    return NULL;
+  Token *tok = token;
+  token = token->next;
+  return tok;
+}
+
 // Read one token and return the current value if the next token is a value,
 // else report an error
 int expect_number() {
@@ -121,6 +131,12 @@ Token *tokenize(char *p) {
 
     if (iskeyword(p, "return", true)) {
       cur = new_token(TK_RETURN, cur, p, 6);
+      p+=6;
+      continue;
+    }
+
+    if (iskeyword(p, "sizeof", true) || iskeyword(p, "sizeof(", false)) {
+      cur = new_token(TK_SIZEOF, cur, p, 6);
       p+=6;
       continue;
     }
@@ -235,6 +251,9 @@ Node *new_node_unaryop(NodeKind kind, Node *valnode) {
       break;
     case ND_RETURN:
       node->ty = NULL; // TODO: check
+      break;
+    case ND_SIZEOF:
+      node->ty = type_int_init();
       break;
   }
   return node;
@@ -638,7 +657,10 @@ Node *mul() {
 }
 
 Node *unary() {
-  if(consume("&"))
+  if (consume_sizeof()) {
+    return new_node_unaryop(ND_SIZEOF, unary());
+  }
+  else if(consume("&"))
     return new_node_unaryop(ND_ADDR, unary());
   else if(consume("*"))
     return new_node_unaryop(ND_DEREF, unary());

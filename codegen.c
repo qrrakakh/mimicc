@@ -104,6 +104,10 @@ void gen(Node *node) {
     case ND_NUM:
     printf("  push %d\n", node->val);
     return;
+    
+    case ND_SIZEOF:
+    printf("  push %d\n", size_var(node->children[0]->ty));
+    return;
 
     case ND_LVAR:
     gen_lval(node);

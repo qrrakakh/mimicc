@@ -38,7 +38,9 @@ void print_node(Node* node, int offset) {
   int num_children = 0;
   if (node->kind==ND_CALL) {
     num_children = node->offset;
-  } else if(node->kind==ND_RETURN || node->kind == ND_ADDR || node->kind == ND_DEREF || node->kind == ND_FUNC) {
+  } else if(node->kind==ND_RETURN || node->kind == ND_SIZEOF
+          || node->kind == ND_ADDR || node->kind == ND_DEREF
+          || node->kind == ND_FUNC) {
     // unary op / func
     num_children = 1;
   }  else if(node->kind==ND_WHILE || node->kind == ND_ASSIGN || node->kind == ND_EQUIV || node->kind == ND_INEQUIV

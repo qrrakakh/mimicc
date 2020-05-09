@@ -52,6 +52,7 @@ typedef enum {  // ABS Node kinds
   ND_FUNC,      // function
   ND_ADDR,      // address
   ND_DEREF,     // dereference
+  ND_SIZEOF,    // sizeof
 } NodeKind;
 
 typedef struct Node Node;
@@ -72,6 +73,7 @@ typedef enum {  // Token definition
   TK_NUM,       // integer token
   TK_EOF,       // end of input
   TK_RETURN,    // return
+  TK_SIZEOF,    // sizeof
 } TokenKind;
 
 typedef struct Token Token;

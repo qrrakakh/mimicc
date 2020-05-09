@@ -22,6 +22,7 @@ unary       = "+" primary
               | "-" primary
               | "*" unary
               | "&" unary
+              | "sizeof" unary
 primary     = num
               | ident ("(" ( | expr ("," expr){0,5}) ")")?
 ```
