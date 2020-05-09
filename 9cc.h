@@ -16,7 +16,7 @@ typedef enum {
 } TypeKind;
 
 struct Type {
-  TypeKind ty;
+  TypeKind kind;
   struct Type *ptr_to;
 };
 
@@ -63,6 +63,7 @@ struct Node { // ABS Node struct
   int offset;       // Only when kind=ND_LVAR or ND_CALL
   char* func_name;  // Only when kind=ND_CALL
   LVar* lvars;      // Only when kind=ND_FUNC
+  Type* ty;
 };
 
 typedef enum {  // Token definition
@@ -90,7 +91,6 @@ Node *code[100];
 char *user_input;     // Input program
 LVar *locals;
 int label_index;
-Type *current_type;
 
 //////////
 // utility functions

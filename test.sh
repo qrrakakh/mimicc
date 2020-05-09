@@ -26,7 +26,7 @@ assert 8 'int main() {int *p;alloc4(&p, 1, 2, 4, 8);int *q;q = p + 2;*q;q = p + 
 assert 3 'int main(){int x; int *y;y=&x;*y=3;return x;}'
 assert 55 'int fib(int a){if(a==0) return 0;else if(a==1) return 1; else return fib(a-2)+fib(a-1);}int main(){printint(fib(10)); return fib(10);}'
 assert 2 'int hoge(int a){return a*2;}int main(){return hoge(1);}'
-assert 1 'int main(){int a;int b;a=1;b=&a;return *b;}'
+assert 1 'int main(){int a;int *b;a=1;b=&a;return *b;}'
 #assert 3 'int main(){int a; int b; int c; a=3;b=5;c=&b+8;return *c;}'
 assert 0 'int hoge(){int a;a=1;return 0;}int main(){18%7;foo();}'
 assert 1 'int hoge(){int a;a=1;return a;}int main(){int a; int b; a=0;a=hoge();return a;}'

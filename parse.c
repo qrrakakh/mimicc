@@ -1,6 +1,15 @@
 #include "9cc.h"
 
 //////////
+// type-related functions
+Type* type_int_init() {
+  Type* ty = calloc(1, sizeof(Type));
+  ty->kind = TYPE_INT;
+  ty->ptr_to = NULL;
+  return ty;
+}
+
+//////////
 // token-related functions
 
 // Read one token and return the token if the next token is an expected symbol,
@@ -214,6 +223,20 @@ Node *new_node_unaryop(NodeKind kind, Node *valnode) {
   node->kind = kind;
   node->children = calloc(1, sizeof(Node*));
   node->children[0] = valnode;
+
+  switch(kind) {
+    case ND_ADDR:
+      node->ty = calloc(1, sizeof(Type));
+      node->ty->kind = TYPE_PTR;
+      node->ty->ptr_to = find_lvar_by_offset(node->children[0]->offset)->ty;
+      break;
+    case ND_DEREF:
+      node->ty = find_lvar_by_offset(node->children[0]->offset)->ty->ptr_to;
+      break;
+    case ND_RETURN:
+      node->ty = NULL; // TODO: check
+      break;
+  }
   return node;
 }
 
@@ -223,6 +246,62 @@ Node *new_node_binop(NodeKind kind, Node *lhs, Node *rhs) {
   node->children = calloc(2, sizeof(Node*));
   node->children[0] = lhs;
   node->children[1] = rhs;
+
+  switch(kind) {
+    case ND_WHILE:
+      node->ty = NULL;
+    break;
+    // compare operator
+    // support type: INT/INT
+    case ND_EQUIV:
+    case ND_INEQUIV:
+    case ND_LE:
+    case ND_LT:
+      if (lhs->ty->kind != rhs->ty->kind) {
+        error_at(token->str, 
+          "different type cannot be compared; lhs type: %d, rhs type: %d",
+          lhs->ty->kind, rhs->ty->kind);
+      }
+      node->ty = type_int_init();
+      break;
+    case ND_ASSIGN:
+      if (lhs->ty->kind != rhs->ty->kind) {
+        error_at(token->str, 
+          "different type cannot be assigned; lhs type: %d, rhs type: %d, operation: %d",
+          lhs->ty->kind, rhs->ty->kind, node->kind);
+      }
+      node->ty = rhs->ty;
+      break;
+    case ND_ADD:
+      // add
+      // support type: INT/INT, INT/PTR, PTR/INT
+      if(lhs->ty->kind == TYPE_PTR && rhs->ty->kind == TYPE_PTR) {
+        error_at(token->str, "adding pointer to pointer is not valid.");
+      }
+      node->ty = lhs->ty;
+      break;
+    case ND_SUB:
+      // sub
+      // support type: INT/INT, PTR/INT (not INT/PTR)
+      if(rhs->ty->kind == TYPE_PTR) {
+        error_at(token->str, "subtracting pointer is not valid.");
+      }
+      node->ty = lhs->ty;
+      break;
+    // mul/div
+    // support type: INT/INT
+    case ND_MUL:
+    case ND_DIV:
+    case ND_MOD:
+      if (lhs->ty->kind != TYPE_INT || rhs->ty->kind != TYPE_INT) {
+        error_at(token->str, 
+        "non-int binary operation for mul/div/mod is not supported; lhs type: %d, rhs type: %d, operation: %d",
+          lhs->ty->kind, rhs->ty->kind, node->kind);
+      }
+      node->ty = lhs->ty;
+      break;
+  }
+
   return node;
 }
 
@@ -231,6 +310,7 @@ Node *new_node_num(int val) {
   node->children = NULL;
   node->kind = ND_NUM;
   node->val = val;
+  node->ty = type_int_init();
   return node;
 }
 
@@ -254,6 +334,7 @@ Node *new_node_lvar(Token *tok, Type *ty, bool declare) {
   node->children = NULL;
   node->kind = ND_LVAR;
   node->offset = var->offset;
+  node->ty = var->ty;
   return node;
 }
 
@@ -265,6 +346,7 @@ Node *new_node_for(Node *init, Node *cond, Node *next, Node *stmt) {
   node->children[1] = cond;
   node->children[2] = next;
   node->children[3] = stmt;
+  node->ty = NULL;
   return node;
 }
 
@@ -275,6 +357,7 @@ Node *new_node_if(Node *cond, Node *stmt1, Node *stmt2) {
   node->children[0] = cond;
   node->children[1] = stmt1;
   node->children[2] = stmt2;
+  node->ty = NULL;
   return node;
 }
 
@@ -282,6 +365,7 @@ Node *new_node_block(Node **stmt_list) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_BLOCK;
   node->children = stmt_list;
+  node->ty = NULL;
   return node;
 }
 
@@ -294,6 +378,7 @@ Node *new_node_func(Token *tok, int num_arg, Node *block_node) {
   node->val = tok->len;
   node->offset = num_arg;
   node->lvars = locals;
+  node->ty = type_int_init(); // TODO: modify if non-int function is implemented.
   return node;
 }
 
@@ -308,6 +393,7 @@ Node *new_node_funccall(Token *tok, int num_arg, Node *arg[]) {
   node->func_name = tok->str;
   node->val = tok->len;
   node->offset = num_arg;
+  node->ty = type_int_init(); // TODO: modify if non-int function is implemented.
   return node;
 }
 
@@ -403,7 +489,6 @@ Node *block() {
     }
     stmt_list[cur] = NULL;
 
-    // return new_node_func
     return new_node_block(stmt_list);
   } else {
     return NULL;
@@ -459,13 +544,11 @@ Type *type() {
   if(!(tok = consume_typestr())) {
     return NULL;
   } 
-  ty = calloc(1, sizeof(Type));
-  ty->ty = TYPE_INT;
-  ty->ptr_to = NULL;
+  ty = type_int_init();
   while(consume("*")) {
     tgt_ty = ty;
     ty = calloc(1, sizeof(Type));
-    ty->ty = TYPE_PTR;
+    ty->kind = TYPE_PTR;
     ty->ptr_to = tgt_ty;
   }
   return ty;
