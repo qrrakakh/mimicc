@@ -2,10 +2,26 @@
 
 //////////
 // type-related functions
-Type* type_int_init() {
-  Type* ty = calloc(1, sizeof(Type));
+Type *type_int_init() {
+  Type *ty = calloc(1, sizeof(Type));
   ty->kind = TYPE_INT;
   ty->ptr_to = NULL;
+  return ty;
+}
+
+Type *type_array_init(Type *_ty, size_t size) {
+  Type *ty = calloc(1, sizeof(Type));
+  ty->kind = TYPE_ARRAY;
+  ty->ptr_to = _ty;
+  ty->array_size = size;
+  return ty;
+}
+
+Type *implicit_typeconv_array2ptr(Type *old_ty) {
+  Type *ty = calloc(1, sizeof(Type));
+  ty->kind = TYPE_PTR;
+  ty->ptr_to = old_ty->ptr_to;
+  ty->array_size = old_ty->array_size;
   return ty;
 }
 
@@ -190,6 +206,7 @@ Token *tokenize(char *p) {
     // reserved once char
     if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '%' || *p == '&'
         || *p == '(' || *p == ')'
+        || *p == '[' || *p == ']'
         || *p == '<' || *p == '>' || *p == '='
         ||*p == ';' || *p == ',' || *p == '{' || *p == '}') {
       cur = new_token(TK_RESERVED, cur, p++, 1);
@@ -241,19 +258,21 @@ Node *new_node_unaryop(NodeKind kind, Node *valnode) {
   node->children[0] = valnode;
 
   switch(kind) {
+    case ND_SIZEOF:
+      node->ty = type_int_init();
+      break;
     case ND_ADDR:
       node->ty = calloc(1, sizeof(Type));
       node->ty->kind = TYPE_PTR;
-      node->ty->ptr_to = find_lvar_by_offset(node->children[0]->offset)->ty;
+      node->ty->ptr_to = node->children[0]->ty;
       break;
     case ND_DEREF:
-      node->ty = find_lvar_by_offset(node->children[0]->offset)->ty->ptr_to;
+      node->children[0]->ty = implicit_typeconv_array2ptr(node->children[0]->ty);
+      node->ty = node->children[0]->ty->ptr_to;
       break;
     case ND_RETURN:
+      node->children[0]->ty = implicit_typeconv_array2ptr(node->children[0]->ty);
       node->ty = NULL; // TODO: check
-      break;
-    case ND_SIZEOF:
-      node->ty = type_int_init();
       break;
   }
   return node;
@@ -265,6 +284,14 @@ Node *new_node_binop(NodeKind kind, Node *lhs, Node *rhs) {
   node->children = calloc(2, sizeof(Node*));
   node->children[0] = lhs;
   node->children[1] = rhs;
+
+  if(lhs->ty->kind == TYPE_ARRAY) {
+    lhs->ty = implicit_typeconv_array2ptr(lhs->ty);
+  }
+
+  if(rhs->ty->kind == TYPE_ARRAY) {
+    rhs->ty = implicit_typeconv_array2ptr(rhs->ty);
+  }
 
   switch(kind) {
     case ND_WHILE:
@@ -286,7 +313,7 @@ Node *new_node_binop(NodeKind kind, Node *lhs, Node *rhs) {
     case ND_ASSIGN:
       if (lhs->ty->kind != rhs->ty->kind) {
         error_at(token->str, 
-          "different type cannot be assigned; lhs type: %d, rhs type: %d, operation: %d",
+          "different type cannot be assigned; lhs type: %d, rhs type: %d",
           lhs->ty->kind, rhs->ty->kind, node->kind);
       }
       node->ty = rhs->ty;
@@ -342,8 +369,13 @@ Node *new_node_lvar(Token *tok, Type *ty, bool declare) {
     var->next = locals; locals = var;
     var->name = tok->str;
     var->len = tok->len;
-    var->offset = var->next->offset + 1;
     var->ty = ty;
+    if (ty->kind == TYPE_ARRAY) {
+      var->offset = var->next->offset + ty->array_size;
+    } else {
+      var->offset = var->next->offset + 1;
+    }
+    
   } else {
     if(!(var=find_lvar(tok))) {
       error_at(token->str, "Undefined local variable.");
@@ -421,7 +453,7 @@ int get_num_lvars() {
   LVar *var = locals;
   int i = 0;
   while (var->next) {
-    ++i;
+    if(var->offset>i) i=var->offset;
     var = var->next;
   } 
   return i;
@@ -434,6 +466,7 @@ Node *block();
 Node *stmt();
 Type *type();
 Node *declare();
+Node *declare_a();
 Node *expr();
 Node *assign();
 Node *equality();
@@ -521,7 +554,7 @@ Node *stmt() {
   if (tok = consume_return()) {
     node = new_node_unaryop(ND_RETURN, expr());
     expect(";");
-  } else if(node = declare()) {
+  } else if(node = declare_a()) {
     expect(";");
   } else if (node = block()) {
     return node;
@@ -580,6 +613,25 @@ Node *declare() {
     return NULL;
   if(!(tok = consume_ident()))
     return NULL;
+  return new_node_lvar(tok, ty, true);
+}
+
+Node *declare_a() {
+  Token *tok;
+  Type *ty;
+  size_t size;
+  if(!(ty = type()))
+    return NULL;
+  if(!(tok = consume_ident()))
+    return NULL;
+  if (consume("[")) {
+    size = expect_number();
+    if(size<1) {
+      error_at(token->str, "Array whose length less than 1 is invalid.");
+    }
+    ty = type_array_init(ty, size);
+    expect("]");
+  }
   return new_node_lvar(tok, ty, true);
 }
 

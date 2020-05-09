@@ -13,11 +13,13 @@ typedef struct Type Type;
 typedef enum {
   TYPE_INT,
   TYPE_PTR,
+  TYPE_ARRAY,
 } TypeKind;
 
 struct Type {
   TypeKind kind;
   struct Type *ptr_to;
+  size_t array_size;
 };
 
 typedef struct LVar LVar;

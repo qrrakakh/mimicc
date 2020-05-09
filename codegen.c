@@ -93,13 +93,6 @@ void gen(Node *node) {
     printf("  pop rax\n");
     printf("  mov rax, [rax]\n");
     printf("  push rax\n");
-    var = find_lvar_by_offset(node->children[0]->offset);
-    if(!var) {
-      error("lvar not found.");
-    }
-    if(!(var->ty)) {
-      error("lvar type not found, offset: %d", node->children[0]->offset);
-    }
     return;
 
     case ND_NUM:

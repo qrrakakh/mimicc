@@ -4,7 +4,7 @@ program    =  func*
 func       =  type ident ("(" ( | declare ("," declare){0,5}) ")") block
 block      =  "{ stmt* "}"
 stmt       =  block
-              | declare ";"
+              | declare_a ";"
               | "return" expr ";"
               | "while" "(" expr ")" stmt
               | "for" "(" expr ";" expr ";" expr ")" stmt
@@ -12,6 +12,7 @@ stmt       =  block
               | expr ";"
 type        = "int" "*"*
 declare     = type ident
+declare_a   = type ident ("[" num "]")?
 expr        = assign
 assign      = equality  ("=" assign)*;
 equality    = relational ( "==" | "!=" relational )*
@@ -25,8 +26,10 @@ unary       = "+" primary
               | "sizeof" unary
 primary     = num
               | ident ("(" ( | expr ("," expr){0,5}) ")")?
+              | ident "[" num "]"
 ```
 
 ## Known issues
 * The scope of local variables are only in function, not a block.
-* pointer return function is not defineable.
+* Pointer return function is not defineable.
+* Array allocation is aligned to the pointer size (8bytes=64bits), not a variable size (e.g. sizeof(int)=4bytes).
