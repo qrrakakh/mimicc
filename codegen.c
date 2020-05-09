@@ -3,6 +3,7 @@
 //////////
 // static value
 char x86_64_argreg[][6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+const int POINTER_SIZE_BYTES = 8;
 
 // type helper function
 int size_var(Type* ty) {
@@ -22,7 +23,7 @@ void gen_lval(Node *node) {
   if (node->kind == ND_LVAR) {
     // save the address of lval
     printf("  mov rax, rbp\n");
-    printf("  sub rax, %d\n", node->offset);
+    printf("  sub rax, %d\n", node->offset*POINTER_SIZE_BYTES);
     printf("  push rax\n");
   } else if(node->kind == ND_DEREF) {
     gen(node->children[0]);
@@ -46,11 +47,11 @@ void gen(Node *node) {
     // allocate stack for local variables
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
-    printf("  sub rsp, %d\n", get_num_lvars() * 8);
+    printf("  sub rsp, %d\n", get_num_lvars() * POINTER_SIZE_BYTES);
 
     // copy passed argument values to the local variables
     for(int i=0;i<node->offset;++i) {
-      printf("  mov [rbp-%d], %s\n", i*8+8, x86_64_argreg[i]);
+      printf("  mov [rbp-%d], %s\n", i*POINTER_SIZE_BYTES+POINTER_SIZE_BYTES, x86_64_argreg[i]);
     }
 
 

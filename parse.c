@@ -342,7 +342,7 @@ Node *new_node_lvar(Token *tok, Type *ty, bool declare) {
     var->next = locals; locals = var;
     var->name = tok->str;
     var->len = tok->len;
-    var->offset = var->next->offset + 8;
+    var->offset = var->next->offset + 1;
     var->ty = ty;
   } else {
     if(!(var=find_lvar(tok))) {
