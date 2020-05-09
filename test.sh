@@ -27,6 +27,35 @@ assert 1 'int main() {int a[2];*a = 1;*(a + 1) = 2;*a;}'
 assert 2 'int main() {int a[2];*a = 1;*(a + 1) = 2;*(a+1);}'
 assert 3 'int main() {int a[2];*a = 1;*(a + 1) = 2;int *p;p = a;return *p + *(p + 1);}'
 assert 3 'int main() {int a[2];int *p;p = a;*p = 1;*(p + 1) = 2;return *a + *(a + 1);}'
+
+assert 1 'int main() {int a[2];a[0] = 1;a[1] = 2;return a[0];}'
+assert 1 'int main() {int a[2];a[0] = 1;a[1] = 2;a[0];}'
+assert 2 'int main() {int a[2];a[0] = 1;a[1] = 2;a[1];}'
+assert 3 'int main() {int a[2];a[0] = 1;a[1] = 2;int *p;p = a;return *p + *(p + 1);}'
+assert 3 'int main() {int a[2];a[0] = 1;a[1] = 2;int *p;p = a;return p[0] + p[1];}'
+assert 3 'int main() {int a[2];int *p;p = a;*p = 1;*(p + 1) = 2;return a[0] + a[1];}'
+
+assert 1 'int main() {int a[2];int b;a[0]=1;a[1]=2;b=0;return a[b];}'
+assert 2 'int main() {int a[2];int b;a[0]=1;a[1]=2;b=0;return a[b+1];}'
+
+assert 1 'int main() {int a[2];int b;a[0]=1;a[1]=2;b=1;return a[0];}'
+assert 2 'int main() {int a[2];int b;a[0]=1;a[1]=2;b=1;return a[1];}'
+
+assert 2 'int main() {int a[100];int b;a[0]=1;a[1]=2;b=1;return a[1];}'
+assert 1 'int main() {int a3;int a2;int a1;int b;*(&a1)=1;*((&a1)+1)=2;*((&a1)+2)=3;b=1;return a1;}'
+assert 1 'int main() {int a[3];int b;*a=1;*(a+1)=2;*(a+2)=3;b=1;return *a;}'
+
+assert 1 'int main() {int a[3];int b;a[0]=1;a[1]=2;a[2]=3;b=1;return a[0];}'
+assert 2 'int main() {int a[3];int b;a[0]=1;a[1]=2;a[2]=3;b=1;return a[1];}'
+assert 3 'int main() {int a[3];int b;a[0]=1;a[1]=2;a[2]=3;b=1;return a[2];}'
+assert 3 'int main() {int a[3];int b;a[0]=1;a[1]=2;a[2]=3;b=1;return a[b*2];}'
+
+assert 1 'int main() {int a[4];int b;a[0]=1;a[1]=2;a[2]=3;a[3]=4;b=1;return a[0];}'
+assert 2 'int main() {int a[4];int b;a[0]=1;a[1]=2;a[2]=3;a[3]=4;b=1;return a[1];}'
+assert 3 'int main() {int a[4];int b;a[0]=1;a[1]=2;a[2]=3;a[3]=4;b=1;return a[2];}'
+assert 4 'int main() {int a[4];int b;a[0]=1;a[1]=2;a[2]=3;a[3]=4;b=1;return a[3];}'
+
+
 assert 4 'int main() {int a; return sizeof a ;}'
 assert 4 'int main() {int a; return sizeof(a);}'
 assert 8 'int main() {int *a; return sizeof(a);}'

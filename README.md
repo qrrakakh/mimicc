@@ -26,7 +26,7 @@ unary       = "+" primary
               | "sizeof" unary
 primary     = num
               | ident ("(" ( | expr ("," expr){0,5}) ")")?
-              | ident "[" num "]"
+              | ident "[" expr "]"
 ```
 
 ## Known issues

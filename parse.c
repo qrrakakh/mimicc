@@ -17,14 +17,6 @@ Type *type_array_init(Type *_ty, size_t size) {
   return ty;
 }
 
-Type *implicit_typeconv_array2ptr(Type *old_ty) {
-  Type *ty = calloc(1, sizeof(Type));
-  ty->kind = TYPE_PTR;
-  ty->ptr_to = old_ty->ptr_to;
-  ty->array_size = old_ty->array_size;
-  return ty;
-}
-
 //////////
 // token-related functions
 
@@ -267,11 +259,15 @@ Node *new_node_unaryop(NodeKind kind, Node *valnode) {
       node->ty->ptr_to = node->children[0]->ty;
       break;
     case ND_DEREF:
-      node->children[0]->ty = implicit_typeconv_array2ptr(node->children[0]->ty);
       node->ty = node->children[0]->ty->ptr_to;
+      if(node->children[0]->ty->kind == TYPE_ARRAY) {
+        node->children[0] = new_node_unaryop(ND_ADDR, node->children[0]);
+      }
       break;
     case ND_RETURN:
-      node->children[0]->ty = implicit_typeconv_array2ptr(node->children[0]->ty);
+      if(node->children[0]->ty->kind == TYPE_ARRAY) {
+        node->children[0] = new_node_unaryop(ND_ADDR, node->children[0]);
+      }
       node->ty = NULL; // TODO: check
       break;
   }
@@ -286,11 +282,15 @@ Node *new_node_binop(NodeKind kind, Node *lhs, Node *rhs) {
   node->children[1] = rhs;
 
   if(lhs->ty->kind == TYPE_ARRAY) {
-    lhs->ty = implicit_typeconv_array2ptr(lhs->ty);
+    node->children[0] = new_node_unaryop(ND_ADDR, lhs);
+    node->children[0]->ty->ptr_to = lhs->ty->ptr_to;  // type should be a pointer of the array target
+    lhs = node->children[0];
   }
 
   if(rhs->ty->kind == TYPE_ARRAY) {
-    rhs->ty = implicit_typeconv_array2ptr(rhs->ty);
+    node->children[1] = new_node_unaryop(ND_ADDR, rhs);
+    node->children[1]->ty->ptr_to = rhs->ty->ptr_to;  // type should be a pointer of the array target
+    rhs = node->children[1];
   }
 
   switch(kind) {
@@ -726,8 +726,10 @@ Node *unary() {
 
 Node *primary() {
   Node *node;
+  Node *subscript;
   Node *arg[6];
-  int num_arg;
+  size_t num_arg;
+  Token *tok;
 
   // if the next token is '(' then it should be expanded as '(' expr ')'
   if (consume("(")) {
@@ -736,8 +738,7 @@ Node *primary() {
     return node;
   }
 
-  Token *tok = consume_ident();
-  if(tok) {
+  if(tok= consume_ident()) {
     if (consume("(")) {
       num_arg = 0;
       if(!consume(")")) {
@@ -752,6 +753,11 @@ Node *primary() {
         expect(")");
       }
       return new_node_funccall(tok, num_arg, arg);
+    } else if(consume("[")) {
+      subscript = expr();
+      expect("]");
+      return new_node_unaryop(ND_DEREF,
+        new_node_binop(ND_ADD, new_node_lvar(tok, NULL, false), subscript));
     } else {
       return new_node_lvar(tok, NULL, false);
     }

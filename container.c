@@ -34,6 +34,9 @@ void print_node(Node* node, int offset) {
   fprintf(stderr, "%*skind: %d\n",offset*4,"", node->kind);
   fprintf(stderr, "%*sval: %d\n",offset*4,"",node->val);
   fprintf(stderr, "%*soffset: %d\n",offset*4,"",node->offset);
+  if(node->ty) {
+    fprintf(stderr, "%*stype kind: %d\n",offset*4,"", node->ty->kind);
+  }
   fprintf(stderr, "%*sfunc_name: %s\n",offset*4,"",node->func_name);
   int num_children = 0;
   if (node->kind==ND_CALL) {

@@ -28,7 +28,7 @@ void gen_lval(Node *node) {
   } else if(node->kind == ND_DEREF) {
     gen(node->children[0]);
   } else {
-    error("lval is not a variable");
+    error("lval is not a variable, %d", node->kind);
   }
 }
 
