@@ -22,10 +22,10 @@ struct Type {
   size_t array_size;
 };
 
-typedef struct LVar LVar;
+typedef struct Var Var;
 
-struct LVar {  // defined local variables
-  LVar *next;
+struct Var {  // defined variables
+  Var *next;
   char *name;
   int len;
   int offset;
@@ -43,7 +43,8 @@ typedef enum {  // ABS Node kinds
   ND_INEQUIV,  // !=
   ND_LT,        // <
   ND_LE,        // <=
-  ND_LVAR,      // Local variable,
+  ND_LVAR,      // Local variable
+  ND_GVAR,      // Global variable
   ND_ASSIGN,    // =
   ND_RETURN,    // return
   ND_WHILE,     // while
@@ -62,10 +63,10 @@ typedef struct Node Node;
 struct Node { // ABS Node struct
   NodeKind kind;
   Node** children;
-  int val;          // Only when kind==ND_NUM or ND_CALL
+  int val;          // Only when kind==ND_NUM or ND_CALL or ND_GVAR
   int offset;       // Only when kind=ND_LVAR or ND_CALL
   char* func_name;  // Only when kind=ND_CALL
-  LVar* lvars;      // Only when kind=ND_FUNC
+  Var* lvars;      // Only when kind=ND_FUNC
   Type* ty;
 };
 
@@ -93,7 +94,8 @@ struct Token {  // Token type
 Token *token;         // current token pointer
 Node *code[100];
 char *user_input;     // Input program
-LVar *locals;
+Var *locals;
+Var *globals;
 int label_index;
 
 //////////
@@ -109,8 +111,8 @@ Token *tokenize(char *p);
 //////////
 // ast-related functions
 
-// find if the local var is already defined
-LVar *find_lvar_by_offset(int offset);
+// find if the global var is already defined
+Var *find_gvar_by_offset(int offset);
 
 // get a number of local variables
 int get_num_lvars();
@@ -124,3 +126,9 @@ void gen(Node *node);
 //////////
 // debug function
 void print_node_tree();
+
+//////////
+// architecture-dependent functions
+
+// type helper function
+int size_var(Type* ty);

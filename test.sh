@@ -22,6 +22,16 @@ assert() {
 }
 compile_test_func
 
+assert 1 'int a;int main() {a = 1;return a;}'
+assert 1 'int *z;int main() {int a[2];z=&a;*z = 1;*(a + 1) = 2;return *a;}'
+assert 1 'int a[2];int main() {*a = 1;*(a + 1) = 2;return *a;}'
+assert 23 'int a;int hoge(int z) { return a+z;} int main() {a=3; return hoge(20);}'
+assert 23 'int a[3];int hoge(int z) { return a[2]+z;} int main() {a[0]=1;a[1]=2;a[2]=3; return hoge(20);}'
+assert 3 'int a;int hoge() {int a; a=3; return a;} int main() {a=1; return hoge();}'
+assert 1 'int a;int hoge() {int a; a=3; return a;} int main() {a=1; hoge();return a;}'
+assert 1 'int a;int hoge() {return a;} int main() {a=1; int a; a=2;return hoge();}'
+assert 2 'int a;int hoge() {return a;} int main() {a=1; int a; a=2;hoge();return a;}'
+
 assert 1 'int main() {int a[2];*a = 1;*(a + 1) = 2;return *a;}'
 assert 1 'int main() {int a[2];*a = 1;*(a + 1) = 2;*a;}'
 assert 2 'int main() {int a[2];*a = 1;*(a + 1) = 2;*(a+1);}'

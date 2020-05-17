@@ -1,6 +1,7 @@
 #include "9cc.h"
 
 int main(int argc, char **argv) {
+  Var *g;
   if (argc != 2) {
     fprintf(stderr, "Invalid number of arguments\n");
     return 1;
@@ -26,5 +27,13 @@ int main(int argc, char **argv) {
     //printf("  pop rax\n");
   }
 
+  // global variable
+  printf("  .data\n");
+  for(g=globals;g->next!=NULL;g=g->next) {
+    printf("%.*s:\n", g->len, g->name);
+    printf("  .zero %d\n", size_var(g->ty));
+  }
+
+  
   return 0;
 }

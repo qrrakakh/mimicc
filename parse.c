@@ -222,9 +222,9 @@ Token *tokenize(char *p) {
 // ast-related functions
 
 // find if the local var is already defined
-LVar *find_lvar(Token *tok) {
-  LVar *var;
-  for(var=locals;var;var=var->next) {
+Var *find_var(Token *tok, Var *head) {
+  Var *var;
+  for(var=head;var;var=var->next) {
     if(var->len == tok->len && !memcmp(var->name, tok->str, var->len)) {
       return var;
     }
@@ -232,14 +232,31 @@ LVar *find_lvar(Token *tok) {
   return NULL;
 }
 
-LVar *find_lvar_by_offset(int offset) {
-  LVar *var;
-  for(var=locals;var;var=var->next) {
+Var *find_lvar(Token *tok) {
+  return find_var(tok, locals);
+}
+
+Var *find_gvar(Token *tok) {
+  return find_var(tok, globals);
+}
+
+Var *find_gvar_by_offset(int offset) {
+  Var *var;
+  for(var=globals;var;var=var->next) {
     if(var->offset == offset) {
       return var;
     }
   }
   return NULL;
+}
+
+bool isglobalvar(Token* tok) {
+  if(find_lvar(tok))
+    return false;
+  else if(find_gvar(tok))
+    return true;
+  else
+    error_at(token->str, "Undefined variable.");
 }
 
 // Generate new node
@@ -362,10 +379,10 @@ Node *new_node_num(int val) {
 
 Node *new_node_lvar(Token *tok, Type *ty, bool declare) {
   Node *node = calloc(1, sizeof(Node));
-  LVar *var;
+  Var *var;
   
   if (declare) {
-    var = calloc(1, sizeof(LVar));
+    var = calloc(1, sizeof(Var));
     var->next = locals; locals = var;
     var->name = tok->str;
     var->len = tok->len;
@@ -384,6 +401,37 @@ Node *new_node_lvar(Token *tok, Type *ty, bool declare) {
 
   node->children = NULL;
   node->kind = ND_LVAR;
+  node->offset = var->offset;
+  node->ty = var->ty;
+  return node;
+}
+
+Node *new_node_gvar(Token *tok, Type *ty, bool declare) {
+  Node *node = calloc(1, sizeof(Node));
+  Var *var;
+  
+  if (declare) {
+    var = calloc(1, sizeof(Var));
+    var->next = globals; globals = var;
+    var->name = tok->str;
+    var->len = tok->len;
+    var->ty = ty;
+    if (ty->kind == TYPE_ARRAY) {
+      var->offset = var->next->offset + ty->array_size;
+    } else {
+      var->offset = var->next->offset + 1;
+    }
+    node->val = 1;
+    
+  } else {
+    if(!(var=find_gvar(tok))) {
+      error_at(token->str, "Undefined global variable.");
+    }
+    node->val = 0;
+  }
+
+  node->children = NULL;
+  node->kind = ND_GVAR;
   node->offset = var->offset;
   node->ty = var->ty;
   return node;
@@ -450,7 +498,7 @@ Node *new_node_funccall(Token *tok, int num_arg, Node *arg[]) {
 
 // get a number of local variables
 int get_num_lvars() {
-  LVar *var = locals;
+  Var *var = locals;
   int i = 0;
   while (var->next) {
     if(var->offset>i) i=var->offset;
@@ -467,6 +515,7 @@ Node *stmt();
 Type *type();
 Node *declare();
 Node *declare_a();
+Node *declare_g();
 Node *expr();
 Node *assign();
 Node *equality();
@@ -479,8 +528,33 @@ Node *primary();
 
 void program() {
   int i=0;
+  Token *_tok;
+  Node *node;
+  Type *ty;
+
+  globals = calloc(1, sizeof(Var)); 
+  globals->next = NULL;
+  globals->offset = 0;
+
   while(!at_eof()) {
-    code[i++] = func();
+    _tok = token;
+    code[i] = NULL;
+
+    ty = type();
+    if(!consume_ident()) {
+      error_at(token->str, "Invalid definition statement.");
+    }
+    if(consume("(")) { // func
+      token = _tok;
+      code[i++] = func();
+    } else if(consume("[") || consume(";")) { // global variable
+      token = _tok;
+      code[i++] = declare_g();
+      expect(";");
+    } else {
+      token = _tok;
+      error_at(token->str, "Definition of the global variable or the function should be allowed.");
+    }
   }
   code[i] = NULL;
 }
@@ -498,7 +572,7 @@ Node *func() {
   }
 
   // dummy lvar
-  locals = calloc(1, sizeof(LVar)); 
+  locals = calloc(1, sizeof(Var)); 
   locals->next = NULL;
   locals->offset = 0;
   
@@ -635,6 +709,25 @@ Node *declare_a() {
   return new_node_lvar(tok, ty, true);
 }
 
+Node *declare_g() {
+  Token *tok;
+  Type *ty;
+  size_t size;
+  if(!(ty = type()))
+    return NULL;
+  if(!(tok = consume_ident()))
+    return NULL;
+  if (consume("[")) {
+    size = expect_number();
+    if(size<1) {
+      error_at(token->str, "Array whose length less than 1 is invalid.");
+    }
+    ty = type_array_init(ty, size);
+    expect("]");
+  }
+  return new_node_gvar(tok, ty, true);
+}
+
 Node *expr() {
   return assign();
 }
@@ -756,10 +849,19 @@ Node *primary() {
     } else if(consume("[")) {
       subscript = expr();
       expect("]");
-      return new_node_unaryop(ND_DEREF,
-        new_node_binop(ND_ADD, new_node_lvar(tok, NULL, false), subscript));
+      if(isglobalvar(tok)) {
+        return new_node_unaryop(ND_DEREF,
+          new_node_binop(ND_ADD, new_node_gvar(tok, NULL, false), subscript));
+      } else {
+        return new_node_unaryop(ND_DEREF,
+          new_node_binop(ND_ADD, new_node_lvar(tok, NULL, false), subscript));
+      }
     } else {
-      return new_node_lvar(tok, NULL, false);
+      if(isglobalvar(tok)) {
+        return new_node_gvar(tok, NULL, false);
+      } else {
+        return new_node_lvar(tok, NULL, false);
+      }
     }
   } else { // else should be a number.
     return new_node_num(expect_number());

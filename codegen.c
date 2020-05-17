@@ -11,6 +11,8 @@ int size_var(Type* ty) {
     return 4;
   } else if(ty->kind == TYPE_PTR) {
     return 8;
+  } else if(ty->kind == TYPE_ARRAY) {
+    return ty->array_size * size_var(ty->ptr_to);
   }
 }
 
@@ -20,10 +22,16 @@ int size_ptr(Type* ty) {
 
 // Code generator
 void gen_lval(Node *node) {
+  Var *var;
   if (node->kind == ND_LVAR) {
     // save the address of lval
     printf("  mov rax, rbp\n");
     printf("  sub rax, %d\n", node->offset*POINTER_SIZE_BYTES);
+    printf("  push rax\n");
+  } else if(node->kind == ND_GVAR) {
+    var = find_gvar_by_offset(node->offset);
+    // printf("  push %.*s\n", var->len, var->name);
+    printf("  lea rax, %.*s[rip]\n", var->len, var->name);
     printf("  push rax\n");
   } else if(node->kind == ND_DEREF) {
     gen(node->children[0]);
@@ -37,7 +45,7 @@ void gen(Node *node) {
   int label;
   Node **stmt_list;
   Type *lhs_ty, *rhs_ty;
-  LVar *var;
+  Var *var;
 
   switch(node->kind) {
     case ND_FUNC:
@@ -103,6 +111,9 @@ void gen(Node *node) {
     printf("  push %d\n", size_var(node->children[0]->ty));
     return;
 
+    case ND_GVAR:
+    if (node->val==1)
+      return;
     case ND_LVAR:
     gen_lval(node);
     printf("  pop rax\n");
