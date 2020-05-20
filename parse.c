@@ -2,11 +2,14 @@
 
 //////////
 // type-related functions
-Type *type_int_init() {
+Type *type_init(TypeKind t) {
   Type *ty = calloc(1, sizeof(Type));
-  ty->kind = TYPE_INT;
+  ty->kind = t;
   ty->ptr_to = NULL;
-  return ty;
+}
+
+Type *type_int_init() {
+  return type_init(TYPE_INT);
 }
 
 Type *type_array_init(Type *_ty, size_t size) {
@@ -15,6 +18,10 @@ Type *type_array_init(Type *_ty, size_t size) {
   ty->ptr_to = _ty;
   ty->array_size = size;
   return ty;
+}
+
+int isarithmetictype(Type* ty) {
+  return ty->kind < TYPE_ARITHMETIC_LIMIT;
 }
 
 //////////
@@ -45,7 +52,12 @@ Token *consume_ident() {
 }
 
 Token *consume_typestr() {
-  return consume("int");
+  Token *tok;
+  for(int i=0;i<num_builtin_types;++i) {
+    if(tok=consume(builtin_type_names[i]))
+      return tok;
+  }
+  return NULL;
 }
 
 // Read one token and return the pointed token if the next token is a identifier,
@@ -114,10 +126,10 @@ Var *find_gvar(Token *tok) {
   return find_var(tok, globals);
 }
 
-Var *find_gvar_by_offset(int offset) {
+Var *find_gvar_by_id(int id) {
   Var *var;
   for(var=globals;var;var=var->next) {
-    if(var->offset == offset) {
+    if(var->id == id) {
       return var;
     }
   }
@@ -194,24 +206,29 @@ Node *new_node_binop(NodeKind kind, Node *lhs, Node *rhs) {
     case ND_INEQUIV:
     case ND_LE:
     case ND_LT:
-      if (lhs->ty->kind != rhs->ty->kind) {
+      if ((!isarithmetictype(lhs->ty)) ||
+          (!isarithmetictype(rhs->ty)) ||
+          (lhs->ty->kind != rhs->ty->kind)) {
         error_at(token->str, 
-          "different type cannot be compared; lhs type: %d, rhs type: %d",
+          "both types should be arithmetic or different type cannot be compared; lhs type: %d, rhs type: %d",
           lhs->ty->kind, rhs->ty->kind);
       }
       node->ty = type_int_init();
       break;
     case ND_ASSIGN:
-      if (lhs->ty->kind != rhs->ty->kind) {
+      if (isarithmetictype(lhs->ty) && isarithmetictype(rhs->ty)) {
+        node->ty = lhs->ty;
+      } else if (lhs->ty->kind != rhs->ty->kind) {
         error_at(token->str, 
           "different type cannot be assigned; lhs type: %d, rhs type: %d",
           lhs->ty->kind, rhs->ty->kind, node->kind);
+      } else {
+        node->ty = lhs->ty;
       }
-      node->ty = rhs->ty;
       break;
     case ND_ADD:
       // add
-      // support type: INT/INT, INT/PTR, PTR/INT
+      // support type: ARI/ARI, ARI/PTR, PTR/ARI
       if(lhs->ty->kind == TYPE_PTR && rhs->ty->kind == TYPE_PTR) {
         error_at(token->str, "adding pointer to pointer is not valid.");
       }
@@ -219,18 +236,19 @@ Node *new_node_binop(NodeKind kind, Node *lhs, Node *rhs) {
       break;
     case ND_SUB:
       // sub
-      // support type: INT/INT, PTR/INT (not INT/PTR)
+      // support type: ARI/ARI, PTR/ARI (not ARI/PTR)
       if(rhs->ty->kind == TYPE_PTR) {
         error_at(token->str, "subtracting pointer is not valid.");
       }
       node->ty = lhs->ty;
       break;
     // mul/div
-    // support type: INT/INT
+    // support type: ARI/ARI
     case ND_MUL:
     case ND_DIV:
     case ND_MOD:
-      if (lhs->ty->kind != TYPE_INT || rhs->ty->kind != TYPE_INT) {
+      if ((!isarithmetictype(lhs->ty)) ||
+          (!isarithmetictype(rhs->ty))) {
         error_at(token->str, 
         "non-int binary operation for mul/div/mod is not supported; lhs type: %d, rhs type: %d, operation: %d",
           lhs->ty->kind, rhs->ty->kind, node->kind);
@@ -262,9 +280,9 @@ Node *new_node_lvar(Token *tok, Type *ty, bool declare) {
     var->len = tok->len;
     var->ty = ty;
     if (ty->kind == TYPE_ARRAY) {
-      var->offset = var->next->offset + ty->array_size;
+      var->id = var->next->id + ty->array_size;
     } else {
-      var->offset = var->next->offset + 1;
+      var->id = var->next->id + 1;
     }
     
   } else {
@@ -275,7 +293,7 @@ Node *new_node_lvar(Token *tok, Type *ty, bool declare) {
 
   node->children = NULL;
   node->kind = ND_LVAR;
-  node->offset = var->offset;
+  node->id = var->id;
   node->ty = var->ty;
   return node;
 }
@@ -291,9 +309,9 @@ Node *new_node_gvar(Token *tok, Type *ty, bool declare) {
     var->len = tok->len;
     var->ty = ty;
     if (ty->kind == TYPE_ARRAY) {
-      var->offset = var->next->offset + ty->array_size;
+      var->id = var->next->id + ty->array_size;
     } else {
-      var->offset = var->next->offset + 1;
+      var->id = var->next->id + 1;
     }
     node->val = 1;
     
@@ -306,7 +324,7 @@ Node *new_node_gvar(Token *tok, Type *ty, bool declare) {
 
   node->children = NULL;
   node->kind = ND_GVAR;
-  node->offset = var->offset;
+  node->id = var->id;
   node->ty = var->ty;
   return node;
 }
@@ -342,30 +360,30 @@ Node *new_node_block(Node **stmt_list) {
   return node;
 }
 
-Node *new_node_func(Token *tok, int num_arg, Node *block_node) {
+Node *new_node_func(Token *tok, int num_args, Node *block_node) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_FUNC;
   node->children = calloc(1, sizeof(Node*));;
   node->children[0] = block_node;
   node->func_name = tok->str;
   node->val = tok->len;
-  node->offset = num_arg;
+  node->num_args = num_args;
   node->lvars = locals;
   node->ty = type_int_init(); // TODO: modify if non-int function is implemented.
   return node;
 }
 
-Node *new_node_funccall(Token *tok, int num_arg, Node *arg[]) {
+Node *new_node_funccall(Token *tok, int num_args, Node *arg[]) {
   int i;
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_CALL;
-  node->children = calloc(num_arg, sizeof(Node));
-  for(i=0;i<num_arg;++i) {
+  node->children = calloc(num_args, sizeof(Node));
+  for(i=0;i<num_args;++i) {
     node->children[i] = arg[i];
   }
   node->func_name = tok->str;
   node->val = tok->len;
-  node->offset = num_arg;
+  node->num_args = num_args;
   node->ty = type_int_init(); // TODO: modify if non-int function is implemented.
   return node;
 }
@@ -375,7 +393,7 @@ int get_num_lvars() {
   Var *var = locals;
   int i = 0;
   while (var->next) {
-    if(var->offset>i) i=var->offset;
+    if(var->id>i) i=var->id;
     var = var->next;
   } 
   return i;
@@ -408,7 +426,7 @@ void program() {
 
   globals = calloc(1, sizeof(Var)); 
   globals->next = NULL;
-  globals->offset = 0;
+  globals->id = 0;
 
   while(!at_eof()) {
     _tok = token;
@@ -448,7 +466,7 @@ Node *func() {
   // dummy lvar
   locals = calloc(1, sizeof(Var)); 
   locals->next = NULL;
-  locals->offset = 0;
+  locals->id = 0;
   
   expect("(");
   num_arg = 0;
@@ -543,8 +561,13 @@ Type *type() {
   Token* tok;
   if(!(tok = consume_typestr())) {
     return NULL;
-  } 
-  ty = type_int_init();
+  }
+  for(int i=0;i<num_builtin_types;++i) {
+    if(strncmp(tok->str, builtin_type_names[i], tok->len)==0) {
+      ty = type_init(builtin_type_enum[i]);
+    }
+  }
+
   while(consume("*")) {
     tgt_ty = ty;
     ty = calloc(1, sizeof(Type));

@@ -3,6 +3,10 @@
 //////////
 // tokenizer and helpers
 
+char *builtin_type_names[] = {"int"};
+TypeKind builtin_type_enum[] = {TYPE_INT};
+int num_builtin_types = 1;
+
 // Generate new token and concatenate to cur
 Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
   Token *tok = calloc(1, sizeof(Token));
@@ -28,9 +32,12 @@ bool iskeyword(char *p, char *keyword, bool need_space) {
 }
 
 int istype(char* p) {
-  int len = strlen("int");
-  if(strncmp(p, "int", len)==0 && p+len && isspace(*(p+len)))
-    return len;
+  int len;
+  for(int i=0;i<num_builtin_types;++i) {
+    len = strlen(builtin_type_names[i]);
+    if(strncmp(p, builtin_type_names[i], len)==0 && p+len && isspace(*(p+len)))
+      return len;
+  }
   return 0;
 }
 

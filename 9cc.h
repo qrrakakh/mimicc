@@ -12,6 +12,7 @@ typedef struct Type Type;
 
 typedef enum {
   TYPE_INT,
+  TYPE_ARITHMETIC_LIMIT,
   TYPE_PTR,
   TYPE_ARRAY,
 } TypeKind;
@@ -28,7 +29,8 @@ struct Var {  // defined variables
   Var *next;
   char *name;
   int len;
-  int offset;
+  int id;
+  int offset_bytes;
   Type *ty;
 };
 
@@ -64,7 +66,9 @@ struct Node { // ABS Node struct
   NodeKind kind;
   Node** children;
   int val;          // Only when kind==ND_NUM or ND_CALL or ND_GVAR
-  int offset;       // Only when kind=ND_LVAR or ND_CALL
+  int offset;       // Only when kind=ND_LVAR or ND_GVAR
+  int id;           // Only when kind=ND_LVAR or ND_GVAR
+  int num_args;     // Only when kind=ND_FUNC or ND_CALL
   char* func_name;  // Only when kind=ND_CALL
   Var* lvars;      // Only when kind=ND_FUNC
   Type* ty;
@@ -97,6 +101,9 @@ char *user_input;     // Input program
 Var *locals;
 Var *globals;
 int label_index;
+extern char *builtin_type_names[];
+extern int num_builtin_types;
+extern TypeKind builtin_type_enum[];
 
 //////////
 // utility functions
@@ -112,7 +119,7 @@ Token *tokenize(char *p);
 // ast-related functions
 
 // find if the global var is already defined
-Var *find_gvar_by_offset(int offset);
+Var *find_gvar_by_id(int offset);
 
 // get a number of local variables
 int get_num_lvars();

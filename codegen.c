@@ -26,10 +26,10 @@ void gen_lval(Node *node) {
   if (node->kind == ND_LVAR) {
     // save the address of lval
     printf("  mov rax, rbp\n");
-    printf("  sub rax, %d\n", node->offset*POINTER_SIZE_BYTES);
+    printf("  sub rax, %d\n", node->id*POINTER_SIZE_BYTES);
     printf("  push rax\n");
   } else if(node->kind == ND_GVAR) {
-    var = find_gvar_by_offset(node->offset);
+    var = find_gvar_by_id(node->id);
     // printf("  push %.*s\n", var->len, var->name);
     printf("  lea rax, %.*s[rip]\n", var->len, var->name);
     printf("  push rax\n");
@@ -58,7 +58,7 @@ void gen(Node *node) {
     printf("  sub rsp, %d\n", get_num_lvars() * POINTER_SIZE_BYTES);
 
     // copy passed argument values to the local variables
-    for(int i=0;i<node->offset;++i) {
+    for(int i=0;i<node->num_args;++i) {
       printf("  mov [rbp-%d], %s\n", i*POINTER_SIZE_BYTES+POINTER_SIZE_BYTES, x86_64_argreg[i]);
     }
 
@@ -176,11 +176,11 @@ void gen(Node *node) {
     return;
 
     case ND_CALL:
-    for(int i=0;i<node->offset;++i) {
+    for(int i=0;i<node->num_args;++i) {
       gen(node->children[i]);
     }
 
-    for(int i=node->offset-1;i>=0;--i) {
+    for(int i=node->num_args-1;i>=0;--i) {
       printf("  pop %s\n", x86_64_argreg[i]);
     }
 

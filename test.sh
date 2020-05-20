@@ -22,6 +22,8 @@ assert() {
 }
 compile_test_func
 
+#assert 1 'char a;char main() {a = 1;return a;}'
+#assert 1 'int main() { char a; return sizeof(a); }'
 assert 1 'int a;int main() {a = 1;return a;}'
 assert 1 'int *z;int main() {int a[2];z=&a;*z = 1;*(a + 1) = 2;return *a;}'
 assert 1 'int a[2];int main() {*a = 1;*(a + 1) = 2;return *a;}'

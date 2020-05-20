@@ -29,18 +29,20 @@ void error_at(char *loc, char *fmt, ...) {
 }
 
 // debug function
-void print_node(Node* node, int offset) {
-  fprintf(stderr, "%*s---\n",offset*4, "");
-  fprintf(stderr, "%*skind: %d\n",offset*4,"", node->kind);
-  fprintf(stderr, "%*sval: %d\n",offset*4,"",node->val);
-  fprintf(stderr, "%*soffset: %d\n",offset*4,"",node->offset);
+void print_node(Node* node, int num_lead_ws) {
+  fprintf(stderr, "%*s---\n",num_lead_ws*4, "");
+  fprintf(stderr, "%*skind: %d\n",num_lead_ws*4,"", node->kind);
+  fprintf(stderr, "%*sval: %d\n",num_lead_ws*4,"",node->val);
+  fprintf(stderr, "%*sid: %d\n",num_lead_ws*4,"",node->id);
+  fprintf(stderr, "%*snum_args: %d\n",num_lead_ws*4,"",node->num_args);
+  fprintf(stderr, "%*soffset: %d\n",num_lead_ws*4,"",node->offset);
   if(node->ty) {
-    fprintf(stderr, "%*stype kind: %d\n",offset*4,"", node->ty->kind);
+    fprintf(stderr, "%*stype kind: %d\n",num_lead_ws*4,"", node->ty->kind);
   }
-  fprintf(stderr, "%*sfunc_name: %s\n",offset*4,"",node->func_name);
+  fprintf(stderr, "%*sfunc_name: %s\n",num_lead_ws*4,"",node->func_name);
   int num_children = 0;
   if (node->kind==ND_CALL) {
-    num_children = node->offset;
+    num_children = node->num_args;
   } else if(node->kind==ND_RETURN || node->kind == ND_SIZEOF
           || node->kind == ND_ADDR || node->kind == ND_DEREF
           || node->kind == ND_FUNC) {
@@ -66,7 +68,7 @@ void print_node(Node* node, int offset) {
   }
 
   for(int i=0;i<num_children;++i) {
-    print_node(*(node->children+i), offset+1);
+    print_node(*(node->children+i), num_lead_ws+1);
   }
 }
 
