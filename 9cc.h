@@ -120,6 +120,7 @@ Token *tokenize(char *p);
 
 // find if the global var is already defined
 Var *find_gvar_by_id(int offset);
+Var *find_lvar_by_id(int offset);
 
 // get a number of local variables
 int get_num_lvars();

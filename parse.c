@@ -104,7 +104,7 @@ bool at_eof() {
   return token->kind == TK_EOF;
 }
 
-//////////
+////////
 // ast-related functions
 
 // find if the local var is already defined
@@ -126,14 +126,22 @@ Var *find_gvar(Token *tok) {
   return find_var(tok, globals);
 }
 
-Var *find_gvar_by_id(int id) {
+Var *find_var_by_id(int id, Var *head) {
   Var *var;
-  for(var=globals;var;var=var->next) {
+  for(var=head;var;var=var->next) {
     if(var->id == id) {
       return var;
     }
   }
   return NULL;
+}
+
+Var *find_lvar_by_id(int id) {
+  return find_var_by_id(id, locals);
+}
+
+Var *find_gvar_by_id(int id) {
+  return find_var_by_id(id, globals);
 }
 
 bool isglobalvar(Token* tok) {
@@ -455,7 +463,7 @@ Node *func() {
   Token *type_tok, *ident_tok, *arg_tok;
   Type *ty;
   Node *arg[6];
-  int num_arg;
+  int num_args;
   if(!(ty = type())) {
     error_at(token->str, "Invalid type in function declaration.");
   }
@@ -469,12 +477,12 @@ Node *func() {
   locals->id = 0;
   
   expect("(");
-  num_arg = 0;
+  num_args = 0;
   if(!consume(")")) {
-    arg[num_arg++] = declare();
-    while(num_arg<=6) {
+    arg[num_args++] = declare();
+    while(num_args<=6) {
       if(consume(",")) {
-          arg[num_arg++] = declare();
+          arg[num_args++] = declare();
       } else {
         break;
       }
@@ -482,7 +490,7 @@ Node *func() {
     expect(")");
   }
   
-  return new_node_func(ident_tok, num_arg, block());
+  return new_node_func(ident_tok, num_args, block());
 }
 
 Node *block() {
@@ -718,7 +726,7 @@ Node *primary() {
   Node *node;
   Node *subscript;
   Node *arg[6];
-  size_t num_arg;
+  size_t num_args;
   Token *tok;
 
   // if the next token is '(' then it should be expanded as '(' expr ')'
@@ -730,19 +738,19 @@ Node *primary() {
 
   if(tok= consume_ident()) {
     if (consume("(")) {
-      num_arg = 0;
+      num_args = 0;
       if(!consume(")")) {
-        arg[num_arg++] = expr();
-        while(num_arg<=6) {
+        arg[num_args++] = expr();
+        while(num_args<=6) {
           if(consume(",")) {
-            arg[num_arg++] = expr();
+            arg[num_args++] = expr();
           } else {
             break;
           }
         }
         expect(")");
       }
-      return new_node_funccall(tok, num_arg, arg);
+      return new_node_funccall(tok, num_args, arg);
     } else if(consume("[")) {
       subscript = expr();
       expect("]");
