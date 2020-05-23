@@ -347,11 +347,13 @@ Node *new_node_lvar(Token *tok, Type *ty, bool declare) {
     } else {
       var->id = var->next->id + 1;
     }
+    node->val = 1;
     
   } else {
     if(!(var=find_lvar(tok))) {
       error_at(token->str, "Undefined local variable.");
     }
+    node->val = 0;
   }
 
   node->children = NULL;

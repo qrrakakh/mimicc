@@ -205,6 +205,8 @@ void gen(Node *node) {
     if (node->val==1)
       return;
     case ND_LVAR:
+    if (node->val==1)
+      return;
     gen_lval(node);
     load(node->ty);
     return;
