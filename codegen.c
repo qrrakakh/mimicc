@@ -21,6 +21,49 @@ int size_ptr(Type* ty) {
 }
 
 // Code generator
+void store(Type *ty) {
+  printf("  pop rdi\n");
+  printf("  pop rax\n");
+
+  switch(size_var(ty)) {
+    case 1:
+      printf("  mov [rax], dil\n");
+      break;
+    case 2:
+      printf("  mov [rax], di\n");
+      break;
+    case 4:
+      printf("  mov [rax], edi\n");
+      break;
+    case 8:
+      printf("  mov [rax], rdi\n");
+      break;
+  }
+
+  printf("  push rdi\n");
+}
+
+void load(Type *ty) {
+  printf("  pop rax\n");
+
+  switch(size_var(ty)) {
+    case 1:
+      printf("  movsx rax, byteptr [rax]\n");
+      break;
+    case 2:
+      printf("  movsx rax, word ptr [rax]\n");
+      break;
+    case 4:
+      printf("  movsxd rax, dword ptr [rax]\n");
+      break;
+    case 8:
+      printf("  mov rax, [rax]\n");
+      break;
+  }
+
+  printf("  push rax\n");
+}
+
 void gen_lval(Node *node) {
   Var *var;
   if (node->kind == ND_LVAR) {
@@ -116,18 +159,13 @@ void gen(Node *node) {
       return;
     case ND_LVAR:
     gen_lval(node);
-    printf("  pop rax\n");
-    printf("  mov rax, [rax]\n");
-    printf("  push rax\n");
+    load(node->ty);
     return;
 
     case ND_ASSIGN:
     gen_lval(node->children[0]);
     gen(node->children[1]);
-    printf("  pop rdi\n");
-    printf("  pop rax\n");
-    printf("  mov [rax], rdi\n");
-    printf("  push rdi\n");
+    store(node->ty);
     return;
 
     case ND_WHILE:
