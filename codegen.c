@@ -10,7 +10,9 @@ const int POINTER_SIZE_BYTES = 8;
 
 // type helper function
 int size_var(Type* ty) {
-  if(ty->kind == TYPE_INT) {
+  if(ty->kind == TYPE_CHAR) {
+    return 1;
+  } else if(ty->kind == TYPE_INT) {
     return 4;
   } else if(ty->kind == TYPE_PTR) {
     return 8;
@@ -174,9 +176,10 @@ void gen(Node *node) {
     return;
 
     case ND_NUM:
+    case ND_CHAR:
     printf("  mov rax, %d\n", node->val);
     return;
-    
+
     case ND_SIZEOF:
     // TODO: when we implement struct, judge if the var is struct or not
     printf("  mov rax,%d\n", size_var(node->children[0]->ty));

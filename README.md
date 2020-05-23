@@ -10,7 +10,7 @@ stmt           =  block
                   | "for" "(" expr ";" expr ";" expr ")" stmt
                   | "if" "(" expr ")" stmt ("else" stmt)?
                   | expr ";"
-type           =  "int" "*"*
+type           =  ("int" | "char") "*"*
 declare        =  type ident
 declare_a      =  type ident ("[" num "]")?
 declare_g      =  type ident ("[" num "]")?
@@ -26,6 +26,7 @@ unary          =  "+" primary
                   | "&" unary
                   | "sizeof" unary
 primary        =  num
+                  | "'" char "'"
                   | ident ("(" ( | expr ("," expr){0,5}) ")")?
                   | ident "[" expr "]"
 ```

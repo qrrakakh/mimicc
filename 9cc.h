@@ -11,6 +11,7 @@
 typedef struct Type Type;
 
 typedef enum {
+  TYPE_CHAR,
   TYPE_INT,
   TYPE_ARITHMETIC_LIMIT,
   TYPE_PTR,
@@ -41,6 +42,7 @@ typedef enum {  // ABS Node kinds
   ND_DIV,       // /
   ND_MOD,       // %
   ND_NUM,       // integer
+  ND_CHAR,      // char
   ND_EQUIV,     // ==
   ND_INEQUIV,  // !=
   ND_LT,        // <
@@ -78,6 +80,7 @@ typedef enum {  // Token definition
   TK_RESERVED,  // operator symbols
   TK_IDENT,     // identifier
   TK_NUM,       // integer token
+  TK_CHAR,      // single char
   TK_EOF,       // end of input
   TK_RETURN,    // return
   TK_SIZEOF,    // sizeof

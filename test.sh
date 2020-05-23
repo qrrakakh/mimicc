@@ -22,8 +22,13 @@ assert() {
 }
 compile_test_func
 
-#assert 1 'char a;char main() {a = 1;return a;}'
-#assert 1 'int main() { char a; return sizeof(a); }'
+assert 97 'int main() { char a; a='\'a\''; return a;} '
+assert 98 'int main() { char a; a='\'b\''; return a;} '
+assert 49 'int main() { char a; a='\'1\''; return a;} '
+assert 57 'int main() { char a; a='\'9\''; return a;} '
+assert 1 'char a;char main() {a = 1;return a;}'
+assert 1 'int main() { char a; return sizeof(a); }'
+assert 3 'int main() {char x[3]; x[0]=-1;x[1]=2;int y;y=4;return x[0]+y;}'
 assert 1 'int a;int main() {a = 1;return a;}'
 assert 1 'int *z;int main() {int a[2];z=&a;*z = 1;*(a + 1) = 2;return *a;}'
 assert 1 'int a[2];int main() {*a = 1;*(a + 1) = 2;return *a;}'

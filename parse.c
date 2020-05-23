@@ -12,6 +12,10 @@ Type *type_int_init() {
   return type_init(TYPE_INT);
 }
 
+Type *type_char_init() {
+  return type_init(TYPE_CHAR);
+}
+
 Type *type_array_init(Type *_ty, size_t size) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TYPE_ARRAY;
@@ -74,6 +78,14 @@ Token *consume_return() {
 // else report an error
 Token *consume_sizeof() {
   if(token->kind != TK_SIZEOF)
+    return NULL;
+  Token *tok = token;
+  token = token->next;
+  return tok;
+}
+
+Token *consume_char() {
+  if(token->kind != TK_CHAR)
     return NULL;
   Token *tok = token;
   token = token->next;
@@ -265,6 +277,15 @@ Node *new_node_binop(NodeKind kind, Node *lhs, Node *rhs) {
       break;
   }
 
+  return node;
+}
+
+Node *new_node_char(char c) {
+  Node *node = calloc(1, sizeof(Node));
+  node->children = NULL;
+  node->kind = ND_CHAR;
+  node->val = c;
+  node->ty = type_char_init();
   return node;
 }
 
@@ -768,7 +789,10 @@ Node *primary() {
         return new_node_lvar(tok, NULL, false);
       }
     }
-  } else { // else should be a number.
+  } else if (tok=consume_char()) {
+    return new_node_char(*(tok->str));
+  }
+   else { // else should be a number.
     return new_node_num(expect_number());
   }
 }

@@ -3,9 +3,9 @@
 //////////
 // tokenizer and helpers
 
-char *builtin_type_names[] = {"int"};
-TypeKind builtin_type_enum[] = {TYPE_INT};
-int num_builtin_types = 1;
+char *builtin_type_names[] = {"int", "char"};
+TypeKind builtin_type_enum[] = {TYPE_INT, TYPE_CHAR};
+int num_builtin_types = 2;
 
 // Generate new token and concatenate to cur
 Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
@@ -120,6 +120,13 @@ Token *tokenize(char *p) {
         || *p == '<' || *p == '>' || *p == '='
         ||*p == ';' || *p == ',' || *p == '{' || *p == '}') {
       cur = new_token(TK_RESERVED, cur, p++, 1);
+      continue;
+    }
+
+    // char
+    if (p+2 && *p == '\'' && *(p+2) =='\'') {
+      cur = new_token(TK_CHAR, cur, p+1, 1);
+      p+=3;
       continue;
     }
 
