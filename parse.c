@@ -337,6 +337,9 @@ Node *new_node_lvar(Token *tok, Type *ty, bool declare) {
   Var *var;
   
   if (declare) {
+    if((var=find_lvar(tok))) {
+      error_at(token->str, "Local variable with existing name is declared again.");
+    }
     var = calloc(1, sizeof(Var));
     var->next = locals; locals = var;
     var->name = tok->str;
@@ -368,6 +371,9 @@ Node *new_node_gvar(Token *tok, Type *ty, bool declare) {
   Var *var;
   
   if (declare) {
+    if((var=find_gvar(tok))) {
+      error_at(token->str, "Global variable with existing name is declared again.");
+    }
     var = calloc(1, sizeof(Var));
     var->next = globals; globals = var;
     var->name = tok->str;
