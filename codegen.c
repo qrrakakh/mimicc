@@ -72,8 +72,7 @@ void gen_lval(Node *node) {
   if (node->kind == ND_LVAR) {
     // save the address of lval
     var = find_lvar_by_id(node->id);
-    printf("  mov rax, rbp\n");
-    printf("  sub rax, %d\n", var->offset_bytes);
+    printf("  lea rax, [rbp-%d]\n", var->offset_bytes);
     printf("  push rax\n");
   } else if(node->kind == ND_GVAR) {
     var = find_gvar_by_id(node->id);
