@@ -22,6 +22,9 @@ assert() {
 }
 compile_test_func
 
+assert 97 'int main() { char *x; x = "abc"; return x[0]; }'
+assert 98 'int main() { char *x; x = "abc"; return x[1]; }'
+assert 99 'int main() { char *x; x = "abc"; return x[2]; }'
 assert 97 'int main() { char a; a='\'a\''; return a;} '
 assert 98 'int main() { char a; a='\'b\''; return a;} '
 assert 49 'int main() { char a; a='\'1\''; return a;} '

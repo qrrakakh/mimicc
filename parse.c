@@ -92,6 +92,14 @@ Token *consume_char() {
   return tok;
 }
 
+Token *consume_strings() {
+  if(token->kind != TK_STRINGS)
+    return NULL;
+  Token *tok = token;
+  token = token->next;
+  return tok;
+}
+
 // Read one token if the next token is an expected symbol,
 // else report an error
 void expect(char *op) {
@@ -154,6 +162,23 @@ Var *find_lvar_by_id(int id) {
 
 Var *find_gvar_by_id(int id) {
   return find_var_by_id(id, globals);
+}
+
+Const_Strings *find_cstr(char* s, int l) {
+  Const_Strings *cs = cstrs, *new_cs;
+  while(cs->next) {
+    if (strncmp(cs->str, s, cs->size)==0) {
+      return cs;
+    }
+    cs = cs->next;
+  }
+
+  new_cs = calloc(1, sizeof(Const_Strings));
+  new_cs->next = cstrs; cstrs = new_cs;
+  new_cs->id = new_cs->next->id + 1;
+  new_cs->size = l;
+  new_cs->str = s;
+  return new_cs;
 }
 
 bool isglobalvar(Token* tok) {
@@ -286,6 +311,15 @@ Node *new_node_char(char c) {
   node->kind = ND_CHAR;
   node->val = c;
   node->ty = type_char_init();
+  return node;
+}
+
+Node *new_node_strings(Token *tok) {
+  Node *node = calloc(1, sizeof(Node));
+  node->children = NULL;
+  node->kind = ND_STRINGS;
+  node->id = find_cstr(tok->str, tok->len)->id;
+  node->ty = type_array_init(type_char_init(), tok->len);
   return node;
 }
 
@@ -445,6 +479,7 @@ Node *add();
 Node *mul();
 Node *unary();
 Node *primary();
+Node *strings();
 
 
 void program() {
@@ -456,6 +491,10 @@ void program() {
   globals = calloc(1, sizeof(Var)); 
   globals->next = NULL;
   globals->id = 0;
+
+  cstrs = calloc(1, sizeof(Const_Strings));
+  cstrs->next = NULL;
+  cstrs->id = 0;
 
   while(!at_eof()) {
     _tok = token;
@@ -791,8 +830,18 @@ Node *primary() {
     }
   } else if (tok=consume_char()) {
     return new_node_char(*(tok->str));
-  }
-   else { // else should be a number.
+  } else if(node=strings()) {
+    return node;
+  } else { // else should be a number.
     return new_node_num(expect_number());
+  }
+}
+
+Node *strings() {
+  Token *tok;
+  if (tok = consume_strings()) {
+    return new_node_strings(tok);
+  } else {
+    return NULL;
   }
 }

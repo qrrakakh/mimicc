@@ -8,6 +8,15 @@
 //////////
 // struct definition
 
+typedef struct Const_Strings Const_Strings;
+
+struct Const_Strings {
+  int id;
+  int size;
+  Const_Strings *next;
+  char* str;
+};
+
 typedef struct Type Type;
 
 typedef enum {
@@ -43,6 +52,7 @@ typedef enum {  // ABS Node kinds
   ND_MOD,       // %
   ND_NUM,       // integer
   ND_CHAR,      // char
+  ND_STRINGS,   // strings
   ND_EQUIV,     // ==
   ND_INEQUIV,  // !=
   ND_LT,        // <
@@ -81,6 +91,7 @@ typedef enum {  // Token definition
   TK_IDENT,     // identifier
   TK_NUM,       // integer token
   TK_CHAR,      // single char
+  TK_STRINGS,   // strings
   TK_EOF,       // end of input
   TK_RETURN,    // return
   TK_SIZEOF,    // sizeof
@@ -103,6 +114,7 @@ Node *code[100];
 char *user_input;     // Input program
 Var *locals;
 Var *globals;
+Const_Strings *cstrs;
 int label_index;
 extern char *builtin_type_names[];
 extern int num_builtin_types;
@@ -142,4 +154,4 @@ void print_node_tree();
 // architecture-dependent functions
 
 // type helper function
-int size_var(Type* ty);
+int size_of(Type* ty);

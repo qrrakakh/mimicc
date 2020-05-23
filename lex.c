@@ -130,6 +130,24 @@ Token *tokenize(char *p) {
       continue;
     }
 
+    // strings
+    if (*p=='"') {
+      int len = 0;
+      ++p;
+      while(p) {
+        if (*p != '"') {
+          ++len; ++p;
+        } else {
+          cur = new_token(TK_STRINGS, cur, p-len, len);
+          ++p; len=-1;
+          break;
+        }
+      }
+      if(len>=0)
+        error_at(token->str, "Strings is not closed.");
+      continue;
+    }
+
     if (isdigit(*p)) {
       cur = new_token(TK_NUM, cur, p, 1); // token->str is only the first char of the digit?
       cur->val = strtol(p, &p, 10);

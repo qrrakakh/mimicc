@@ -9,7 +9,7 @@ char x86_64_argreg_64bits[][6] = {"rdi", "rsi", "rdx", "rcx", "r8",  "r9" };
 const int POINTER_SIZE_BYTES = 8;
 
 // type helper function
-int size_var(Type* ty) {
+int size_of(Type* ty) {
   if(ty->kind == TYPE_CHAR) {
     return 1;
   } else if(ty->kind == TYPE_INT) {
@@ -17,7 +17,17 @@ int size_var(Type* ty) {
   } else if(ty->kind == TYPE_PTR) {
     return 8;
   } else if(ty->kind == TYPE_ARRAY) {
-    return ty->array_size * size_var(ty->ptr_to);
+    return ty->array_size * size_of(ty->ptr_to);
+  }
+}
+
+int size_var(Type* ty) {
+  if(ty->kind == TYPE_CHAR) {
+    return 1;
+  } else if(ty->kind == TYPE_INT) {
+    return 4;
+  } else if(ty->kind == TYPE_PTR || ty->kind == TYPE_ARRAY) {
+    return 8;
   }
 }
 
@@ -76,6 +86,8 @@ void gen_lval(Node *node) {
     printf("  lea rax, %.*s[rip]\n", var->len, var->name);
   } else if(node->kind == ND_DEREF) {
     gen(node->children[0]);
+  } else if(node->kind == ND_STRINGS) {
+    printf("  lea rax, .LC%06d[rip]\n", node->id);
   } else {
     error("lval is not a variable, %d", node->kind);
   }
@@ -106,7 +118,7 @@ void gen(Node *node) {
     var = locals;
     while (var->next) {
       ++num_lvar;
-      lvar_area_size += size_var(var->ty);
+      lvar_area_size += size_of(var->ty);
       var->offset_bytes = lvar_area_size;
       var = var->next;
     }
@@ -180,9 +192,13 @@ void gen(Node *node) {
     printf("  mov rax, %d\n", node->val);
     return;
 
+    case ND_STRINGS:
+    printf("  lea rax, .LC%06d[rip]\n", node->id);
+    return;
+
     case ND_SIZEOF:
     // TODO: when we implement struct, judge if the var is struct or not
-    printf("  mov rax,%d\n", size_var(node->children[0]->ty));
+    printf("  mov rax,%d\n", size_of(node->children[0]->ty));
     return;
 
     case ND_GVAR:

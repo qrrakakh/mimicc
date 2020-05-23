@@ -2,6 +2,7 @@
 
 int main(int argc, char **argv) {
   Var *g;
+  Const_Strings *c;
   if (argc != 2) {
     fprintf(stderr, "Invalid number of arguments\n");
     return 1;
@@ -31,7 +32,11 @@ int main(int argc, char **argv) {
   printf("  .data\n");
   for(g=globals;g->next!=NULL;g=g->next) {
     printf("%.*s:\n", g->len, g->name);
-    printf("  .zero %d\n", size_var(g->ty));
+    printf("  .zero %d\n", size_of(g->ty));
+  }
+  for(c=cstrs;c->next!=NULL;c=c->next) {
+    printf(".LC%06d:\n", c->id);
+    printf("  .string \"%.*s\"\n", c->size, c->str);
   }
 
   

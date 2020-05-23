@@ -29,6 +29,7 @@ primary        =  num
                   | "'" char "'"
                   | ident ("(" ( | expr ("," expr){0,5}) ")")?
                   | ident "[" expr "]"
+strings        =  "\"" char* "\""
 ```
 
 ## Known issues
