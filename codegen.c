@@ -2,7 +2,10 @@
 
 //////////
 // static value
-char x86_64_argreg[][6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+char x86_64_argreg_8bits[][6]  = {"dil", "sil", "dl",  "cl",  "r8b", "r9b"};
+char x86_64_argreg_16bits[][6] = {"di",  "si",  "dx",  "cx",  "r8w", "r9w"};
+char x86_64_argreg_32bits[][6] = {"edi", "esi", "edx", "ecx", "r8d", "r9d"};
+char x86_64_argreg_64bits[][6] = {"rdi", "rsi", "rdx", "rcx", "r8",  "r9" };
 const int POINTER_SIZE_BYTES = 8;
 
 // type helper function
@@ -48,7 +51,7 @@ void load(Type *ty) {
 
   switch(size_var(ty)) {
     case 1:
-      printf("  movsx rax, byteptr [rax]\n");
+      printf("  movsx rax, byte ptr [rax]\n");
       break;
     case 2:
       printf("  movsx rax, word ptr [rax]\n");
@@ -68,8 +71,9 @@ void gen_lval(Node *node) {
   Var *var;
   if (node->kind == ND_LVAR) {
     // save the address of lval
+    var = find_lvar_by_id(node->id);
     printf("  mov rax, rbp\n");
-    printf("  sub rax, %d\n", node->id*POINTER_SIZE_BYTES);
+    printf("  sub rax, %d\n", var->offset_bytes);
     printf("  push rax\n");
   } else if(node->kind == ND_GVAR) {
     var = find_gvar_by_id(node->id);
@@ -86,6 +90,9 @@ void gen_lval(Node *node) {
 
 void gen(Node *node) {
   int label;
+  int lvar_area_size;
+  int num_lvar;
+  int lvar_idx;
   Node **stmt_list;
   Type *lhs_ty, *rhs_ty;
   Var *var;
@@ -98,11 +105,47 @@ void gen(Node *node) {
     // allocate stack for local variables
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
-    printf("  sub rsp, %d\n", get_num_lvars() * POINTER_SIZE_BYTES);
+
+    // calculate required reserved stack area sizeand offsets for each lvars
+    lvar_area_size = 0;
+    num_lvar = 0;
+    var = locals;
+    while (var->next) {
+      ++num_lvar;
+      lvar_area_size += size_var(var->ty);
+      var->offset_bytes = lvar_area_size;
+      var = var->next;
+    }
+
+    //printf("  sub rsp, %d\n", get_num_lvars() * POINTER_SIZE_BYTES);
+    printf("  sub rsp, %d\n", lvar_area_size);
 
     // copy passed argument values to the local variables
+    var = locals;
+    while(num_lvar > node->num_args) {
+      var=var->next; --num_lvar;
+    }
+
+    // for(int i=0;i<node->num_args;++i) {
+    //   printf("  mov [rbp-%d], %s\n", i*POINTER_SIZE_BYTES+POINTER_SIZE_BYTES, x86_64_argreg[i]);
+    // }
     for(int i=0;i<node->num_args;++i) {
-      printf("  mov [rbp-%d], %s\n", i*POINTER_SIZE_BYTES+POINTER_SIZE_BYTES, x86_64_argreg[i]);
+      lvar_idx = node->num_args-1-i;
+      switch(size_var(var->ty)) {
+        case 1:
+        printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_8bits[lvar_idx]);
+        break;
+        case 2:
+        printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_16bits[lvar_idx]);
+        break;
+        case 4:
+        printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_32bits[lvar_idx]);
+        break;
+        case 8:
+        printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_8bits[lvar_idx]);
+        break;
+      }
+      var = var->next;
     }
 
 
@@ -151,6 +194,7 @@ void gen(Node *node) {
     return;
     
     case ND_SIZEOF:
+    // TODO: when we implement struct, judge if the var is struct or not
     printf("  push %d\n", size_var(node->children[0]->ty));
     return;
 
@@ -216,10 +260,21 @@ void gen(Node *node) {
     case ND_CALL:
     for(int i=0;i<node->num_args;++i) {
       gen(node->children[i]);
-    }
-
-    for(int i=node->num_args-1;i>=0;--i) {
-      printf("  pop %s\n", x86_64_argreg[i]);
+      printf("  pop rax\n");
+      switch(size_var(node->children[i]->ty)) {
+        case 1:
+        printf("  mov %s, al\n", x86_64_argreg_8bits[i]);
+        break;  
+        case 2:
+        printf("  mov %s, ax\n", x86_64_argreg_16bits[i]);
+        break;  
+        case 4:
+        printf("  mov %s, eax\n", x86_64_argreg_32bits[i]);
+        break;  
+        case 8:
+        printf("  mov %s, rax\n", x86_64_argreg_64bits[i]);
+        break;  
+      }
     }
 
     // modify rsp as a multiply of 16
