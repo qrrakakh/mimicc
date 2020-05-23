@@ -43,12 +43,10 @@ void store(Type *ty) {
       break;
   }
 
-  printf("  push rdi\n");
+  printf("  mov rax, rdi\n");
 }
 
 void load(Type *ty) {
-  printf("  pop rax\n");
-
   switch(size_var(ty)) {
     case 1:
       printf("  movsx rax, byte ptr [rax]\n");
@@ -63,8 +61,6 @@ void load(Type *ty) {
       printf("  mov rax, [rax]\n");
       break;
   }
-
-  printf("  push rax\n");
 }
 
 void gen_lval(Node *node) {
@@ -73,12 +69,9 @@ void gen_lval(Node *node) {
     // save the address of lval
     var = find_lvar_by_id(node->id);
     printf("  lea rax, [rbp-%d]\n", var->offset_bytes);
-    printf("  push rax\n");
   } else if(node->kind == ND_GVAR) {
     var = find_gvar_by_id(node->id);
-    // printf("  push %.*s\n", var->len, var->name);
     printf("  lea rax, %.*s[rip]\n", var->len, var->name);
-    printf("  push rax\n");
   } else if(node->kind == ND_DEREF) {
     gen(node->children[0]);
   } else {
@@ -125,9 +118,6 @@ void gen(Node *node) {
       var=var->next; --num_lvar;
     }
 
-    // for(int i=0;i<node->num_args;++i) {
-    //   printf("  mov [rbp-%d], %s\n", i*POINTER_SIZE_BYTES+POINTER_SIZE_BYTES, x86_64_argreg[i]);
-    // }
     for(int i=0;i<node->num_args;++i) {
       lvar_idx = node->num_args-1-i;
       switch(size_var(var->ty)) {
@@ -149,7 +139,6 @@ void gen(Node *node) {
 
 
     gen(node->children[0]);
-    printf("  pop rax\n");  
 
     // Final evaluated value is already stored on rax, which will be returned.
     // To back to the original address, we fix the rsp
@@ -161,7 +150,6 @@ void gen(Node *node) {
 
     case ND_RETURN:
     gen(node->children[0]);
-    printf("  pop rax\n");
     printf("  mov rsp, rbp\n");
     printf("  pop rbp\n");
     printf("  ret\n");
@@ -172,7 +160,6 @@ void gen(Node *node) {
     if (*stmt_list != NULL)
       gen(*(stmt_list++));
     while (*stmt_list != NULL) {
-      printf("  pop rax\n");  
       gen(*(stmt_list++));
     }
     return;
@@ -183,18 +170,16 @@ void gen(Node *node) {
 
     case ND_DEREF:
     gen(node->children[0]);
-    printf("  pop rax\n");
     printf("  mov rax, [rax]\n");
-    printf("  push rax\n");
     return;
 
     case ND_NUM:
-    printf("  push %d\n", node->val);
+    printf("  mov rax, %d\n", node->val);
     return;
     
     case ND_SIZEOF:
     // TODO: when we implement struct, judge if the var is struct or not
-    printf("  push %d\n", size_var(node->children[0]->ty));
+    printf("  mov rax,%d\n", size_var(node->children[0]->ty));
     return;
 
     case ND_GVAR:
@@ -207,7 +192,9 @@ void gen(Node *node) {
 
     case ND_ASSIGN:
     gen_lval(node->children[0]);
+    printf("  push rax\n");
     gen(node->children[1]);
+    printf("  push rax\n");
     store(node->ty);
     return;
 
@@ -215,13 +202,11 @@ void gen(Node *node) {
     label = label_index++;
     printf(".L.begin%06d:\n", label);
     gen(node->children[0]);
-    printf("  pop rax\n");
     printf("  cmp rax, 0\n");
     printf("  je .L.end%06d\n", label);
     gen(node->children[1]);
     printf("  jmp .L.begin%06d\n", label);
     printf(".L.end%06d:\n", label);
-    printf("  push 0\n");
     return;
 
     case ND_FOR:
@@ -229,20 +214,17 @@ void gen(Node *node) {
     gen(node->children[0]);
     printf(".L.begin%06d:\n", label);
     gen(node->children[1]);
-    printf("  pop rax\n");
     printf("  cmp rax, 0\n");
     printf("  je .L.end%06d\n", label);
     gen(node->children[3]);
     gen(node->children[2]);
     printf("  jmp .L.begin%06d\n", label);
     printf(".L.end%06d:\n", label);
-    printf("  push 0\n");
     return;
 
     case ND_IF:
     label = label_index++;
     gen(node->children[0]);
-    printf("  pop rax\n");
     printf("  cmp rax, 0\n"); // 0 if cond is not satisfied
     printf("  je .L.else%06d\n", label);
     gen(node->children[1]);
@@ -252,14 +234,11 @@ void gen(Node *node) {
       gen(node->children[2]);
     }
     printf(".L.end%06d:\n",  label);
-    printf("  push 0\n");
-
     return;
 
     case ND_CALL:
     for(int i=0;i<node->num_args;++i) {
       gen(node->children[i]);
-      printf("  pop rax\n");
       switch(size_var(node->children[i]->ty)) {
         case 1:
         printf("  mov %s, al\n", x86_64_argreg_8bits[i]);
@@ -290,17 +269,15 @@ void gen(Node *node) {
     printf("  call %.*s\n", node->val, node->func_name);
     printf("  add rsp, 8\n");
     printf(".L.end%06d:\n", label);
-    printf("  push rax\n");
     return;
   }
 
-  gen(node->children[0]);
-  lhs_ty = node->children[0]->ty;
   gen(node->children[1]);
   rhs_ty = node->children[0]->ty;
-
+  printf("  push rax\n");
+  gen(node->children[0]);
+  lhs_ty = node->children[0]->ty;
   printf("  pop rdi\n");
-  printf("  pop rax\n");
   
   switch(node->kind) {
     case ND_ADD:
@@ -350,6 +327,4 @@ void gen(Node *node) {
       printf("  mov rax, rdx\n");
       break;
   }
-
-  printf("  push rax\n");
 }
