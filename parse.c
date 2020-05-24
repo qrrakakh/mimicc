@@ -273,8 +273,8 @@ Node *new_node_binop(NodeKind kind, Node *lhs, Node *rhs) {
           (!isarithmetictype(rhs->ty)) ||
           (lhs->ty->kind != rhs->ty->kind)) {
         error_at(token->str, 
-          "both types should be arithmetic or different type cannot be compared; lhs type: %d, rhs type: %d",
-          lhs->ty->kind, rhs->ty->kind);
+          "both types should be arithmetic or different type cannot be compared; lhs type: %d, rhs type: %d, current block id: %d",
+          lhs->ty->kind, rhs->ty->kind, current_block->id);
       }
       node->ty = type_int_init();
       break;
@@ -597,11 +597,11 @@ Node *block() {
     blk->parent = current_block;
     current_block = blk;
     
-    stmt_list = calloc(alloc_unit, sizeof(Node*));
+    stmt_list = calloc(alloc_size, sizeof(Node*));
     while(!(consume("}"))) {
       if(cur>=alloc_size-1) {
         alloc_size += alloc_unit;
-        Node **_stmt_list = realloc(stmt_list, alloc_size);
+        Node **_stmt_list = realloc(stmt_list, sizeof(Node*)*alloc_size);
         if(_stmt_list == NULL) {
           error("Memory allocation failure.");
         }
