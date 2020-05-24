@@ -119,6 +119,7 @@ struct Block {
 // global variable definition
 Token *token;         // current token pointer
 Node *code[100];
+char *filepath;     // Input program path
 char *user_input;     // Input program
 Var *locals;
 Var *globals;
@@ -155,6 +156,8 @@ void program();
 
 // Code generator
 void gen(Node *node);
+void gen_header();
+void gen_footer();
 
 //////////
 // debug function

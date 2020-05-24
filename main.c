@@ -1,16 +1,12 @@
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "9cc.h"
 
-int main(int argc, char **argv) {
-  Var *g;
-  Const_Strings *c;
-  if (argc != 2) {
-    fprintf(stderr, "Invalid number of arguments\n");
-    return 1;
-  }
-
+void compile(char *input) {
   // tokenize and parse;
-  user_input = argv[1];
-  token = tokenize(user_input);
+  token = tokenize(input);
 
   // init label index
   label_index = 0;
@@ -19,26 +15,50 @@ int main(int argc, char **argv) {
   //print_node_tree();
 
   // The header of assembler
-  printf(".intel_syntax noprefix\n");
-  printf(".global main\n");
+  gen_header();
 
   // Follow AST and generate code
   for(int i=0;code[i];i++) {
     gen(code[i]);
-    //printf("  pop rax\n");
   }
 
-  // global variable
-  printf("  .data\n");
-  for(g=globals;g->next!=NULL;g=g->next) {
-    printf("%.*s:\n", g->len, g->name);
-    printf("  .zero %d\n", size_of(g->ty));
-  }
-  for(c=cstrs;c->next!=NULL;c=c->next) {
-    printf(".LC%06d:\n", c->id);
-    printf("  .string \"%.*s\"\n", c->size, c->str);
+  gen_footer();
+}
+
+char *read_file(char *path) {
+  FILE *fp = fopen(path, "r");
+  if (!fp) {
+    error("cannot open *s: *s", path, strerror(errno));
   }
 
+  if (fseek(fp, 0, SEEK_END) == -1)
+    error("%s: fseek: %s", path, strerror(errno));
+  size_t size = ftell(fp);
+  if (fseek(fp, 0, SEEK_SET) == -1)
+    error("%s: fseek: %s", path, strerror(errno));
   
+  char *buff = calloc(1, size+2);
+  fread(buff, size, 1, fp);
+
+  if (size == 0 || buff[size-1] != '\n')
+    buff[size++] = '\n';
+  
+  buff[size] = '\0';
+  fclose(fp);
+  return buff;
+}
+
+int main(int argc, char **argv) {
+  if (argc != 2) {
+    fprintf(stderr, "Invalid number of arguments\n");
+    return 1;
+  }
+
+  for(int i=1;i<argc;++i) {
+    filepath = argv[i];
+    user_input = read_file(filepath);
+    compile(user_input);
+  }
+
   return 0;
 }

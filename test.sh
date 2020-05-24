@@ -7,7 +7,8 @@ assert() {
   expected="$1"
   input="$2"
 
-  ./9cc "$input" > tmp.s
+  echo "$input" > tmp.c
+  ./9cc ./tmp.c > tmp.s
   cc -c -o tmp.o tmp.s
   cc -o tmp tmp.o test_func.o
   ./tmp

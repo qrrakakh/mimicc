@@ -93,6 +93,26 @@ void gen_lval(Node *node) {
   }
 }
 
+void gen_header() {
+  printf(".intel_syntax noprefix\n");
+  printf(".global main\n");
+}
+
+void gen_footer() {
+  Var *g;
+  Const_Strings *c;
+  // global variable
+  printf("  .data\n");
+  for(g=globals;g->next!=NULL;g=g->next) {
+    printf("%.*s:\n", g->len, g->name);
+    printf("  .zero %d\n", size_of(g->ty));
+  }
+  for(c=cstrs;c->next!=NULL;c=c->next) {
+    printf(".LC%06d:\n", c->id);
+    printf("  .string \"%.*s\"\n", c->size, c->str);
+  }
+}
+
 
 void gen(Node *node) {
   int label;
