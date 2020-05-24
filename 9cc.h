@@ -162,6 +162,7 @@ void gen_footer();
 //////////
 // debug function
 void print_node_tree();
+void print_lvar();
 
 //////////
 // architecture-dependent functions

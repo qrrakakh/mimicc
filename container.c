@@ -54,7 +54,7 @@ void print_node(Node* node, int num_lead_ws) {
   if(node->ty) {
     fprintf(stderr, "%*stype kind: %d\n",num_lead_ws*4,"", node->ty->kind);
   }
-  fprintf(stderr, "%*sfunc_name: %s\n",num_lead_ws*4,"",node->func_name);
+  fprintf(stderr, "%*sfunc_name: %.*s\n",num_lead_ws*4,"",node->val, node->func_name);
   int num_children = 0;
   if (node->kind==ND_CALL) {
     num_children = node->num_args;
@@ -90,5 +90,13 @@ void print_node(Node* node, int num_lead_ws) {
 void print_node_tree() {
   for(int i=0;code[i];i++) {
     print_node(code[i], 0);
+  }
+}
+
+void print_lvar() {
+  Var* l = locals;
+  while(l->next) {
+    printf("%.*s, id: %d, type: %d\n", l->len, l->name, l->id, l->ty->kind);
+    l=l->next;
   }
 }
