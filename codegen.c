@@ -122,7 +122,7 @@ void gen(Node *node) {
   Node **stmt_list;
   Type *lhs_ty, *rhs_ty;
   Var *var;
-
+  
   switch(node->kind) {
     case ND_FUNC:
     printf("%.*s:\n", node->val, node->func_name);
@@ -191,8 +191,6 @@ void gen(Node *node) {
 
     case ND_BLOCK:
     stmt_list = node->children;
-    if (*stmt_list != NULL)
-      gen(*(stmt_list++));
     while (*stmt_list != NULL) {
       gen(*(stmt_list++));
     }
