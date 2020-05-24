@@ -22,6 +22,7 @@ assert() {
 }
 compile_test_func
 
+assert 26 'int main() {int a;int b;a=1;b=0; {int a;a=2;b=b+a;} {int a;a=4;{int a;a=8;b=b+a;}} {int a;a=16;{int a;a=32;}b=b+a;} return b;}'
 assert 97 'int main() { char *x; x = "abc"; return x[0]; }'
 assert 98 'int main() { char *x; x = "abc"; return x[1]; }'
 assert 99 'int main() { char *x; x = "abc"; return x[2]; }'

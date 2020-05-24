@@ -40,6 +40,7 @@ struct Var {  // defined variables
   char *name;
   int len;
   int id;
+  int block_id;
   int offset_bytes;
   Type *ty;
 };
@@ -107,6 +108,13 @@ struct Token {  // Token type
   int len;
 };
 
+typedef struct Block Block;
+
+struct Block {
+  int id;
+  Block *parent;
+};
+
 //////////
 // global variable definition
 Token *token;         // current token pointer
@@ -116,6 +124,8 @@ Var *locals;
 Var *globals;
 Const_Strings *cstrs;
 int label_index;
+int last_block_id;
+Block* current_block;
 extern char *builtin_type_names[];
 extern int num_builtin_types;
 extern TypeKind builtin_type_enum[];

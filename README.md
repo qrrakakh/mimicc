@@ -33,6 +33,4 @@ strings        =  "\"" char* "\""
 ```
 
 ## Known issues
-* The scope of local variables are only in function, not a block.
 * Pointer return function is not defineable.
-* Array allocation is aligned to the pointer size (8bytes=64bits), not a variable size (e.g. sizeof(int)=4bytes).

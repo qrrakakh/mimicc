@@ -128,22 +128,40 @@ bool at_eof() {
 // ast-related functions
 
 // find if the local var is already defined
-Var *find_var(Token *tok, Var *head) {
+bool is_parent_of_blk_id(int id, Block* blk) {
+  if (blk->id==id) {
+    return true;
+  } else if(blk->parent==NULL) {
+    return false;
+  } else {
+    return is_parent_of_blk_id(id, blk->parent);
+  }
+}
+
+Var *find_lvar(Token *tok, bool is_recursive_search) {
   Var *var;
-  for(var=head;var;var=var->next) {
+  for(var=locals;var;var=var->next) {
     if(var->len == tok->len && !memcmp(var->name, tok->str, var->len)) {
-      return var;
+      if(is_recursive_search) {
+        if(is_parent_of_blk_id(var->block_id, current_block))
+          return var;
+      } else {
+        if(current_block->id == var->block_id)
+          return var;
+      }
     }
   }
   return NULL;
 }
 
-Var *find_lvar(Token *tok) {
-  return find_var(tok, locals);
-}
-
 Var *find_gvar(Token *tok) {
-  return find_var(tok, globals);
+  Var *var;
+  for(var=globals;var;var=var->next) {
+    if(var->len == tok->len && !memcmp(var->name, tok->str, var->len)) {
+      return var;
+    }
+  }
+  return NULL;
 }
 
 Var *find_var_by_id(int id, Var *head) {
@@ -182,7 +200,7 @@ Const_Strings *find_cstr(char* s, int l) {
 }
 
 bool isglobalvar(Token* tok) {
-  if(find_lvar(tok))
+  if(find_lvar(tok, true))
     return false;
   else if(find_gvar(tok))
     return true;
@@ -337,7 +355,7 @@ Node *new_node_lvar(Token *tok, Type *ty, bool declare) {
   Var *var;
   
   if (declare) {
-    if((var=find_lvar(tok))) {
+    if((var=find_lvar(tok, false))) {
       error_at(token->str, "Local variable with existing name is declared again.");
     }
     var = calloc(1, sizeof(Var));
@@ -345,6 +363,7 @@ Node *new_node_lvar(Token *tok, Type *ty, bool declare) {
     var->name = tok->str;
     var->len = tok->len;
     var->ty = ty;
+    var->block_id = current_block->id;
     if (ty->kind == TYPE_ARRAY) {
       var->id = var->next->id + ty->array_size;
     } else {
@@ -353,7 +372,7 @@ Node *new_node_lvar(Token *tok, Type *ty, bool declare) {
     node->val = 1;
     
   } else {
-    if(!(var=find_lvar(tok))) {
+    if(!(var=find_lvar(tok, true))) {
       error_at(token->str, "Undefined local variable.");
     }
     node->val = 0;
@@ -543,6 +562,11 @@ Node *func() {
   locals = calloc(1, sizeof(Var)); 
   locals->next = NULL;
   locals->id = 0;
+
+  last_block_id = 0;
+  current_block = calloc(1, sizeof(Block));
+  current_block->id = 0;
+  current_block->parent = NULL;
   
   expect("(");
   num_args = 0;
@@ -563,11 +587,15 @@ Node *func() {
 
 Node *block() {
   if(consume("{")) {
-
     Node **stmt_list;
     int alloc_unit = 10;
     int alloc_size = alloc_unit;
     int cur = 0;
+
+    Block *blk = calloc(1, sizeof(Block));
+    blk->id = ++last_block_id;
+    blk->parent = current_block;
+    current_block = blk;
     
     stmt_list = calloc(alloc_unit, sizeof(Node*));
     while(!(consume("}"))) {
@@ -581,6 +609,7 @@ Node *block() {
       }
       stmt_list[cur++] = stmt();
     }
+    current_block = current_block->parent;
     stmt_list[cur] = NULL;
 
     return new_node_block(stmt_list);
