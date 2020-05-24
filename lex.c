@@ -55,6 +55,24 @@ Token *tokenize(char *p) {
       continue;
     }
 
+    // skip line comment
+    if (strncmp(p, "//", 2)==0 ) {
+      p += 2;
+      while (*p != '\n')
+        p++;
+      continue;
+    }
+
+    // skip block comment
+    if (strncmp(p, "/*", 2)==0) {
+      char *q = strstr(p+2, "*/");
+      if (!q) {
+        error_at(p, "Block comment is not closed.");
+      }
+      p = q + 2;
+      continue;
+    }
+
     if (iskeyword(p, "return", true)) {
       cur = new_token(TK_RETURN, cur, p, 6);
       p+=6;

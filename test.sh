@@ -7,7 +7,7 @@ assert() {
   expected="$1"
   input="$2"
 
-  echo "$input" > tmp.c
+  echo -e "$input" > tmp.c
   ./9cc ./tmp.c > tmp.s
   cc -c -o tmp.o tmp.s
   cc -o tmp tmp.o test_func.o
@@ -24,6 +24,7 @@ assert() {
 compile_test_func
 
 assert 26 'int main() {int a;int b;a=1;b=0; {int a;a=2;b=b+a;} {int a;a=4;{int a;a=8;b=b+a;}} {int a;a=16;{int a;a=32;}b=b+a;} return b;}'
+assert 26 'int main() ///HOGEHOGE\n/*hagehge */{\n  int a;\n  /*hogehoge \nhagehage*/int b;\n  a=1;\n  b=0;\n  {\n    int a;\n    a=2;\n     //a=1\n    b=b+a;\n  }\n  {\n    int a;\n    a=4;\n    {\n      int a;\n      a=8;\n      b=b+a;\n    }\n  }\n  {\n    int a;\n    a=16;\n    {\n      int a;\n      a=32;\n    }\n    b=b+a;\n  }\n  return b;\n}\n'
 assert 97 'int main() { char *x; x = "abc"; return x[0]; }'
 assert 98 'int main() { char *x; x = "abc"; return x[1]; }'
 assert 99 'int main() { char *x; x = "abc"; return x[2]; }'
