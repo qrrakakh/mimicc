@@ -202,7 +202,7 @@ void gen(Node *node) {
 
     case ND_DEREF:
     gen(node->children[0]);
-    printf("  mov rax, [rax]\n");
+    load(node->ty);
     return;
 
     case ND_NUM:
