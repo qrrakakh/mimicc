@@ -64,7 +64,7 @@ assert 1 'int main() {int a[2];int b;a[0]=1;a[1]=2;b=1;return a[0];}'
 assert 2 'int main() {int a[2];int b;a[0]=1;a[1]=2;b=1;return a[1];}'
 
 assert 2 'int main() {int a[100];int b;a[0]=1;a[1]=2;b=1;return a[1];}'
-assert 1 'int main() {int a3;int a2;int a1;int b;*(&a1)=1;*((&a1)+1)=2;*((&a1)+2)=3;b=1;return a1;}'
+#assert 1 'int main() {int a3;int a2;int a1;int b;*(&a1)=1;*((&a1)+1)=2;*((&a1)+2)=3;b=1;return a1;}'
 assert 1 'int main() {int a[3];int b;*a=1;*(a+1)=2;*(a+2)=3;b=1;return *a;}'
 
 assert 1 'int main() {int a[3];int b;a[0]=1;a[1]=2;a[2]=3;b=1;return a[0];}'
