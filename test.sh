@@ -21,7 +21,26 @@ assert() {
     exit 1
   fi
 }
+
+run_test_c_code() {
+  test_c_code=$1
+  ./9cc ${test_c_code} > tmp.s
+  cc -c -o tmp.o tmp.s
+  cc -o tmp tmp.o test_func.o
+  ./tmp
+  if [ "0" -ne "$?" ];then
+    echo "[TEST FAILED]"
+    exit 1
+  fi
+}
+
 compile_test_func
+run_test_c_code "./test.c"
+
+echo "[TEST PASSED]"
+exit 0
+
+# obsoleted
 
 assert 26 'int main() {int a;int b;a=1;b=0; {int a;a=2;b=b+a;} {int a;a=4;{int a;a=8;b=b+a;}} {int a;a=16;{int a;a=32;}b=b+a;} return b;}'
 assert 26 'int main() ///HOGEHOGE\n/*hagehge */{\n  int a;\n  /*hogehoge \nhagehage*/int b;\n  a=1;\n  b=0;\n  {\n    int a;\n    a=2;\n     //a=1\n    b=b+a;\n  }\n  {\n    int a;\n    a=4;\n    {\n      int a;\n      a=8;\n      b=b+a;\n    }\n  }\n  {\n    int a;\n    a=16;\n    {\n      int a;\n      a=32;\n    }\n    b=b+a;\n  }\n  return b;\n}\n'
@@ -163,5 +182,3 @@ assert 4 'int main(){int a; int b; int c;a=1;b=2;c=4;return (b+c)/2+a;}'
 assert 4 'int main(){int f2o; int bar_a; int b1zz;f2o=1;bar_a=2;b1zz=4;return (bar_a+b1zz)/2+f2o;}'
 assert 10 'int main(){int f2o; int bar_a; int b1zz;f2o=1;bar_a=2;b1zz=4;(bar_a+b1zz)/2+f2o;return (f2o+b1zz)*bar_a;}'
 assert 1 'int main(){return 1;}'
-
-echo OK
