@@ -27,8 +27,11 @@ unary          =  "+" primary
                   | "sizeof" unary
 primary        =  num
                   | "'" char "'"
-                  | ident ("(" ( | expr ("," expr){0,5}) ")")?
-                  | ident "[" expr "]"
+                  | ("++" | "--") lval
+                  | lval
+                  | lval ("++" | "--") 
+                  | ident ("(" ( | expr ("," expr){0,5}) ")")
+lval           = ident ("[" expr "]")?
 strings        =  "\"" char* "\""
 ```
 

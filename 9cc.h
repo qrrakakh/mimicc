@@ -71,6 +71,10 @@ typedef enum {  // ABS Node kinds
   ND_ADDR,      // address
   ND_DEREF,     // dereference
   ND_SIZEOF,    // sizeof
+  ND_PREINC,   // pre ++
+  ND_PREDEC,   // pre --
+  ND_POSTINC,   // post ++
+  ND_POSTDEC,   // post --
 } NodeKind;
 
 typedef struct Node Node;

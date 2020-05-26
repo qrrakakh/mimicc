@@ -36,7 +36,7 @@ int size_ptr(Type* ty) {
 }
 
 // Code generator
-void store(Type *ty) {
+void store(Type *ty, bool eval) {
   printf("  pop rdi\n");
   printf("  pop rax\n");
 
@@ -55,7 +55,9 @@ void store(Type *ty) {
       break;
   }
 
-  printf("  mov rax, rdi\n");
+  if (eval) {
+    printf("  mov rax, rdi\n");
+  }
 }
 
 void load(Type *ty) {
@@ -119,6 +121,7 @@ void gen(Node *node) {
   int lvar_area_size;
   int num_lvar;
   int lvar_idx;
+  int diff;
   Node **stmt_list;
   Type *lhs_ty, *rhs_ty;
   Var *var;
@@ -220,6 +223,62 @@ void gen(Node *node) {
     printf("  mov rax,%d\n", size_of(node->children[0]->ty));
     return;
 
+    case ND_PREINC:
+    diff = 1;
+    if(node->children[0]->ty->kind == TYPE_PTR) {
+      diff = size_ptr(node->children[0]->ty);
+    }
+    gen_lval(node->children[0]);
+    printf("  push rax\n");
+    load(node->children[0]->ty);
+    printf("  add rax, %d\n", diff);
+    printf("  push rax\n");
+    store(node->children[0]->ty, true);
+    return;
+
+    case ND_PREDEC:
+    diff = 1;
+    if(node->children[0]->ty->kind == TYPE_PTR) {
+      diff = size_ptr(node->children[0]->ty);
+    }
+    gen_lval(node->children[0]);
+    printf("  push rax\n");
+    load(node->children[0]->ty);
+    printf("  sub rax, %d\n", diff);
+    printf("  push rax\n");
+    store(node->children[0]->ty, true);
+    return;
+
+    case ND_POSTINC:
+    diff = 1;
+    if(node->children[0]->ty->kind == TYPE_PTR) {
+      diff = size_ptr(node->children[0]->ty);
+    }
+    gen_lval(node->children[0]);
+    printf("  push rax\n");
+    load(node->children[0]->ty);
+    printf("  mov rsi, rax\n");
+    printf("  add rax, %d\n", diff);
+    printf("  push rax\n");
+    store(node->children[0]->ty, false);
+    printf("  mov rax, rsi\n");
+    return;
+
+    case ND_POSTDEC:
+    diff = 1;
+    if(node->children[0]->ty->kind == TYPE_PTR) {
+      diff = size_ptr(node->children[0]->ty);
+    }
+    gen_lval(node->children[0]);
+    printf("  push rax\n");
+    load(node->children[0]->ty);
+    printf("  mov rsi, rax\n");
+    printf("  sub rax, %d\n", diff);
+    printf("  push rax\n");
+    store(node->children[0]->ty, false);
+    printf("  mov rax, rsi\n");
+    return;
+
     case ND_GVAR:
     if (node->val==1)
       return;
@@ -235,7 +294,7 @@ void gen(Node *node) {
     printf("  push rax\n");
     gen(node->children[1]);
     printf("  push rax\n");
-    store(node->ty);
+    store(node->ty, true);
     return;
 
     case ND_WHILE:

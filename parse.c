@@ -216,6 +216,12 @@ Node *new_node_unaryop(NodeKind kind, Node *valnode) {
   node->children[0] = valnode;
 
   switch(kind) {
+    case ND_PREINC:
+    case ND_PREDEC:
+    case ND_POSTINC:
+    case ND_POSTDEC:
+      node->ty = valnode->ty;
+    break;
     case ND_SIZEOF:
       node->ty = type_int_init();
       break;
@@ -506,6 +512,7 @@ Node *add();
 Node *mul();
 Node *unary();
 Node *primary();
+Node *lval();
 Node *strings();
 
 
@@ -821,7 +828,6 @@ Node *unary() {
 
 Node *primary() {
   Node *node;
-  Node *subscript;
   Node *arg[6];
   size_t num_args;
   Token *tok;
@@ -833,7 +839,21 @@ Node *primary() {
     return node;
   }
 
-  if(tok= consume_ident()) {
+  if (consume("++")) {
+    if(!(tok = consume_ident())) {
+      error_at(token->str, "Identifier expected.");
+    }
+    return new_node_unaryop(ND_PREINC, lval(tok));
+  }
+
+  if (consume("--")) {
+    if(!(tok = consume_ident())) {
+      error_at(token->str, "Identifier expected.");
+    }
+    return new_node_unaryop(ND_PREDEC, lval(tok));
+  }
+
+  if(tok=consume_ident()) {
     if (consume("(")) {
       num_args = 0;
       if(!consume(")")) {
@@ -848,21 +868,15 @@ Node *primary() {
         expect(")");
       }
       return new_node_funccall(tok, num_args, arg);
-    } else if(consume("[")) {
-      subscript = expr();
-      expect("]");
-      if(isglobalvar(tok)) {
-        return new_node_unaryop(ND_DEREF,
-          new_node_binop(ND_ADD, new_node_gvar(tok, NULL, false), subscript));
-      } else {
-        return new_node_unaryop(ND_DEREF,
-          new_node_binop(ND_ADD, new_node_lvar(tok, NULL, false), subscript));
-      }
     } else {
-      if(isglobalvar(tok)) {
-        return new_node_gvar(tok, NULL, false);
+      node = lval(tok);
+      if (consume("++")) {
+        return new_node_unaryop(ND_POSTINC, node);
+      }
+      else if (consume("--")) {
+        return new_node_unaryop(ND_POSTDEC, node);
       } else {
-        return new_node_lvar(tok, NULL, false);
+        return node;
       }
     }
   } else if (tok=consume_char()) {
@@ -871,6 +885,27 @@ Node *primary() {
     return node;
   } else { // else should be a number.
     return new_node_num(expect_number());
+  }
+}
+
+Node *lval(Token *ident_tok) {
+  Node *subscript;
+  if(consume("[")) {
+    subscript = expr();
+    expect("]");
+    if(isglobalvar(ident_tok)) {
+      return new_node_unaryop(ND_DEREF,
+        new_node_binop(ND_ADD, new_node_gvar(ident_tok, NULL, false), subscript));
+    } else {
+      return new_node_unaryop(ND_DEREF,
+        new_node_binop(ND_ADD, new_node_lvar(ident_tok, NULL, false), subscript));
+    }
+  } else {
+    if(isglobalvar(ident_tok)) {
+      return new_node_gvar(ident_tok, NULL, false);
+    } else {
+      return new_node_lvar(ident_tok, NULL, false);
+    }
   }
 }
 

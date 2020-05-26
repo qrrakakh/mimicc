@@ -510,7 +510,47 @@ int test122()
 }
 int test123() 
 {
-  return 1;
+  int a; a=1;
+  return ++a;
+}
+int test124() 
+{
+  int a; a=1;
+  ++a;
+  return a;
+}
+int test125() 
+{
+  int a; a=1;
+  return --a;
+}
+int test126() 
+{
+  int a; a=1;
+  --a;
+  return a;
+}
+int test127() 
+{
+  int a; a=1;
+  return a++;
+}
+int test128() 
+{
+  int a; a=1;
+  a++;
+  return a;
+}
+int test129() 
+{
+  int a; a=1;
+  return a--;
+}
+int test130() 
+{
+  int a; a=1;
+  a--;
+  return a;
 }
 int main() {
   int expected;
@@ -1370,11 +1410,60 @@ int main() {
     printf("test122 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
-  expected=1;
+  expected=2;
   actual=test123();
   if (actual != expected)
   {
     printf("test123 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=2;
+  actual=test124();
+  if (actual != expected)
+  {
+    printf("test124 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=0;
+  actual=test125();
+  if (actual != expected)
+  {
+    printf("test125 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=0;
+  actual=test126();
+  if (actual != expected)
+  {
+    printf("test126 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=1;
+  actual=test127();
+  if (actual != expected)
+  {
+    printf("test127 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=2;
+  actual=test128();
+  if (actual != expected)
+  {
+    printf("test128 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=1;
+  actual=test129();
+  if (actual != expected)
+  {
+    printf("test129 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=0;
+  actual=test130();
+  if (actual != expected)
+  {
+    printf("test130 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
   return 0;
