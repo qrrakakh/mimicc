@@ -11,8 +11,9 @@ stmt           =  block
                   | "if" "(" expr ")" stmt ("else" stmt)?
                   | expr ";"
 type           =  ("int" | "char")
-declare        =  type  "*"* ident
-declare_a      =  type  "*"* ident ("[" num "]")?
+declare        =  type "*"* ident
+declare_a      =  type "*"* var (, "*"* var)*
+var            =  ident ("[" num "]")?
 expr           =  assign
 assign         =  equality  ("=" assign)*;
 equality       =  relational ( "==" | "!=" relational )*

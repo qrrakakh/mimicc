@@ -22,7 +22,7 @@ int foo2_7(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
 int foo2_8(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
 int test1() 
 {
-  int a;int b;a=1;b=0; {int a;a=2;b=b+a;} {int a;a=4;{int a;a=8;b=b+a;}} {int a;a=16;{int a;a=32;}b=b+a;} return b;
+  int a, b;a=1;b=0; {int a;a=2;b=b+a;} {int a;a=4;{int a;a=8;b=b+a;}} {int a;a=16;{int a;a=32;}b=b+a;} return b;
 }
 int test2() 
 {
