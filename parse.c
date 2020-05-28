@@ -376,21 +376,22 @@ Node *new_node_lvar(Token *tok, Type *ty, bool declare, Node *prev_node, Node *i
       var->id = var->next->id + 1;
     }
     node->val = 1;
-    
+    node->children = calloc(2, sizeof(Node*));
+    node->children[0] = prev_node;
+    if (init_node != NULL) {
+      node->children[1] = new_node_binop(ND_ASSIGN, new_node_lvar(tok, var->ty, false, NULL, NULL), init_node);
+    } else {
+      node->children[1] = NULL;
+    }
+
   } else {
     if(!(var=find_lvar(tok, true))) {
       error_at(token->str, "Undefined local variable.");
     }
     node->val = 0;
+    node->children = NULL;
   }
 
-  node->children = calloc(2, sizeof(Node*));
-  node->children[0] = prev_node;
-  if (init_node != NULL) {
-    node->children[1] = new_node_binop(ND_ASSIGN, new_node_lvar(tok, var->ty, false, NULL, NULL), init_node);
-  } else {
-    node->children[1] = NULL;
-  }
   node->kind = ND_LVAR;
   node->id = var->id;
   node->ty = var->ty;
@@ -416,21 +417,21 @@ Node *new_node_gvar(Token *tok, Type *ty, bool declare, Node *prev_node, Node *i
       var->id = var->next->id + 1;
     }
     node->val = 1;
-    
+    node->children = calloc(2, sizeof(Node*));
+    node->children[0] = prev_node;
+    if (init_node != NULL) {
+      node->children[1] = new_node_binop(ND_ASSIGN, new_node_gvar(tok, var->ty, false, NULL, NULL), init_node);
+    } else {
+      node->children[1] = NULL;
+    }
   } else {
     if(!(var=find_gvar(tok))) {
       error_at(token->str, "Undefined global variable.");
     }
     node->val = 0;
+    node->children=NULL;
   }
 
-  node->children = calloc(2, sizeof(Node*));
-  node->children[0] = prev_node;
-  if (init_node != NULL) {
-    node->children[1] = new_node_binop(ND_ASSIGN, new_node_gvar(tok, var->ty, false, NULL, NULL), init_node);
-  } else {
-    node->children[1] = NULL;
-  }
   node->kind = ND_GVAR;
   node->id = var->id;
   node->ty = var->ty;
