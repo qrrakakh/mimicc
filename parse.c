@@ -502,8 +502,7 @@ Node *block();
 Node *stmt();
 Type *type();
 Node *declare();
-Node *declare_a();
-Node *declare_g();
+Node *declare_a(bool is_global);
 Node *expr();
 Node *assign();
 Node *equality();
@@ -543,7 +542,7 @@ void program() {
       code[i++] = func();
     } else if(consume("[") || consume(";")) { // global variable
       token = _tok;
-      code[i++] = declare_g();
+      code[i++] = declare_a(true);
       expect(";");
     } else {
       token = _tok;
@@ -632,7 +631,7 @@ Node *stmt() {
   if (tok = consume_return()) {
     node = new_node_unaryop(ND_RETURN, expr());
     expect(";");
-  } else if(node = declare_a()) {
+  } else if(node = declare_a(false)) {
     expect(";");
   } else if (node = block()) {
     return node;
@@ -699,7 +698,7 @@ Node *declare() {
   return new_node_lvar(tok, ty, true);
 }
 
-Node *declare_a() {
+Node *declare_a(bool is_global) {
   Token *tok;
   Type *ty;
   size_t size;
@@ -715,26 +714,10 @@ Node *declare_a() {
     ty = type_array_init(ty, size);
     expect("]");
   }
-  return new_node_lvar(tok, ty, true);
-}
-
-Node *declare_g() {
-  Token *tok;
-  Type *ty;
-  size_t size;
-  if(!(ty = type()))
-    return NULL;
-  if(!(tok = consume_ident()))
-    return NULL;
-  if (consume("[")) {
-    size = expect_number();
-    if(size<1) {
-      error_at(token->str, "Array whose length less than 1 is invalid.");
-    }
-    ty = type_array_init(ty, size);
-    expect("]");
-  }
-  return new_node_gvar(tok, ty, true);
+  if (is_global)
+    return new_node_gvar(tok, ty, true);
+  else
+    return new_node_lvar(tok, ty, true);
 }
 
 Node *expr() {

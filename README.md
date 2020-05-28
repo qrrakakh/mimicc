@@ -1,6 +1,6 @@
 ## BNF
 ```
-program        =  (func | declare_g ";" )*
+program        =  (func | declare_a ";" )*
 func           =  type ident ("(" ( | declare ("," declare){0,5}) ")") block
 block          =  "{ stmt* "}"
 stmt           =  block
@@ -13,7 +13,6 @@ stmt           =  block
 type           =  ("int" | "char") "*"*
 declare        =  type ident
 declare_a      =  type ident ("[" num "]")?
-declare_g      =  type ident ("[" num "]")?
 expr           =  assign
 assign         =  equality  ("=" assign)*;
 equality       =  relational ( "==" | "!=" relational )*
