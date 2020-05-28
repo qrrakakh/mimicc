@@ -545,7 +545,7 @@ void program() {
     if(consume("(")) { // func
       token = _tok;
       code[i++] = func();
-    } else if(consume("[") || consume(";")) { // global variable
+    } else if(consume("[") ||consume(",") || consume(";")) { // global variable
       token = _tok;
       code[i++] = declare_a(true);
       expect(";");

@@ -1,5 +1,4 @@
-int a1;
-int *z1;
+int a1, *z1;
 int a3[2];
 int a4;int hoge1(int z) { return a4+z;}
 int a5[3];int hoge2(int z) { return a5[2]+z;}
