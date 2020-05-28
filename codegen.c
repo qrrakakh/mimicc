@@ -123,6 +123,7 @@ void gen(Node *node) {
   int lvar_idx;
   int diff;
   Node **stmt_list;
+  Node *node_cur;
   Type *lhs_ty, *rhs_ty;
   Var *var;
   
@@ -283,8 +284,16 @@ void gen(Node *node) {
     if (node->val==1)
       return;
     case ND_LVAR:
-    if (node->val==1)
+    if (node->val==1) {
+      node_cur = node;
+      while(node_cur) {
+        if(node_cur->children[1]) {
+          gen(node_cur->children[1]);
+        }
+        node_cur = node_cur->children[0];
+      }
       return;
+    }
     gen_lval(node);
     load(node->ty);
     return;

@@ -551,6 +551,22 @@ int test130()
   a--;
   return a;
 }
+int test131() {
+  int a=1;
+  return a;
+}
+int test132() {
+  int a=1,b=2;
+  return a+b;
+}
+char test133() {
+  int a='a';
+  return a;
+}
+char test134() {
+  char a='a', b='b';
+  return b;
+}
 int main() {
   int expected;
   int actual;
@@ -1463,6 +1479,34 @@ int main() {
   if (actual != expected)
   {
     printf("test130 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=1;
+  actual=test131();
+  if (actual != expected)
+  {
+    printf("test131 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=3;
+  actual=test132();
+  if (actual != expected)
+  {
+    printf("test132 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=97;
+  actual=test133();
+  if (actual != expected)
+  {
+    printf("test133 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=98;
+  actual=test134();
+  if (actual != expected)
+  {
+    printf("test134 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
   return 0;

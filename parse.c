@@ -356,7 +356,7 @@ Node *new_node_num(int val) {
   return node;
 }
 
-Node *new_node_lvar(Token *tok, Type *ty, bool declare, Node *prev_node) {
+Node *new_node_lvar(Token *tok, Type *ty, bool declare, Node *prev_node, Node *init_node) {
   Node *node = calloc(1, sizeof(Node));
   Var *var;
   
@@ -384,15 +384,20 @@ Node *new_node_lvar(Token *tok, Type *ty, bool declare, Node *prev_node) {
     node->val = 0;
   }
 
-  node->children = calloc(1, sizeof(Node*));
+  node->children = calloc(2, sizeof(Node*));
   node->children[0] = prev_node;
+  if (init_node != NULL) {
+    node->children[1] = new_node_binop(ND_ASSIGN, new_node_lvar(tok, var->ty, false, NULL, NULL), init_node);
+  } else {
+    node->children[1] = NULL;
+  }
   node->kind = ND_LVAR;
   node->id = var->id;
   node->ty = var->ty;
   return node;
 }
 
-Node *new_node_gvar(Token *tok, Type *ty, bool declare, Node *prev_node) {
+Node *new_node_gvar(Token *tok, Type *ty, bool declare, Node *prev_node, Node *init_node) {
   Node *node = calloc(1, sizeof(Node));
   Var *var;
   
@@ -419,8 +424,13 @@ Node *new_node_gvar(Token *tok, Type *ty, bool declare, Node *prev_node) {
     node->val = 0;
   }
 
-  node->children = calloc(1, sizeof(Node*));
+  node->children = calloc(2, sizeof(Node*));
   node->children[0] = prev_node;
+  if (init_node != NULL) {
+    node->children[1] = new_node_binop(ND_ASSIGN, new_node_gvar(tok, var->ty, false, NULL, NULL), init_node);
+  } else {
+    node->children[1] = NULL;
+  }
   node->kind = ND_GVAR;
   node->id = var->id;
   node->ty = var->ty;
@@ -702,12 +712,13 @@ Node *declare() {
 
   if(!(tok = consume_ident()))
     return NULL;
-  return new_node_lvar(tok, ty, true, NULL);
+  return new_node_lvar(tok, ty, true, NULL, NULL);
 }
 
 Node *var(Type *_ty, Node *prev_node, bool is_global) {
   Token *tok;
   Type *ty;
+  Node *node, *init_node;
   size_t size;
   ty = _ty;
 
@@ -721,10 +732,17 @@ Node *var(Type *_ty, Node *prev_node, bool is_global) {
     ty = type_array_init(ty, size);
     expect("]");
   }
+
+  if (consume("=")) {
+    init_node = assign();
+  } else {
+    init_node = NULL;
+  }
+
   if (is_global)
-    return new_node_gvar(tok, ty, true, prev_node);
+    return new_node_gvar(tok, ty, true, prev_node, init_node);
   else
-    return new_node_lvar(tok, ty, true, prev_node);
+    return new_node_lvar(tok, ty, true, prev_node, init_node);
 }
 
 Node *declare_a(bool is_global) {
@@ -918,16 +936,16 @@ Node *lval(Token *ident_tok) {
     expect("]");
     if(isglobalvar(ident_tok)) {
       return new_node_unaryop(ND_DEREF,
-        new_node_binop(ND_ADD, new_node_gvar(ident_tok, NULL, false, NULL), subscript));
+        new_node_binop(ND_ADD, new_node_gvar(ident_tok, NULL, false, NULL, NULL), subscript));
     } else {
       return new_node_unaryop(ND_DEREF,
-        new_node_binop(ND_ADD, new_node_lvar(ident_tok, NULL, false, NULL), subscript));
+        new_node_binop(ND_ADD, new_node_lvar(ident_tok, NULL, false, NULL, NULL), subscript));
     }
   } else {
     if(isglobalvar(ident_tok)) {
-      return new_node_gvar(ident_tok, NULL, false, NULL);
+      return new_node_gvar(ident_tok, NULL, false, NULL, NULL);
     } else {
-      return new_node_lvar(ident_tok, NULL, false, NULL);
+      return new_node_lvar(ident_tok, NULL, false, NULL, NULL);
     }
   }
 }
