@@ -1,7 +1,7 @@
 ## BNF
 ```
 program        =  (func | declare_a ";" )*
-func           =  type ident ("(" ( | declare ("," declare){0,5}) ")") block
+func           =  type  "*"* ident ("(" ( | declare ("," declare){0,5}) ")") block
 block          =  "{ stmt* "}"
 stmt           =  block
                   | declare_a ";"
@@ -10,9 +10,9 @@ stmt           =  block
                   | "for" "(" expr ";" expr ";" expr ")" stmt
                   | "if" "(" expr ")" stmt ("else" stmt)?
                   | expr ";"
-type           =  ("int" | "char") "*"*
-declare        =  type ident
-declare_a      =  type ident ("[" num "]")?
+type           =  ("int" | "char")
+declare        =  type  "*"* ident
+declare_a      =  type  "*"* ident ("[" num "]")?
 expr           =  assign
 assign         =  equality  ("=" assign)*;
 equality       =  relational ( "==" | "!=" relational )*
@@ -35,4 +35,4 @@ strings        =  "\"" char* "\""
 ```
 
 ## Known issues
-* Pointer return function is not defineable.
+* Function type is not considered.

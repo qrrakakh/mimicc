@@ -519,7 +519,7 @@ void program() {
   int i=0;
   Token *_tok;
   Node *node;
-  Type *ty;
+  Type *ty, *tgt_ty;
 
   globals = calloc(1, sizeof(Var)); 
   globals->next = NULL;
@@ -534,6 +534,14 @@ void program() {
     code[i] = NULL;
 
     ty = type();
+
+    while(consume("*")) {
+      tgt_ty = ty;
+      ty = calloc(1, sizeof(Type));
+      ty->kind = TYPE_PTR;
+      ty->ptr_to = tgt_ty;
+    }
+
     if(!consume_ident()) {
       error_at(token->str, "Invalid definition statement.");
     }
@@ -679,20 +687,22 @@ Type *type() {
     }
   }
 
+  return ty;
+}
+
+Node *declare() {
+  Token *tok;
+  Type *ty, *tgt_ty;
+  if(!(ty = type()))
+    return NULL;
+
   while(consume("*")) {
     tgt_ty = ty;
     ty = calloc(1, sizeof(Type));
     ty->kind = TYPE_PTR;
     ty->ptr_to = tgt_ty;
   }
-  return ty;
-}
 
-Node *declare() {
-  Token *tok;
-  Type *ty;
-  if(!(ty = type()))
-    return NULL;
   if(!(tok = consume_ident()))
     return NULL;
   return new_node_lvar(tok, ty, true);
@@ -700,10 +710,18 @@ Node *declare() {
 
 Node *declare_a(bool is_global) {
   Token *tok;
-  Type *ty;
+  Type *ty, *tgt_ty;
   size_t size;
   if(!(ty = type()))
     return NULL;
+
+  while(consume("*")) {
+    tgt_ty = ty;
+    ty = calloc(1, sizeof(Type));
+    ty->kind = TYPE_PTR;
+    ty->ptr_to = tgt_ty;
+  }
+
   if(!(tok = consume_ident()))
     return NULL;
   if (consume("[")) {
