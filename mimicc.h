@@ -113,11 +113,6 @@ typedef enum {  // Token definition
   TK_CHAR,      // single char
   TK_STRINGS,   // strings
   TK_EOF,       // end of input
-  TK_RETURN,    // return
-  TK_EXTERN,    // extern
-  TK_SIZEOF,    // sizeof
-  TK_BREAK,     // break
-  TK_CONTINUE,  // continue
 } TokenKind;
 
 typedef struct Token Token;

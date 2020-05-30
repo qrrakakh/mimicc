@@ -74,31 +74,31 @@ Token *tokenize(char *p) {
     }
 
     if (iskeyword(p, "extern", true)) {
-      cur = new_token(TK_EXTERN, cur, p, 6);
+      cur = new_token(TK_RESERVED, cur, p, 6);
       p+=6;
       continue;
     }
 
     if (iskeyword(p, "break", false)) {
-      cur = new_token(TK_BREAK, cur, p, 5);
+      cur = new_token(TK_RESERVED, cur, p, 5);
       p+=5;
       continue;
     }
 
     if (iskeyword(p, "continue", false)) {
-      cur = new_token(TK_CONTINUE, cur, p, 8);
+      cur = new_token(TK_RESERVED, cur, p, 8);
       p+=8;
       continue;
     }
 
     if (iskeyword(p, "return", true) || iskeyword(p, "return;", false)) {
-      cur = new_token(TK_RETURN, cur, p, 6);
+      cur = new_token(TK_RESERVED, cur, p, 6);
       p+=6;
       continue;
     }
 
     if (iskeyword(p, "sizeof", true) || iskeyword(p, "sizeof(", false)) {
-      cur = new_token(TK_SIZEOF, cur, p, 6);
+      cur = new_token(TK_RESERVED, cur, p, 6);
       p+=6;
       continue;
     }

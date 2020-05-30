@@ -51,8 +51,6 @@ void leave_scope() {
 //////////
 // parse functions
 
-// Read one token and return the token if the next token is an expected symbol,
-// else return NULL
 Token *consume(char *op) {
   Token *tok;
   if(token->kind != TK_RESERVED ||
@@ -65,8 +63,6 @@ Token *consume(char *op) {
   return tok;
 }
 
-// Read one token and return the pointed token if the next token is a identifier,
-// else report an error
 Token *consume_ident() {
   if(token->kind != TK_IDENT)
     return NULL;
@@ -77,51 +73,13 @@ Token *consume_ident() {
 
 Token *consume_typestr() {
   Token *tok;
+  if(token->kind != TK_RESERVED)
+    return NULL;
   for(int i=0;i<num_builtin_types;++i) {
     if(tok=consume(builtin_type_names[i]))
       return tok;
   }
   return NULL;
-}
-
-Token *consume_extern() {
-  if(token->kind != TK_EXTERN)
-    return NULL;
-  Token *tok = token;
-  token = token->next;
-  return tok;
-}
-
-Token *consume_return() {
-  if(token->kind != TK_RETURN)
-    return NULL;
-  Token *tok = token;
-  token = token->next;
-  return tok;
-}
-
-Token *consume_break() {
-  if(token->kind != TK_BREAK)
-    return NULL;
-  Token *tok = token;
-  token = token->next;
-  return tok;
-}
-
-Token *consume_continue() {
-  if(token->kind != TK_CONTINUE)
-    return NULL;
-  Token *tok = token;
-  token = token->next;
-  return tok;
-}
-
-Token *consume_sizeof() {
-  if(token->kind != TK_SIZEOF)
-    return NULL;
-  Token *tok = token;
-  token = token->next;
-  return tok;
 }
 
 Token *consume_char() {
@@ -140,8 +98,6 @@ Token *consume_strings() {
   return tok;
 }
 
-// Read one token if the next token is an expected symbol,
-// else report an error
 void expect(char *op) {
   if(token->kind != TK_RESERVED ||
      strlen(op) != token-> len ||
@@ -150,8 +106,6 @@ void expect(char *op) {
   token = token->next;
 }
 
-// Read one token and return the current value if the next token is a value,
-// else report an error
 int expect_number() {
   if(token->kind != TK_NUM)
     error_at(token->str, "The number is expected.");
@@ -662,7 +616,7 @@ void program() {
   while(!at_eof()) {
     _tok = token;
     code[i] = NULL;
-    if(consume_extern()) {
+    if(consume("extern")) {
       _tok = token;
 
       ty = type();
@@ -795,7 +749,7 @@ Node *stmt() {
   Node *node;
   Token *tok;
 
-  if (tok = consume_return()) {
+  if (tok = consume("return")) {
     if(!current_func)
       error_at(tok->str, "Returned outside of function.");
     if (current_func->ty->kind == TYPE_VOID) {
@@ -815,12 +769,12 @@ Node *stmt() {
       }
     }
     
-  } else if(tok=consume_break()) {
+  } else if(tok=consume("break")) {
     expect(";");
     if(ctrl_depth < 1)
       error_at(tok->str, "break is used in non-control syntax.");
     node = new_node_control(ND_BREAK);
-  } else if(tok=consume_continue()) {
+  } else if(tok=consume("continue")) {
     expect(";");
     if(ctrl_depth < 1)
       error_at(tok->str, "continue is used in non-control syntax.");
@@ -1098,7 +1052,7 @@ Node *mul() {
 }
 
 Node *unary() {
-  if (consume_sizeof()) {
+  if (consume("sizeof")) {
     return new_node_unaryop(ND_SIZEOF, unary());
   }
   else if(consume("&"))
