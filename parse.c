@@ -155,7 +155,7 @@ Func *find_func(Token *tok) {
 Func *add_func(Token *tok, Type *ty, int num_args) {
   Func *f;
   if(find_func(tok)) {
-    error_at(token->str, "Function with existing name is declared again.");
+    error_at(tok->str, "Function with existing name is declared again.");
   }
   f = calloc(1, sizeof(Func));
   f->next = funcs; funcs = f;
@@ -185,7 +185,7 @@ Var *find_lvar(Token *tok, bool is_recursive_search) {
 Var *add_lvar(Token *tok, Type *ty) {
   Var *var;
   if((var=find_lvar(tok, false))) {
-    error_at(token->str, "Local variable with existing name is declared again.");
+    error_at(tok->str, "Local variable with existing name is declared again.");
   } else if(ty->kind == TYPE_VOID) {
     error_at(tok->str, "Local variable declared void.");
   }
@@ -227,7 +227,7 @@ Var *find_var_by_id(int id, Var *head) {
 Var *add_gvar(Token *tok, Type *ty, bool is_extern) {
   Var *var;
   if((var=find_gvar(tok))) {
-    error_at(token->str, "Global variable with existing name is declared again.");
+    error_at(tok->str, "Global variable with existing name is declared again.");
   } else if(ty->kind == TYPE_VOID) {
     error_at(tok->str, "Global variable declared void.");
   }
@@ -282,7 +282,7 @@ bool isglobalvar(Token* tok) {
   else if(find_gvar(tok))
     return true;
   else
-    error_at(token->str, "Undefined variable.");
+    error_at(tok->str, "Undefined variable.");
 }
 
 // Generate new node
@@ -472,7 +472,7 @@ Node *new_node_lvar(Token *tok) {
   Var *var;
 
   if(!(var=find_lvar(tok, true))) {
-    error_at(token->str, "Undefined local variable.");
+    error_at(tok->str, "Undefined local variable.");
   }
 
   node->children = NULL;
@@ -487,7 +487,7 @@ Node *new_node_gvar(Token *tok) {
   Var *var;
   
   if(!(var=find_gvar(tok))) {
-    error_at(token->str, "Undefined global variable.");
+    error_at(tok->str, "Undefined global variable.");
   }
   node->children=NULL;
 
@@ -706,7 +706,7 @@ Node *func(bool is_extern) {
   }
 
   current_func=add_func(ident_tok, ty, num_args);
-  
+
   if(is_extern) {
     return new_node_func(ident_tok, ty, num_args, NULL);
   } else{
@@ -846,31 +846,32 @@ Node *declare() {
 }
 
 Node *var_a(Type *_ty, bool is_global) {
-  Token *tok;
+  Token *tok, *ident_tok;
   Type *ty;
   Node *node, *init_node;
   size_t size;
   ty = _ty;
 
-  if(!(tok = consume_ident()))
+  if(!(ident_tok = consume_ident()))
     return NULL;
   if (consume("[")) {
+    tok = token;
     size = expect_number();
     if(size<1) {
-      error_at(token->str, "Array whose length less than 1 is invalid.");
+      error_at(tok->str, "Array whose length less than 1 is invalid.");
     }
     ty = type_array_init(ty, size);
     expect("]");
   }
 
   if (is_global) {
-    add_gvar(tok, ty, false);
+    add_gvar(ident_tok, ty, false);
   } else {
-    add_lvar(tok, ty);
+    add_lvar(ident_tok, ty);
   }
 
   if (consume("=")) {
-    init_node = new_node_binop(ND_ASSIGN, new_node_lvar(tok), assign());
+    init_node = new_node_binop(ND_ASSIGN, new_node_lvar(ident_tok), assign());
   } else {
     init_node = NULL;
   }
