@@ -23,6 +23,7 @@ typedef enum {
   TYPE_CHAR,
   TYPE_INT,
   TYPE_ARITHMETIC_LIMIT,
+  TYPE_VOID,
   TYPE_PTR,
   TYPE_ARRAY,
 } TypeKind;
@@ -141,6 +142,7 @@ char *user_input;     // Input program
 Var *locals;
 Var *globals;
 Func *funcs;
+Func *current_func;
 Const_Strings *cstrs;
 int label_index;
 int last_block_id;

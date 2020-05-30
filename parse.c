@@ -186,6 +186,8 @@ Var *add_lvar(Token *tok, Type *ty) {
   Var *var;
   if((var=find_lvar(tok, false))) {
     error_at(token->str, "Local variable with existing name is declared again.");
+  } else if(ty->kind == TYPE_VOID) {
+    error_at(tok->str, "Local variable declared void.");
   }
   var = calloc(1, sizeof(Var));
   var->next = locals; locals = var;
@@ -226,6 +228,8 @@ Var *add_gvar(Token *tok, Type *ty, bool is_extern) {
   Var *var;
   if((var=find_gvar(tok))) {
     error_at(token->str, "Global variable with existing name is declared again.");
+  } else if(ty->kind == TYPE_VOID) {
+    error_at(tok->str, "Global variable declared void.");
   }
   var = calloc(1, sizeof(Var));
   var->next = globals; globals = var;
@@ -310,7 +314,7 @@ Node *new_node_unaryop(NodeKind kind, Node *valnode) {
       }
       break;
     case ND_RETURN:
-      if(node->children[0]->ty->kind == TYPE_ARRAY) {
+      if(node->children[0] && node->children[0]->ty->kind == TYPE_ARRAY) {
         node->children[0] = new_node_unaryop(ND_ADDR, node->children[0]);
       }
       node->ty = NULL; // TODO: check
@@ -701,13 +705,14 @@ Node *func(bool is_extern) {
     expect(")");
   }
 
-  add_func(ident_tok, ty, num_args);
+  current_func=add_func(ident_tok, ty, num_args);
   
   if(is_extern) {
     return new_node_func(ident_tok, ty, num_args, NULL);
   } else{
     return new_node_func(ident_tok, ty, num_args, block());
   }
+  current_func = NULL;
 }
 
 Node *block() {
@@ -748,8 +753,25 @@ Node *stmt() {
   Token *tok;
 
   if (tok = consume_return()) {
-    node = new_node_unaryop(ND_RETURN, expr());
-    expect(";");
+    if(!current_func)
+      error_at(tok->str, "Returned outside of function.");
+    if (current_func->ty->kind == TYPE_VOID) {
+      if(consume(";")) {
+        node = new_node_unaryop(ND_RETURN, NULL);
+      } else {
+        warn_at(tok->str, "Returned with a value in void function.");
+        node = new_node_unaryop(ND_RETURN, expr());
+        expect(";");
+      }
+    } else {
+      if(tok = consume(";")) {
+        error_at(tok->str, "Returned without a value in non-void function.");
+      } else {
+        node = new_node_unaryop(ND_RETURN, expr());
+        expect(";");
+      }
+    }
+    
   } else if(node = declare_a(false)) {
     expect(";");
   } else if (node = block()) {

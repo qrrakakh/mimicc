@@ -20,6 +20,7 @@ int foo2_6(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
 int foo2_7(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
 int foo2_8(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
 int a10; int *hoge7(int x) { a10=x; return &a10; }
+void voidfunc() {printf("void func runs correctly\n"); return;}
 extern int a_test_func;
 extern int arr_test_func[4];
 extern int foo();
@@ -586,6 +587,10 @@ int test136() {
 int test137() {
   int *z = hoge7(10);
   return *z;
+}
+int test138() {
+  voidfunc();
+  return 1;
 }
 int main() {
   int expected;
@@ -1548,6 +1553,13 @@ int main() {
   if (actual != expected)
   {
     printf("test137 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=1;
+  actual=test138();
+  if (actual != expected)
+  {
+    printf("test138 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
   return 0;

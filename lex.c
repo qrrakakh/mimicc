@@ -3,9 +3,9 @@
 //////////
 // tokenizer and helpers
 
-char *builtin_type_names[] = {"int", "char"};
-TypeKind builtin_type_enum[] = {TYPE_INT, TYPE_CHAR};
-int num_builtin_types = 2;
+char *builtin_type_names[] = {"int", "char", "void"};
+TypeKind builtin_type_enum[] = {TYPE_INT, TYPE_CHAR, TYPE_VOID};
+int num_builtin_types = 3;
 
 // Generate new token and concatenate to cur
 Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
@@ -79,7 +79,7 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    if (iskeyword(p, "return", true)) {
+    if (iskeyword(p, "return", true) || iskeyword(p, "return;", false)) {
       cur = new_token(TK_RETURN, cur, p, 6);
       p+=6;
       continue;

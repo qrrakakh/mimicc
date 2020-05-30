@@ -192,7 +192,8 @@ void gen(Node *node) {
     return;
 
     case ND_RETURN:
-    gen(node->children[0]);
+    if(node->children[0])
+      gen(node->children[0]);
     printf("  mov rsp, rbp\n");
     printf("  pop rbp\n");
     printf("  ret\n");
