@@ -1,31 +1,28 @@
-int a1, *z1;
-int a3[2];
-int a4;int hoge1(int z) { return a4+z;}
-int a5[3];int hoge2(int z) { return a5[2]+z;}
-int a6;int hoge3() {int a; a=3; return a;}
-int a7;int hoge4() {int a; a=3; return a;}
-int a8;int hoge5() {return a8;}
-int a9;int hoge6() {return a9;}
+// Global variables and helper functions
+int var_test11, *var_test12;
+int var_test13[2];
+int var_test14;int helper_test14(int z) { return var_test14+z;}
+int var_test15[3];int helper_test15(int z) { return var_test15[2]+z;}
+int var_test16;int hepler_test16() {int a; a=3; return a;}
+int var_test17;int helper_test17() {int a; a=3; return a;}
+int var_test18;int helper_test18() {return var_test18;}
+int var_test19;int helper_test19() {return var_test19;}
 int fib(int a){if(a==0) return 0;else if(a==1) return 1; else return fib(a-2)+fib(a-1);}
-int hoge_11(int a){return a*2;}
-int hoge_12(){int a;a=1;return 0;}
-int hoge_13(){int a;a=1;return a;}
-int hoge_14(){int a;a=1;return a;}
-int foo2_1(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
-int foo2_2(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
-int foo2_3(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
-int foo2_4(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
-int foo2_5(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
-int foo2_6(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
-int foo2_7(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
-int foo2_8(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
-int a10; int *hoge7(int x) { a10=x; return &a10; }
-void voidfunc() {printf("void func runs correctly\n"); return;}
+int helper_test58(int a){return a*2;}
+int helper_test61(){int a;a=1;return a;}
+int helper_test62(){int a;a=1;return a;}
+int helper_test65_test72(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
+int var_test137; int *helper_test137(int x) { var_test137=x; return &var_test137; }
+void helper_test138_voidfunc() {printf("void func runs correctly\n"); return;}
+
+/* extern declared functions and variables */
 extern int a_test_func;
 extern int arr_test_func[4];
 extern int foo();
 extern int printint(int a);
 extern int alloc4(int **p, int a, int b, int c, int d);
+
+// test functions
 int test1() 
 {
   int a, b;a=1;b=0; {int a;a=2;b=b+a;} {int a;a=4;{int a;a=8;b=b+a;}} {int a;a=16;{int a;a=32;}b=b+a;} return b;
@@ -68,39 +65,39 @@ int test10()
 }
 int test11() 
 {
-  a1 = 1;return a1;
+  var_test11 = 1;return var_test11;
 }
 int test12() 
 {
-  int a[2];z1=&a;*z1 = 1;*(a + 1) = 2;return *a;
+  int a[2];var_test12=&a;*var_test12 = 1;*(a + 1) = 2;return *a;
 }
 int test13() 
 {
-  *a3 = 1;*(a3 + 1) = 2;return *a3;
+  *var_test13 = 1;*(var_test13 + 1) = 2;return *var_test13;
 }
 int test14() 
 {
-  a4=3; return hoge1(20);
+  var_test14=3; return helper_test14(20);
 }
 int test15() 
 {
-  a5[0]=1;a5[1]=2;a5[2]=3; return hoge2(20);
+  var_test15[0]=1;var_test15[1]=2;var_test15[2]=3; return helper_test15(20);
 }
 int test16() 
 {
-  a6=1; return hoge3();
+  var_test16=1; return hepler_test16();
 }
 int test17() 
 {
-  a7=1; hoge4();return a7;
+  var_test17=1; helper_test17();return var_test17;
 }
 int test18() 
 {
-  a8=1; int a8; a8=2;return hoge5();
+  var_test18=1; int var_test18; var_test18=2;return helper_test18();
 }
 int test19() 
 {
-  a9=1; int a9; a9=2;hoge6();return a9;
+  var_test19=1; int var_test19; var_test19=2;helper_test19();return var_test19;
 }
 int test20() 
 {
@@ -256,7 +253,7 @@ int test57()
 }
 int test58() 
 {
-  return hoge_11(1);
+  return helper_test58(1);
 }
 int test59() 
 {
@@ -268,11 +265,11 @@ int test60()
 }
 int test61() 
 {
-  int a; int b; a=0;a=hoge_13();return a;
+  int a; int b; a=0;a=helper_test61();return a;
 }
 int test62() 
 {
-  int a; int b; a=0;b=hoge_14();return a;
+  int a; int b; a=0;b=helper_test62();return a;
 }
 int test63() 
 {
@@ -284,35 +281,35 @@ int test64()
 }
 int test65() 
 {
-  return foo2_1(0,0,0,0,0,0);
+  return helper_test65_test72(0,0,0,0,0,0);
 }
 int test66() 
 {
-  return foo2_2(1,0,0,0,0,0);
+  return helper_test65_test72(1,0,0,0,0,0);
 }
 int test67() 
 {
-  return foo2_3(0,1,0,0,0,0);
+  return helper_test65_test72(0,1,0,0,0,0);
 }
 int test68() 
 {
-  return foo2_4(0,0,1,0,0,0);
+  return helper_test65_test72(0,0,1,0,0,0);
 }
 int test69() 
 {
-  return foo2_5(0,0,0,1,0,0);
+  return helper_test65_test72(0,0,0,1,0,0);
 }
 int test70() 
 {
-  return foo2_6(0,0,0,0,1,0);
+  return helper_test65_test72(0,0,0,0,1,0);
 }
 int test71() 
 {
-  return foo2_7(0,0,0,0,0,1);
+  return helper_test65_test72(0,0,0,0,0,1);
 }
 int test72() 
 {
-  return foo2_8(foo2_8(0,0,0,0,0,1),0,0,0,0,0);
+  return helper_test65_test72(helper_test65_test72(0,0,0,0,0,1),0,0,0,0,0);
 }
 int test73() 
 {
@@ -585,11 +582,11 @@ int test136() {
   return arr_test_func[2];
 }
 int test137() {
-  int *z = hoge7(10);
+  int *z = helper_test137(10);
   return *z;
 }
 int test138() {
-  voidfunc();
+  helper_test138_voidfunc();
   return 1;
 }
 int test139() {
@@ -605,6 +602,8 @@ int test140() {
   }
   return i+b;
 }
+
+// main function
 int main() {
   int expected;
   int actual;
