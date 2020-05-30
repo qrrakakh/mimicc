@@ -154,6 +154,7 @@ extern TypeKind builtin_type_enum[];
 
 void error(char *fmt, ...);
 void error_at(char* loc, char *fmt, ...);
+void warn_at(char* loc, char *fmt, ...);
 
 //////////
 // token-related functions

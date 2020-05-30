@@ -43,6 +43,35 @@ void error_at(char *loc, char *fmt, ...) {
   exit(1);
 }
 
+// warn reporter with failed position, but continue to compile.
+void warn_at(char *loc, char *fmt, ...) {
+  char *line = loc;
+  while (user_input < line && line[-1] != '\n')
+    --line;
+  
+  char *end = loc;
+  while (*end != '\n')
+    end++;
+  
+  int line_num = 1;
+  for(char *p = user_input;p<line;p++)
+    if(*p == '\n')
+      line_num++;
+  
+  int indent = fprintf(stderr, "%s:%d: ", filepath, line_num);
+  fprintf(stderr, "%.*s\n", (int)(end - line), line);
+  int pos = loc - line + indent;
+  fprintf(stderr, "%*s", pos, "");
+
+  va_list ap;
+  va_start(ap, fmt);
+
+  fprintf(stderr, "^");
+  vfprintf(stderr, fmt, ap);
+  fprintf(stderr, "\n");
+  va_end(ap);
+}
+
 // debug function
 void print_node(Node* node, int num_lead_ws) {
   fprintf(stderr, "%*s---\n",num_lead_ws*4, "");

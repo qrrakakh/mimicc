@@ -541,7 +541,8 @@ Node *new_node_funccall(Token *tok, int num_args, Node *arg[]) {
   int i;
   Func *f = find_func(tok);
   if(!f) {
-    error_at(token->str, "Implicit func cannot be called right now.");
+    warn_at(tok->str, "Implicitly declared function.");
+    f = add_func(tok, type_int_init(), 0);
   }
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_CALL;

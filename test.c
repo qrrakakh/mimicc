@@ -25,7 +25,6 @@ extern int arr_test_func[4];
 extern int foo();
 extern int printint(int a);
 extern int alloc4(int **p, int a, int b, int c, int d);
-extern int printf();  // invalid but pass right now
 int test1() 
 {
   int a, b;a=1;b=0; {int a;a=2;b=b+a;} {int a;a=4;{int a;a=8;b=b+a;}} {int a;a=16;{int a;a=32;}b=b+a;} return b;
