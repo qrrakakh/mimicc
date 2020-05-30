@@ -24,7 +24,7 @@ Type *type_array_init(Type *_ty, size_t size) {
   return ty;
 }
 
-int isarithmetictype(Type* ty) {
+int isarithmetictype(Type *ty) {
   return ty->kind < TYPE_ARITHMETIC_LIMIT;
 }
 
@@ -132,7 +132,7 @@ bool at_eof() {
 // ast-related functions
 
 // find if the local var is already defined
-bool is_parent_of_blk_id(int id, Block* blk) {
+bool is_parent_of_blk_id(int id, Block *blk) {
   if (blk->id==id) {
     return true;
   } else if(blk->parent==NULL) {
@@ -259,7 +259,7 @@ Var *find_gvar_by_id(int id) {
   return find_var_by_id(id, globals);
 }
 
-Const_Strings *find_cstr(char* s, int l) {
+Const_Strings *find_cstr(char *s, int l) {
   Const_Strings *cs = cstrs, *new_cs;
   while(cs->next) {
     if (strncmp(cs->str, s, cs->size)==0) {
@@ -276,7 +276,7 @@ Const_Strings *find_cstr(char* s, int l) {
   return new_cs;
 }
 
-bool isglobalvar(Token* tok) {
+bool isglobalvar(Token *tok) {
   if(find_lvar(tok, true))
     return false;
   else if(find_gvar(tok))
@@ -809,8 +809,8 @@ Node *stmt() {
 }
 
 Type *type() {
-  Type* ty;
-  Token* tok;
+  Type *ty;
+  Token *tok;
   if(!(tok = consume_typestr())) {
     return NULL;
   }

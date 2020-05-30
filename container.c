@@ -73,7 +73,7 @@ void warn_at(char *loc, char *fmt, ...) {
 }
 
 // debug function
-void print_node(Node* node, int num_lead_ws) {
+void print_node(Node *node, int num_lead_ws) {
   fprintf(stderr, "%*s---\n",num_lead_ws*4, "");
   fprintf(stderr, "%*skind: %d\n",num_lead_ws*4,"", node->kind);
   fprintf(stderr, "%*sval: %d\n",num_lead_ws*4,"",node->val);
@@ -123,7 +123,7 @@ void print_node_tree() {
 }
 
 void print_lvar() {
-  Var* l = locals;
+  Var *l = locals;
   while(l->next) {
     printf("%.*s, id: %d, type: %d\n", l->len, l->name, l->id, l->ty->kind);
     l=l->next;

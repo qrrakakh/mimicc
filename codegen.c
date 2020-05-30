@@ -9,7 +9,7 @@ char x86_64_argreg_64bits[][6] = {"rdi", "rsi", "rdx", "rcx", "r8",  "r9" };
 const int POINTER_SIZE_BYTES = 8;
 
 // type helper function
-int size_of(Type* ty) {
+int size_of(Type *ty) {
   if(ty->kind == TYPE_CHAR) {
     return 1;
   } else if(ty->kind == TYPE_INT) {
@@ -21,7 +21,7 @@ int size_of(Type* ty) {
   }
 }
 
-int size_var(Type* ty) {
+int size_var(Type *ty) {
   if(ty->kind == TYPE_CHAR) {
     return 1;
   } else if(ty->kind == TYPE_INT) {
@@ -31,7 +31,7 @@ int size_var(Type* ty) {
   }
 }
 
-int size_ptr(Type* ty) {
+int size_ptr(Type *ty) {
   return size_var(ty->ptr_to);
 }
 

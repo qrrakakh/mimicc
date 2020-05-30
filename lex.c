@@ -31,7 +31,7 @@ bool iskeyword(char *p, char *keyword, bool need_space) {
   return strncmp(p, keyword, len)==0 && space_flg;
 }
 
-int istype(char* p) {
+int istype(char *p) {
   int len;
   for(int i=0;i<num_builtin_types;++i) {
     len = strlen(builtin_type_names[i]);

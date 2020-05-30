@@ -14,7 +14,7 @@ struct Const_Strings {
   int id;
   int size;
   Const_Strings *next;
-  char* str;
+  char *str;
 };
 
 typedef struct Type Type;
@@ -94,14 +94,14 @@ typedef struct Node Node;
 
 struct Node { // ABS Node struct
   NodeKind kind;
-  Node** children;
+  Node **children;
   int val;          // Only when kind==ND_NUM or ND_CALL or ND_GVAR
   int offset;       // Only when kind=ND_LVAR or ND_GVAR
   int id;           // Only when kind=ND_LVAR or ND_GVAR
   int num_args;     // Only when kind=ND_FUNC or ND_CALL
-  char* func_name;  // Only when kind=ND_CALL
-  Var* lvars;      // Only when kind=ND_FUNC
-  Type* ty;
+  char *func_name;  // Only when kind=ND_CALL
+  Var *lvars;      // Only when kind=ND_FUNC
+  Type *ty;
 };
 
 typedef enum {  // Token definition
@@ -122,7 +122,7 @@ struct Token {  // Token type
   TokenKind kind;
   Token * next; // next input token
   int val;      // value if kind is TK_NUM
-  char* str;    // token string
+  char *str;    // token string
   int len;
 };
 
@@ -146,7 +146,7 @@ Func *current_func;
 Const_Strings *cstrs;
 int label_index;
 int last_block_id;
-Block* current_block;
+Block *current_block;
 extern char *builtin_type_names[];
 extern int num_builtin_types;
 extern TypeKind builtin_type_enum[];
@@ -155,8 +155,8 @@ extern TypeKind builtin_type_enum[];
 // utility functions
 
 void error(char *fmt, ...);
-void error_at(char* loc, char *fmt, ...);
-void warn_at(char* loc, char *fmt, ...);
+void error_at(char *loc, char *fmt, ...);
+void warn_at(char *loc, char *fmt, ...);
 
 //////////
 // token-related functions
@@ -189,4 +189,4 @@ void print_lvar();
 // architecture-dependent functions
 
 // type helper function
-int size_of(Type* ty);
+int size_of(Type *ty);
