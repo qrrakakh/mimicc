@@ -64,8 +64,14 @@ Token *consume_typestr() {
   return NULL;
 }
 
-// Read one token and return the pointed token if the next token is a identifier,
-// else report an error
+Token *consume_extern() {
+  if(token->kind != TK_EXTERN)
+    return NULL;
+  Token *tok = token;
+  token = token->next;
+  return tok;
+}
+
 Token *consume_return() {
   if(token->kind != TK_RETURN)
     return NULL;
@@ -74,8 +80,6 @@ Token *consume_return() {
   return tok;
 }
 
-// Read one token and return the pointed token if the next token is a identifier,
-// else report an error
 Token *consume_sizeof() {
   if(token->kind != TK_SIZEOF)
     return NULL;
@@ -194,7 +198,7 @@ Var *find_var_by_id(int id, Var *head) {
   return NULL;
 }
 
-Var *add_gvar(Token *tok, Type *ty) {
+Var *add_gvar(Token *tok, Type *ty, bool is_extern) {
   Var *var;
   if((var=find_gvar(tok))) {
     error_at(token->str, "Global variable with existing name is declared again.");
@@ -204,6 +208,12 @@ Var *add_gvar(Token *tok, Type *ty) {
   var->name = tok->str;
   var->len = tok->len;
   var->ty = ty;
+  if(is_extern) {
+    var->block_id = -1;
+  } else {
+    var->block_id = 0;
+  }
+
   if (ty->kind == TYPE_ARRAY) {
     var->id = var->next->id + ty->array_size;
   } else {
@@ -493,7 +503,7 @@ Node *new_node_block(Node **stmt_list) {
 Node *new_node_func(Token *tok, int num_args, Node *block_node) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_FUNC;
-  node->children = calloc(1, sizeof(Node*));;
+  node->children = calloc(1, sizeof(Node*));
   node->children[0] = block_node;
   node->func_name = tok->str;
   node->val = tok->len;
@@ -537,7 +547,9 @@ Node *stmt();
 Type *type();
 Node *declare();
 Node *declare_a(bool is_global);
-Node *var(Type *_ty, bool is_global);
+void declare_e();
+void evar(Type *_ty);
+Node *var_a(Type *_ty, bool is_global);
 Node *expr();
 Node *assign();
 Node *equality();
@@ -554,7 +566,7 @@ void program() {
   int i=0;
   Token *_tok;
   Node *node;
-  Type *ty;
+  Type *ty, *tgt_ty;
 
   globals = calloc(1, sizeof(Var)); 
   globals->next = NULL;
@@ -567,6 +579,32 @@ void program() {
   while(!at_eof()) {
     _tok = token;
     code[i] = NULL;
+
+    if(consume_extern()) {
+      _tok = token;
+
+      ty = type();
+
+      while(consume("*"));
+
+      if(!consume_ident()) {
+        error_at(token->str, "Invalid external declaration statement.");
+      }
+
+      if(consume("(")) {
+        token = _tok;
+        node = func();
+      } else if(consume("[") ||consume(",") || consume(";")) { // global variable
+        token = _tok;
+        declare_e();
+        expect(";");
+      } else {
+        token = _tok;
+        error_at(token->str, "Definition of the global variable or the function should be allowed.");
+      }
+
+      continue;
+    }
 
     ty = type();
 
@@ -705,7 +743,7 @@ Node *stmt() {
 }
 
 Type *type() {
-  Type* ty, *tgt_ty;
+  Type* ty;
   Token* tok;
   if(!(tok = consume_typestr())) {
     return NULL;
@@ -741,7 +779,7 @@ Node *declare() {
   return NULL;
 }
 
-Node *var(Type *_ty, bool is_global) {
+Node *var_a(Type *_ty, bool is_global) {
   Token *tok;
   Type *ty;
   Node *node, *init_node;
@@ -760,7 +798,7 @@ Node *var(Type *_ty, bool is_global) {
   }
 
   if (is_global) {
-    add_gvar(tok, ty);
+    add_gvar(tok, ty, false);
   } else {
     add_lvar(tok, ty);
   }
@@ -772,6 +810,57 @@ Node *var(Type *_ty, bool is_global) {
   }
 
   return init_node;
+}
+
+void declare_e() {
+  Token *tok;
+  Type *ty, *tgt_ty, *orig_ty;
+  Node *node;
+
+  if(!(orig_ty = type()))
+    return;
+
+  ty = orig_ty;
+  while(consume("*")) {
+    tgt_ty = ty;
+    ty = calloc(1, sizeof(Type));
+    ty->kind = TYPE_PTR;
+    ty->ptr_to = tgt_ty;
+  }
+
+  evar(ty);
+
+  while(consume(",")) {
+    ty = orig_ty;
+    while(consume("*")) {
+      tgt_ty = ty;
+      ty = calloc(1, sizeof(Type));
+      ty->kind = TYPE_PTR;
+      ty->ptr_to = tgt_ty;
+    }
+    evar(ty);
+  }
+}
+
+void evar(Type *_ty) {
+  Token *tok;
+  Type *ty;
+  Node *node, *init_node;
+  size_t size;
+  ty = _ty;
+
+  if(!(tok = consume_ident()))
+    return;
+  if (consume("[")) {
+    size = expect_number();
+    if(size<1) {
+      error_at(token->str, "Array whose length less than 1 is invalid.");
+    }
+    ty = type_array_init(ty, size);
+    expect("]");
+  }
+
+  add_gvar(tok, ty, true);
 }
 
 Node *declare_a(bool is_global) {
@@ -790,7 +879,7 @@ Node *declare_a(bool is_global) {
     ty->ptr_to = tgt_ty;
   }
 
-  node = new_node_varinit(var(ty, is_global), is_global);
+  node = new_node_varinit(var_a(ty, is_global), is_global);
 
   while(consume(",")) {
     ty = orig_ty;
@@ -800,11 +889,10 @@ Node *declare_a(bool is_global) {
       ty->kind = TYPE_PTR;
       ty->ptr_to = tgt_ty;
     }
-    add_varinit(node, var(ty, is_global), is_global);
+    add_varinit(node, var_a(ty, is_global), is_global);
   }
 
   return node;
-
 }
 
 Node *expr() {

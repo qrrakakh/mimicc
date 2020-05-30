@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+int a_test_func;
+int arr_test_func[3];
 int foo() { printf("OK\n"); return 0;}
 int printint(int a) { printf("%d\n", a); return 0;}
 int alloc4(int **p, int a, int b, int c, int d) {

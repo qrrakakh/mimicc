@@ -106,6 +106,9 @@ void gen_footer() {
   // global variable
   printf("  .data\n");
   for(g=globals;g->next!=NULL;g=g->next) {
+    if(g->block_id==-1) { // extern
+      continue;
+    }
     printf("%.*s:\n", g->len, g->name);
     printf("  .zero %d\n", size_of(g->ty));
   }

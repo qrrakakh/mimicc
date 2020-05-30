@@ -101,6 +101,7 @@ typedef enum {  // Token definition
   TK_STRINGS,   // strings
   TK_EOF,       // end of input
   TK_RETURN,    // return
+  TK_EXTERN,    // extern
   TK_SIZEOF,    // sizeof
 } TokenKind;
 

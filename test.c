@@ -19,6 +19,8 @@ int foo2_5(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
 int foo2_6(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
 int foo2_7(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
 int foo2_8(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
+extern int a_test_func;
+extern int arr_test_func[4];
 int test1() 
 {
   int a, b;a=1;b=0; {int a;a=2;b=b+a;} {int a;a=4;{int a;a=8;b=b+a;}} {int a;a=16;{int a;a=32;}b=b+a;} return b;
@@ -566,6 +568,16 @@ char test133() {
 char test134() {
   char a='a', b='b';
   return b;
+}
+int test135() {
+  a_test_func=1;
+  return a_test_func;
+}
+int test136() {
+  arr_test_func[0]=0;
+  arr_test_func[1]=2;
+  arr_test_func[2]=4;
+  return arr_test_func[2];
 }
 int main() {
   int expected;
@@ -1507,6 +1519,20 @@ int main() {
   if (actual != expected)
   {
     printf("test134 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=1;
+  actual=test135();
+  if (actual != expected)
+  {
+    printf("test135 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=4;
+  actual=test136();
+  if (actual != expected)
+  {
+    printf("test136 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
   return 0;

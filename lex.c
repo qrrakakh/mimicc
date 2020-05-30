@@ -73,6 +73,12 @@ Token *tokenize(char *p) {
       continue;
     }
 
+    if (iskeyword(p, "extern", true)) {
+      cur = new_token(TK_EXTERN, cur, p, 6);
+      p+=6;
+      continue;
+    }
+
     if (iskeyword(p, "return", true)) {
       cur = new_token(TK_RETURN, cur, p, 6);
       p+=6;
