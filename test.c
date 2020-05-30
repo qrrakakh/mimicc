@@ -602,6 +602,23 @@ int test140() {
   }
   return i+b;
 }
+int test141() {
+  int a=0;
+  for(int i=0;i<100;++i) {
+    if(i%2==0) continue;
+    a=a+i;
+  }
+  return a; // 2500
+}
+
+int test142() {
+  int a=0, b=49;
+  for(int i=0;i<100;++i) {
+    a=i;
+    if(i==b) break;
+  }
+  return a;  // 49
+}
 
 // main function
 int main() {
@@ -1586,6 +1603,20 @@ int main() {
   if (actual != expected)
   {
     printf("test140 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=2500;
+  actual=test141();
+  if (actual != expected)
+  {
+    printf("test141 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=49;
+  actual=test142();
+  if (actual != expected)
+  {
+    printf("test142 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
   return 0;

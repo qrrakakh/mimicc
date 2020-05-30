@@ -75,6 +75,8 @@ typedef enum {  // ABS Node kinds
   ND_GVARINIT,  // Global variable initialize
   ND_ASSIGN,    // =
   ND_RETURN,    // return
+  ND_BREAK,     // break
+  ND_CONTINUE,  // continue
   ND_WHILE,     // while
   ND_FOR,       // for
   ND_IF,        // if
@@ -114,6 +116,8 @@ typedef enum {  // Token definition
   TK_RETURN,    // return
   TK_EXTERN,    // extern
   TK_SIZEOF,    // sizeof
+  TK_BREAK,     // break
+  TK_CONTINUE,  // continue
 } TokenKind;
 
 typedef struct Token Token;
@@ -146,6 +150,7 @@ Func *current_func;
 Const_Strings *cstrs;
 int label_index;
 int last_scope_id;
+int ctrl_depth;
 Scope *current_scope;
 extern char *builtin_type_names[];
 extern int num_builtin_types;

@@ -199,6 +199,14 @@ void gen(Node *node) {
     printf("  ret\n");
     return;
 
+    case ND_BREAK:
+    printf("  jmp .L.end%06d\n", ctrl_depth);
+    return;
+
+    case ND_CONTINUE:
+    printf("  jmp .L.next%06d\n", ctrl_depth);
+    return;
+
     case ND_BLOCK:
     stmt_list = node->children;
     while (*stmt_list != NULL) {
@@ -315,12 +323,14 @@ void gen(Node *node) {
 
     case ND_WHILE:
     label = label_index++;
-    printf(".L.begin%06d:\n", label);
+    printf(".L.next%06d:\n", label);
+    ctrl_depth = label;
     gen(node->children[0]);
     printf("  cmp rax, 0\n");
     printf("  je .L.end%06d\n", label);
+    ctrl_depth = label;
     gen(node->children[1]);
-    printf("  jmp .L.begin%06d\n", label);
+    printf("  jmp .L.next%06d\n", label);
     printf(".L.end%06d:\n", label);
     return;
 
@@ -331,7 +341,9 @@ void gen(Node *node) {
     gen(node->children[1]);
     printf("  cmp rax, 0\n");
     printf("  je .L.end%06d\n", label);
+    ctrl_depth = label;
     gen(node->children[3]);
+    printf(".L.next%06d:\n", label);
     gen(node->children[2]);
     printf("  jmp .L.begin%06d\n", label);
     printf(".L.end%06d:\n", label);

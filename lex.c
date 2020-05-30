@@ -79,6 +79,18 @@ Token *tokenize(char *p) {
       continue;
     }
 
+    if (iskeyword(p, "break", false)) {
+      cur = new_token(TK_BREAK, cur, p, 5);
+      p+=5;
+      continue;
+    }
+
+    if (iskeyword(p, "continue", false)) {
+      cur = new_token(TK_CONTINUE, cur, p, 8);
+      p+=8;
+      continue;
+    }
+
     if (iskeyword(p, "return", true) || iskeyword(p, "return;", false)) {
       cur = new_token(TK_RETURN, cur, p, 6);
       p+=6;

@@ -100,6 +100,22 @@ Token *consume_return() {
   return tok;
 }
 
+Token *consume_break() {
+  if(token->kind != TK_BREAK)
+    return NULL;
+  Token *tok = token;
+  token = token->next;
+  return tok;
+}
+
+Token *consume_continue() {
+  if(token->kind != TK_CONTINUE)
+    return NULL;
+  Token *tok = token;
+  token = token->next;
+  return tok;
+}
+
 Token *consume_sizeof() {
   if(token->kind != TK_SIZEOF)
     return NULL;
@@ -548,6 +564,14 @@ Node *new_node_block(Node **stmt_list) {
   return node;
 }
 
+Node *new_node_control(NodeKind k) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = k;
+  node->children = NULL;
+  node->ty = NULL;
+  return node;
+}
+
 Node *new_node_func(Token *tok, Type *ty, int num_args, Node *block_node) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_FUNC;
@@ -633,6 +657,7 @@ void program() {
   funcs->next = NULL;
 
   last_scope_id = 0;
+  ctrl_depth = 0;
 
   while(!at_eof()) {
     _tok = token;
@@ -790,6 +815,16 @@ Node *stmt() {
       }
     }
     
+  } else if(tok=consume_break()) {
+    expect(";");
+    if(ctrl_depth < 1)
+      error_at(tok->str, "break is used in non-control syntax.");
+    node = new_node_control(ND_BREAK);
+  } else if(tok=consume_continue()) {
+    expect(";");
+    if(ctrl_depth < 1)
+      error_at(tok->str, "continue is used in non-control syntax.");
+    node = new_node_control(ND_CONTINUE);
   } else if(node = declare_a(false)) {
     expect(";");
   } else if (node = block()) {
@@ -798,7 +833,9 @@ Node *stmt() {
     expect("(");
     Node *cond = expr();
     expect(")");
+    ++ctrl_depth;
     node = new_node_binop(ND_WHILE, cond, stmt());
+    --ctrl_depth;
   } else if(tok = consume("for")) {
     enter_scope();
     expect("(");
@@ -811,7 +848,9 @@ Node *stmt() {
     expect(";");
     Node *next = expr();
     expect(")");
+    ++ctrl_depth;
     node = new_node_for(init, cond, next, stmt());
+    ctrl_depth;
     leave_scope();
   } else if(tok = consume("if")) {
     expect("(");
