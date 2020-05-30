@@ -29,6 +29,26 @@ int isarithmetictype(Type *ty) {
 }
 
 //////////
+// scope related functions
+
+void init_scope() {
+  current_scope = calloc(1, sizeof(Scope));
+  current_scope->id = 0;
+  current_scope->parent = NULL;
+}
+
+void enter_scope() {
+  Scope *blk = calloc(1, sizeof(Scope));
+  blk->id = ++last_scope_id;
+  blk->parent = current_scope;
+  current_scope = blk;
+}
+
+void leave_scope() {
+  current_scope = current_scope->parent;
+}
+
+//////////
 // parse functions
 
 // Read one token and return the token if the next token is an expected symbol,
@@ -132,13 +152,13 @@ bool at_eof() {
 // ast-related functions
 
 // find if the local var is already defined
-bool is_parent_of_blk_id(int id, Block *blk) {
+bool is_parent_of_scope_id(int id, Scope *blk) {
   if (blk->id==id) {
     return true;
   } else if(blk->parent==NULL) {
     return false;
   } else {
-    return is_parent_of_blk_id(id, blk->parent);
+    return is_parent_of_scope_id(id, blk->parent);
   }
 }
 
@@ -171,10 +191,10 @@ Var *find_lvar(Token *tok, bool is_recursive_search) {
   for(var=locals;var;var=var->next) {
     if(var->len == tok->len && !memcmp(var->name, tok->str, var->len)) {
       if(is_recursive_search) {
-        if(is_parent_of_blk_id(var->block_id, current_block))
+        if(is_parent_of_scope_id(var->scope_id, current_scope))
           return var;
       } else {
-        if(current_block->id == var->block_id)
+        if(current_scope->id == var->scope_id)
           return var;
       }
     }
@@ -194,7 +214,7 @@ Var *add_lvar(Token *tok, Type *ty) {
   var->name = tok->str;
   var->len = tok->len;
   var->ty = ty;
-  var->block_id = current_block->id;
+  var->scope_id = current_scope->id;
   if (ty->kind == TYPE_ARRAY) {
     var->id = var->next->id + ty->array_size;
   } else {
@@ -237,9 +257,9 @@ Var *add_gvar(Token *tok, Type *ty, bool is_extern) {
   var->len = tok->len;
   var->ty = ty;
   if(is_extern) {
-    var->block_id = -1;
+    var->scope_id = -1;
   } else {
-    var->block_id = 0;
+    var->scope_id = 0;
   }
 
   if (ty->kind == TYPE_ARRAY) {
@@ -356,8 +376,8 @@ Node *new_node_binop(NodeKind kind, Node *lhs, Node *rhs) {
           (!isarithmetictype(rhs->ty)) ||
           (lhs->ty->kind != rhs->ty->kind)) {
         error_at(token->str, 
-          "both types should be arithmetic or different type cannot be compared; lhs type: %d, rhs type: %d, current block id: %d",
-          lhs->ty->kind, rhs->ty->kind, current_block->id);
+          "both types should be arithmetic or different type cannot be compared; lhs type: %d, rhs type: %d, current scope id: %d",
+          lhs->ty->kind, rhs->ty->kind, current_scope->id);
       }
       node->ty = type_int_init();
       break;
@@ -612,6 +632,8 @@ void program() {
   funcs = calloc(1, sizeof(Func));
   funcs->next = NULL;
 
+  last_scope_id = 0;
+
   while(!at_eof()) {
     _tok = token;
     code[i] = NULL;
@@ -686,10 +708,7 @@ Node *func(bool is_extern) {
   locals->next = NULL;
   locals->id = 0;
 
-  last_block_id = 0;
-  current_block = calloc(1, sizeof(Block));
-  current_block->id = 0;
-  current_block->parent = NULL;
+  init_scope();
 
   expect("(");
   num_args = 0;
@@ -722,10 +741,7 @@ Node *block() {
     int alloc_size = alloc_unit;
     int cur = 0;
 
-    Block *blk = calloc(1, sizeof(Block));
-    blk->id = ++last_block_id;
-    blk->parent = current_block;
-    current_block = blk;
+    enter_scope();
     
     stmt_list = calloc(alloc_size, sizeof(Node*));
     while(!(consume("}"))) {
@@ -739,7 +755,9 @@ Node *block() {
       }
       stmt_list[cur++] = stmt();
     }
-    current_block = current_block->parent;
+    
+    leave_scope();
+
     stmt_list[cur] = NULL;
 
     return new_node_block(stmt_list);
