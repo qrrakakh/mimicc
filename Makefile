@@ -2,15 +2,15 @@ CFLAGS=-std=c11 -g -static
 SRCS=codegen.c container.c main.c parse.c lex.c
 OBJS=$(SRCS:.c=.o)
 
-9cc: $(OBJS)
-	$(CC) -o 9cc $(OBJS) $(LDFLAGS)
+mimicc: $(OBJS)
+	$(CC) -o mimicc $(OBJS) $(LDFLAGS)
 
-$(OBJS): 9cc.h
+$(OBJS): mimicc.h
 
-test: 9cc
+test: mimicc
 	./test.sh
 
 clean:
-	rm -f 9cc *.o *~ tmp*
+	rm -f mimicc *.o *~ tmp*
 
 .PHONY: test clean

@@ -1,3 +1,9 @@
+# mimicc: a study C compiler
+This is a study work following the document below.
+
+https://www.sigbus.info/compilerbook
+
+
 ## BNF
 ```
 program        =  ((func block | declare_a ";" | "extern" declare_e "; | "extern" func ";"))*

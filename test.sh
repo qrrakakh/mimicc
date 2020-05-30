@@ -1,4 +1,7 @@
 #!/bin/bash
+
+compiler_bin="./mimicc"
+
 compile_test_func() {
   cc -c -o test_func.o test_func.c
 }
@@ -8,7 +11,7 @@ assert() {
   input="$2"
 
   echo -e "$input" > tmp.c
-  ./9cc ./tmp.c > tmp.s
+  ${compiler_bin} ./tmp.c > tmp.s
   cc -c -o tmp.o tmp.s
   cc -o tmp tmp.o test_func.o
   ./tmp
@@ -24,7 +27,7 @@ assert() {
 
 run_test_c_code() {
   test_c_code=$1
-  ./9cc ${test_c_code} > tmp.s
+  ${compiler_bin} ${test_c_code} > tmp.s
   cc -c -o tmp.o tmp.s
   cc -o tmp tmp.o test_func.o
   ./tmp

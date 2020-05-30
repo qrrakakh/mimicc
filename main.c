@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "9cc.h"
+#include "mimicc.h"
 
 void compile(char *input) {
   // tokenize and parse;
