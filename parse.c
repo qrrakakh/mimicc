@@ -800,14 +800,19 @@ Node *stmt() {
     expect(")");
     node = new_node_binop(ND_WHILE, cond, stmt());
   } else if(tok = consume("for")) {
+    enter_scope();
     expect("(");
-    Node *init = expr();
+    Node *init;
+    if(!(init=declare_a(false))) {
+      init = expr();
+    }
     expect(";");
     Node *cond = expr();
     expect(";");
     Node *next = expr();
     expect(")");
     node = new_node_for(init, cond, next, stmt());
+    leave_scope();
   } else if(tok = consume("if")) {
     expect("(");
     Node *cond = expr();

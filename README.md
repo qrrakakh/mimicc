@@ -7,7 +7,7 @@ stmt           =  block
                   | declare_a ";"
                   | "return" expr ";"
                   | "while" "(" expr ")" stmt
-                  | "for" "(" expr ";" expr ";" expr ")" stmt
+                  | "for" "(" expr | declare_a ";" expr ";" expr ")" stmt
                   | "if" "(" expr ")" stmt ("else" stmt)?
                   | expr ";"
 type           =  ("int" | "char")

@@ -592,6 +592,19 @@ int test138() {
   voidfunc();
   return 1;
 }
+int test139() {
+  int i=100, b=0;
+  for(int i=0;i<10;++i)
+    b=b+i;
+  return i+b;
+}
+int test140() {
+  int i=50, b=0;
+  for(int i=0;i<10;++i) {
+    b=b+i;
+  }
+  return i+b;
+}
 int main() {
   int expected;
   int actual;
@@ -1560,6 +1573,20 @@ int main() {
   if (actual != expected)
   {
     printf("test138 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=145;
+  actual=test139();
+  if (actual != expected)
+  {
+    printf("test139 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=95;
+  actual=test140();
+  if (actual != expected)
+  {
+    printf("test140 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
   return 0;
