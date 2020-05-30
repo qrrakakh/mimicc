@@ -19,8 +19,13 @@ int foo2_5(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
 int foo2_6(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
 int foo2_7(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
 int foo2_8(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
+int a10; int *hoge7(int x) { a10=x; return &a10; }
 extern int a_test_func;
 extern int arr_test_func[4];
+extern int foo();
+extern int printint(int a);
+extern int alloc4(int **p, int a, int b, int c, int d);
+extern int printf();  // invalid but pass right now
 int test1() 
 {
   int a, b;a=1;b=0; {int a;a=2;b=b+a;} {int a;a=4;{int a;a=8;b=b+a;}} {int a;a=16;{int a;a=32;}b=b+a;} return b;
@@ -578,6 +583,10 @@ int test136() {
   arr_test_func[1]=2;
   arr_test_func[2]=4;
   return arr_test_func[2];
+}
+int test137() {
+  int *z = hoge7(10);
+  return *z;
 }
 int main() {
   int expected;
@@ -1533,6 +1542,13 @@ int main() {
   if (actual != expected)
   {
     printf("test136 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=10;
+  actual=test137();
+  if (actual != expected)
+  {
+    printf("test137 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
   return 0;

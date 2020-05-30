@@ -1,6 +1,6 @@
 ## BNF
 ```
-program        =  ((func block | declare_a ";" | extern declare_e ";))*
+program        =  ((func block | declare_a ";" | "extern" declare_e "; | "extern" func ";"))*
 func           =  type  "*"* ident ("(" ( | declare ("," declare){0,5}) ")")
 block          =  "{ stmt* "}"
 stmt           =  block
@@ -38,4 +38,4 @@ strings        =  "\"" char* "\""
 ```
 
 ## Known issues
-* Function type is not considered.
+* External function declarement does not care its type or types of arguments.

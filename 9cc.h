@@ -45,6 +45,16 @@ struct Var {  // defined variables
   Type *ty;
 };
 
+typedef struct Func Func;
+
+struct Func {  // defined variables
+  Func *next;
+  char *name;
+  int len;
+  int num_args;
+  Type *ty;
+};
+
 typedef enum {  // ABS Node kinds
   ND_ADD,       // +
   ND_SUB,       // -
@@ -130,6 +140,7 @@ char *filepath;     // Input program path
 char *user_input;     // Input program
 Var *locals;
 Var *globals;
+Func *funcs;
 Const_Strings *cstrs;
 int label_index;
 int last_block_id;

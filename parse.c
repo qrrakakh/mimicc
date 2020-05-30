@@ -142,6 +142,30 @@ bool is_parent_of_blk_id(int id, Block* blk) {
   }
 }
 
+Func *find_func(Token *tok) {
+  Func *f;
+  for(f=funcs;f;f=f->next) {
+    if(f->len == tok->len && !memcmp(f->name, tok->str, f->len)) {
+      return f;
+    }
+  }
+  return NULL;
+}
+
+Func *add_func(Token *tok, Type *ty, int num_args) {
+  Func *f;
+  if(find_func(tok)) {
+    error_at(token->str, "Function with existing name is declared again.");
+  }
+  f = calloc(1, sizeof(Func));
+  f->next = funcs; funcs = f;
+  f->name = tok->str;
+  f->len = tok->len;
+  f->num_args = num_args;
+  f->ty = ty;
+  return f;
+}
+
 Var *find_lvar(Token *tok, bool is_recursive_search) {
   Var *var;
   for(var=locals;var;var=var->next) {
@@ -500,7 +524,7 @@ Node *new_node_block(Node **stmt_list) {
   return node;
 }
 
-Node *new_node_func(Token *tok, int num_args, Node *block_node) {
+Node *new_node_func(Token *tok, Type *ty, int num_args, Node *block_node) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_FUNC;
   node->children = calloc(1, sizeof(Node*));
@@ -509,12 +533,16 @@ Node *new_node_func(Token *tok, int num_args, Node *block_node) {
   node->val = tok->len;
   node->num_args = num_args;
   node->lvars = locals;
-  node->ty = type_int_init(); // TODO: modify if non-int function is implemented.
+  node->ty = ty;
   return node;
 }
 
 Node *new_node_funccall(Token *tok, int num_args, Node *arg[]) {
   int i;
+  Func *f = find_func(tok);
+  if(!f) {
+    error_at(token->str, "Implicit func cannot be called right now.");
+  }
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_CALL;
   node->children = calloc(num_args, sizeof(Node));
@@ -524,7 +552,7 @@ Node *new_node_funccall(Token *tok, int num_args, Node *arg[]) {
   node->func_name = tok->str;
   node->val = tok->len;
   node->num_args = num_args;
-  node->ty = type_int_init(); // TODO: modify if non-int function is implemented.
+  node->ty = f->ty;
   return node;
 }
 
@@ -541,7 +569,7 @@ int get_num_lvars() {
 
 // Non-terminal symbols generator
 void program();
-Node *func();
+Node *func(bool is_extern);
 Node *block();
 Node *stmt();
 Type *type();
@@ -576,10 +604,12 @@ void program() {
   cstrs->next = NULL;
   cstrs->id = 0;
 
+  funcs = calloc(1, sizeof(Func));
+  funcs->next = NULL;
+
   while(!at_eof()) {
     _tok = token;
     code[i] = NULL;
-
     if(consume_extern()) {
       _tok = token;
 
@@ -593,7 +623,8 @@ void program() {
 
       if(consume("(")) {
         token = _tok;
-        node = func();
+        node = func(true);
+        expect(";");
       } else if(consume("[") ||consume(",") || consume(";")) { // global variable
         token = _tok;
         declare_e();
@@ -602,19 +633,17 @@ void program() {
         token = _tok;
         error_at(token->str, "Definition of the global variable or the function should be allowed.");
       }
-
       continue;
     }
 
     ty = type();
-
     while(consume("*"));
     if(!consume_ident()) {
       error_at(token->str, "Invalid definition statement.");
     }
     if(consume("(")) { // func
       token = _tok;
-      code[i++] = func();
+      code[i++] = func(false);
     } else if(consume("[") ||consume(",") || consume(";")) { // global variable
       token = _tok;
       code[i++] = declare_a(true);
@@ -627,14 +656,22 @@ void program() {
   code[i] = NULL;
 }
 
-Node *func() {
+Node *func(bool is_extern) {
   Token *type_tok, *ident_tok, *arg_tok;
-  Type *ty;
+  Type *ty, *tgt_ty;
   Node *arg[6];
   int num_args;
   if(!(ty = type())) {
     error_at(token->str, "Invalid type in function declaration.");
   }
+
+  while(consume("*")) {
+    tgt_ty = ty;
+    ty = calloc(1, sizeof(Type));
+    ty->kind = TYPE_PTR;
+    ty->ptr_to = tgt_ty;
+  }
+
   if(!(ident_tok=consume_ident())) {
     error_at(token->str, "Invalid function definition.");
   }
@@ -648,22 +685,28 @@ Node *func() {
   current_block = calloc(1, sizeof(Block));
   current_block->id = 0;
   current_block->parent = NULL;
-  
+
   expect("(");
   num_args = 0;
   if(!consume(")")) {
     arg[num_args++] = declare();
     while(num_args<=6) {
       if(consume(",")) {
-          arg[num_args++] = declare();
+        arg[num_args++] = declare();
       } else {
         break;
       }
     }
     expect(")");
   }
+
+  add_func(ident_tok, ty, num_args);
   
-  return new_node_func(ident_tok, num_args, block());
+  if(is_extern) {
+    return new_node_func(ident_tok, ty, num_args, NULL);
+  } else{
+    return new_node_func(ident_tok, ty, num_args, block());
+  }
 }
 
 Node *block() {

@@ -132,6 +132,8 @@ void gen(Node *node) {
   
   switch(node->kind) {
     case ND_FUNC:
+    if (!(node->children[0]))
+      return;
     printf("%.*s:\n", node->val, node->func_name);
 
     locals = node->lvars;
