@@ -154,6 +154,26 @@ Var *find_lvar(Token *tok, bool is_recursive_search) {
   return NULL;
 }
 
+Var *add_lvar(Token *tok, Type *ty) {
+  Var *var;
+  if((var=find_lvar(tok, false))) {
+    error_at(token->str, "Local variable with existing name is declared again.");
+  }
+  var = calloc(1, sizeof(Var));
+  var->next = locals; locals = var;
+  var->name = tok->str;
+  var->len = tok->len;
+  var->ty = ty;
+  var->block_id = current_block->id;
+  if (ty->kind == TYPE_ARRAY) {
+    var->id = var->next->id + ty->array_size;
+  } else {
+    var->id = var->next->id + 1;
+  }
+
+  return var;
+}
+
 Var *find_gvar(Token *tok) {
   Var *var;
   for(var=globals;var;var=var->next) {
@@ -172,6 +192,25 @@ Var *find_var_by_id(int id, Var *head) {
     }
   }
   return NULL;
+}
+
+Var *add_gvar(Token *tok, Type *ty) {
+  Var *var;
+  if((var=find_gvar(tok))) {
+    error_at(token->str, "Global variable with existing name is declared again.");
+  }
+  var = calloc(1, sizeof(Var));
+  var->next = globals; globals = var;
+  var->name = tok->str;
+  var->len = tok->len;
+  var->ty = ty;
+  if (ty->kind == TYPE_ARRAY) {
+    var->id = var->next->id + ty->array_size;
+  } else {
+    var->id = var->next->id + 1;
+  }
+
+  return var;
 }
 
 Var *find_lvar_by_id(int id) {
@@ -356,81 +395,63 @@ Node *new_node_num(int val) {
   return node;
 }
 
-Node *new_node_lvar(Token *tok, Type *ty, bool declare, Node *prev_node, Node *init_node) {
+Node *new_node_varinit(Node *var_node, bool is_global) {
+  Node *node = calloc(1, sizeof(Node));
+  if(is_global)
+    node->kind = ND_GVARINIT;
+  else
+    node->kind = ND_LVARINIT;
+  node->children = calloc(2, sizeof(Node*));
+  node->children[0] = var_node;
+  node->children[1] =  NULL;
+  node->ty = NULL;
+  return node;
+}
+
+void add_varinit(Node *init_node, Node *var_node, bool is_global) {
+  if(is_global) {
+    if(init_node->kind != ND_GVARINIT) {
+      error("Invalid node is passed for GVar init.");
+    }
+
+    if(var_node!=NULL) {
+      init_node->children[1] = new_node_varinit(var_node, is_global);
+    }
+  } else {
+    if(init_node->kind != ND_LVARINIT) {
+      error("Invalid node is passed for LVar init.");
+    }
+
+    if(var_node!=NULL) {
+      init_node->children[1] = new_node_varinit(var_node, is_global);
+    }
+
+  }
+}
+
+Node *new_node_lvar(Token *tok) {
   Node *node = calloc(1, sizeof(Node));
   Var *var;
-  
-  if (declare) {
-    if((var=find_lvar(tok, false))) {
-      error_at(token->str, "Local variable with existing name is declared again.");
-    }
-    var = calloc(1, sizeof(Var));
-    var->next = locals; locals = var;
-    var->name = tok->str;
-    var->len = tok->len;
-    var->ty = ty;
-    var->block_id = current_block->id;
-    if (ty->kind == TYPE_ARRAY) {
-      var->id = var->next->id + ty->array_size;
-    } else {
-      var->id = var->next->id + 1;
-    }
-    node->val = 1;
-    node->children = calloc(2, sizeof(Node*));
-    node->children[0] = prev_node;
-    if (init_node != NULL) {
-      node->children[1] = new_node_binop(ND_ASSIGN, new_node_lvar(tok, var->ty, false, NULL, NULL), init_node);
-    } else {
-      node->children[1] = NULL;
-    }
 
-  } else {
-    if(!(var=find_lvar(tok, true))) {
-      error_at(token->str, "Undefined local variable.");
-    }
-    node->val = 0;
-    node->children = NULL;
+  if(!(var=find_lvar(tok, true))) {
+    error_at(token->str, "Undefined local variable.");
   }
 
+  node->children = NULL;
   node->kind = ND_LVAR;
   node->id = var->id;
   node->ty = var->ty;
   return node;
 }
 
-Node *new_node_gvar(Token *tok, Type *ty, bool declare, Node *prev_node, Node *init_node) {
+Node *new_node_gvar(Token *tok) {
   Node *node = calloc(1, sizeof(Node));
   Var *var;
   
-  if (declare) {
-    if((var=find_gvar(tok))) {
-      error_at(token->str, "Global variable with existing name is declared again.");
-    }
-    var = calloc(1, sizeof(Var));
-    var->next = globals; globals = var;
-    var->name = tok->str;
-    var->len = tok->len;
-    var->ty = ty;
-    if (ty->kind == TYPE_ARRAY) {
-      var->id = var->next->id + ty->array_size;
-    } else {
-      var->id = var->next->id + 1;
-    }
-    node->val = 1;
-    node->children = calloc(2, sizeof(Node*));
-    node->children[0] = prev_node;
-    if (init_node != NULL) {
-      node->children[1] = new_node_binop(ND_ASSIGN, new_node_gvar(tok, var->ty, false, NULL, NULL), init_node);
-    } else {
-      node->children[1] = NULL;
-    }
-  } else {
-    if(!(var=find_gvar(tok))) {
-      error_at(token->str, "Undefined global variable.");
-    }
-    node->val = 0;
-    node->children=NULL;
+  if(!(var=find_gvar(tok))) {
+    error_at(token->str, "Undefined global variable.");
   }
+  node->children=NULL;
 
   node->kind = ND_GVAR;
   node->id = var->id;
@@ -509,14 +530,14 @@ int get_num_lvars() {
 }
 
 // Non-terminal symbols generator
-// void program();
+void program();
 Node *func();
 Node *block();
 Node *stmt();
 Type *type();
 Node *declare();
 Node *declare_a(bool is_global);
-Node *var(Type *_ty, Node *prev_node, bool is_global);
+Node *var(Type *_ty, bool is_global);
 Node *expr();
 Node *assign();
 Node *equality();
@@ -713,10 +734,14 @@ Node *declare() {
 
   if(!(tok = consume_ident()))
     return NULL;
-  return new_node_lvar(tok, ty, true, NULL, NULL);
+
+  add_lvar(tok, ty);
+
+  // TODO: If this code use for for initialize, then initializer may be returned from here.
+  return NULL;
 }
 
-Node *var(Type *_ty, Node *prev_node, bool is_global) {
+Node *var(Type *_ty, bool is_global) {
   Token *tok;
   Type *ty;
   Node *node, *init_node;
@@ -734,16 +759,19 @@ Node *var(Type *_ty, Node *prev_node, bool is_global) {
     expect("]");
   }
 
+  if (is_global) {
+    add_gvar(tok, ty);
+  } else {
+    add_lvar(tok, ty);
+  }
+
   if (consume("=")) {
-    init_node = assign();
+    init_node = new_node_binop(ND_ASSIGN, new_node_lvar(tok), assign());
   } else {
     init_node = NULL;
   }
 
-  if (is_global)
-    return new_node_gvar(tok, ty, true, prev_node, init_node);
-  else
-    return new_node_lvar(tok, ty, true, prev_node, init_node);
+  return init_node;
 }
 
 Node *declare_a(bool is_global) {
@@ -762,7 +790,7 @@ Node *declare_a(bool is_global) {
     ty->ptr_to = tgt_ty;
   }
 
-  node = var(ty, NULL, is_global);
+  node = new_node_varinit(var(ty, is_global), is_global);
 
   while(consume(",")) {
     ty = orig_ty;
@@ -772,7 +800,7 @@ Node *declare_a(bool is_global) {
       ty->kind = TYPE_PTR;
       ty->ptr_to = tgt_ty;
     }
-    node = var(ty, node, is_global);
+    add_varinit(node, var(ty, is_global), is_global);
   }
 
   return node;
@@ -937,16 +965,16 @@ Node *lval(Token *ident_tok) {
     expect("]");
     if(isglobalvar(ident_tok)) {
       return new_node_unaryop(ND_DEREF,
-        new_node_binop(ND_ADD, new_node_gvar(ident_tok, NULL, false, NULL, NULL), subscript));
+        new_node_binop(ND_ADD, new_node_gvar(ident_tok), subscript));
     } else {
       return new_node_unaryop(ND_DEREF,
-        new_node_binop(ND_ADD, new_node_lvar(ident_tok, NULL, false, NULL, NULL), subscript));
+        new_node_binop(ND_ADD, new_node_lvar(ident_tok), subscript));
     }
   } else {
     if(isglobalvar(ident_tok)) {
-      return new_node_gvar(ident_tok, NULL, false, NULL, NULL);
+      return new_node_gvar(ident_tok);
     } else {
-      return new_node_lvar(ident_tok, NULL, false, NULL, NULL);
+      return new_node_lvar(ident_tok);
     }
   }
 }

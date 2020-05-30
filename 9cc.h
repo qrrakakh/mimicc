@@ -60,6 +60,8 @@ typedef enum {  // ABS Node kinds
   ND_LE,        // <=
   ND_LVAR,      // Local variable
   ND_GVAR,      // Global variable
+  ND_LVARINIT,  // Local variable initialize
+  ND_GVARINIT,  // Global variable initialize
   ND_ASSIGN,    // =
   ND_RETURN,    // return
   ND_WHILE,     // while

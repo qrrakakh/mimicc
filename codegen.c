@@ -280,20 +280,21 @@ void gen(Node *node) {
     printf("  mov rax, rsi\n");
     return;
 
-    case ND_GVAR:
-    if (node->val==1)
-      return;
-    case ND_LVAR:
-    if (node->val==1) {
-      node_cur = node;
-      while(node_cur) {
-        if(node_cur->children[1]) {
-          gen(node_cur->children[1]);
-        }
-        node_cur = node_cur->children[0];
-      }
-      return;
+    case ND_GVARINIT:
+    if(node->children[0] != NULL)
+      error("Global variable initialization is not supported.");
+    return;
+
+    case ND_LVARINIT:
+    node_cur = node;
+    while(node_cur != NULL && node_cur->children[0] != NULL) {
+      gen(node_cur->children[0]);
+      node_cur = node_cur->children[1];
     }
+    return;
+
+    case ND_GVAR:
+    case ND_LVAR:
     gen_lval(node);
     load(node->ty);
     return;
