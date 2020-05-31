@@ -125,6 +125,7 @@ void Generate(Node *node) {
   int num_lvar;
   int lvar_idx;
   int diff;
+  int prev_ctrl_depth;
   Node **stmt_list;
   Node *node_cur;
   Type *lhs_ty, *rhs_ty;
@@ -326,40 +327,43 @@ void Generate(Node *node) {
 
     case ND_WHILE:
     label = label_index++;
-    printf(".L.next%06d:\n", label);
+    prev_ctrl_depth = ctrl_depth;
     ctrl_depth = label;
+    printf(".L.next%06d:\n", label);
     Generate(node->children[0]);
     printf("  cmp rax, 0\n");
     printf("  je .L.end%06d\n", label);
-    ctrl_depth = label;
     Generate(node->children[1]);
     printf("  jmp .L.next%06d\n", label);
     printf(".L.end%06d:\n", label);
+    ctrl_depth = prev_ctrl_depth;
     return;
 
     case ND_FOR:
     label = label_index++;
+    prev_ctrl_depth = ctrl_depth;
+    ctrl_depth = label;
     Generate(node->children[0]);
     printf(".L.begin%06d:\n", label);
     Generate(node->children[1]);
     printf("  cmp rax, 0\n");
     printf("  je .L.end%06d\n", label);
-    ctrl_depth = label;
     Generate(node->children[3]);
     printf(".L.next%06d:\n", label);
     Generate(node->children[2]);
     printf("  jmp .L.begin%06d\n", label);
     printf(".L.end%06d:\n", label);
+    ctrl_depth = prev_ctrl_depth;
     return;
 
     case ND_SWITCH:
     label = label_index++;
+    prev_ctrl_depth = ctrl_depth;
     ctrl_depth = label;
     Generate(node->children[0]);
     printf("  mov r10, rax\n");
     node_cur = node->children[1];
     while(node_cur) {
-      ctrl_depth = label;
       printf("  cmp r10, %d\n", node_cur->children[0]->val);
       printf("  je .L.sw%06d.case%06d\n", ctrl_depth, node_cur->val);
       node_cur = node_cur->children[1];
@@ -369,9 +373,9 @@ void Generate(Node *node) {
     } else {
       printf("  jmp .L.end%06d\n", label);
     }
-    ctrl_depth = label;
     Generate(node->children[2]);
     printf(".L.end%06d:\n", label);
+    ctrl_depth = prev_ctrl_depth;
     return;
 
     case ND_SWLABEL:

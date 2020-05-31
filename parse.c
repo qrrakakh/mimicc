@@ -860,7 +860,7 @@ Node *stmt() {
     Expect(")");
     ++ctrl_depth;
     node = NewNodeFor(init, cond, next, stmt());
-    ctrl_depth;
+    --ctrl_depth;
     LeaveScope();
   } else if(tok = Consume("if")) {
     Expect("(");
