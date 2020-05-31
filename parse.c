@@ -132,14 +132,18 @@ bool IsParentOfScopeId(int id, Scope *blk) {
   }
 }
 
-Func *FindFunc(Token *tok) {
+Func *FindFuncByName(char *name, int name_len) {
   Func *f;
   for(f=funcs;f;f=f->next) {
-    if(f->len == tok->len && !memcmp(f->name, tok->str, f->len)) {
+    if(f->len == name_len && !memcmp(f->name, name, f->len)) {
       return f;
     }
   }
   return NULL;
+}
+
+Func *FindFunc(Token *tok) {
+  return FindFuncByName(tok->str, tok->len);
 }
 
 Func *AddFunc(Token *tok, Type *ty, int num_args) {

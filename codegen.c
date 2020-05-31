@@ -135,6 +135,7 @@ void Generate(Node *node) {
     if (!(node->children[0]))
       return;
     printf("%.*s:\n", node->val, node->func_name);
+    current_func = FindFuncByName(node->func_name, node->val);
 
     locals = node->lvars;
     // allocate stack for local variables
@@ -183,6 +184,9 @@ void Generate(Node *node) {
 
     Generate(node->children[0]);
 
+    printf(".L.ret%.*s:\n", node->val, node->func_name);
+    current_func = NULL;
+    
     // Final evaluated value is already stored on rax, which will be returned.
     // To back to the original address, we fix the rsp
     printf("  mov rsp, rbp\n");
@@ -194,9 +198,7 @@ void Generate(Node *node) {
     case ND_RETURN:
     if(node->children[0])
       Generate(node->children[0]);
-    printf("  mov rsp, rbp\n");
-    printf("  pop rbp\n");
-    printf("  ret\n");
+    printf("  jmp .L.ret%.*s\n", current_func->len, current_func->name);
     return;
 
     case ND_BREAK:

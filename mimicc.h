@@ -168,6 +168,7 @@ Token *Tokenize(char *p);
 // find if the global var is already defined
 Var *FindGvarById(int offset);
 Var *FindLvarById(int offset);
+Func *FindFuncByName(char *name, int name_len);
 
 // get a number of local variables
 int GetNumLvars();
