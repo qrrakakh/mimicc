@@ -885,7 +885,7 @@ Node *declare() {
 Node *var_a(Type *_ty, bool is_global) {
   Token *tok, *ident_tok;
   Type *ty;
-  Node *assgin_node;
+  Node *assign_node;
   size_t size;
   ty = _ty;
 
@@ -908,12 +908,12 @@ Node *var_a(Type *_ty, bool is_global) {
   }
 
   if (Consume("=")) {
-    assgin_node = NewNodeBinOp(ND_ASSIGN, NewNodeLvar(ident_tok), assign());
+    assign_node = NewNodeBinOp(ND_ASSIGN, NewNodeLvar(ident_tok), assign());
   } else {
-    assgin_node = NULL;
+    assign_node = NULL;
   }
 
-  return assgin_node;
+  return assign_node;
 }
 
 void declare_e() {
