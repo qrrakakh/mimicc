@@ -147,7 +147,12 @@ Token *Tokenize(char *p) {
         p+=2;
         continue;
       }
-      if(p+1 && ((*p == '+' && *(p+1) == '+' )|| (*p == '-' && *(p+1) == '-'))) {
+      if((*p == '+' && *(p+1) == '+' )|| (*p == '-' && *(p+1) == '-')) {
+        cur = NewToken(TK_RESERVED, cur, p, 2);
+        p+=2;
+        continue;
+      }
+      if((*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '\%' ) && *(p+1) == '=') {
         cur = NewToken(TK_RESERVED, cur, p, 2);
         p+=2;
         continue;

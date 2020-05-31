@@ -1008,6 +1008,16 @@ Node *assign() {
   for(;;) {
     if(Consume("=")) {
       node = NewNodeBinOp(ND_ASSIGN, node, assign());
+    } else if(Consume("+=")) {
+      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_ADD, node, assign()));
+    } else if(Consume("-=")) {
+      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_SUB, node, assign()));
+    } else if(Consume("*=")) {
+      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_MUL, node, assign()));
+    } else if(Consume("/=")) {
+      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_DIV, node, assign()));
+    } else if(Consume("\%=")) {
+      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_MOD, node, assign()));
     } else {
       return node;
     }

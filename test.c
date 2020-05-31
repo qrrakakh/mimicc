@@ -619,7 +619,11 @@ int Test142() {
   }
   return a;  // 49
 }
-
+int Test143() {
+  int a=1, b=2, c=1, d=5, e=5;
+  a+=1; b-=1; c*=3; d/=2; e%=2;
+  return (((e*4+d)*4+c)*4+b)*4+a; // 2 + 1*4 + 3*16 + 2*64 + 1*256 = 438
+}
 // main function
 int main() {
   int expected;
@@ -1617,6 +1621,13 @@ int main() {
   if (actual != expected)
   {
     printf("Test142 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=438;
+  actual=Test143();
+  if (actual != expected)
+  {
+    printf("Test143 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
   return 0;

@@ -20,12 +20,17 @@ stmt           =  block
                   | expr ";"
 type           =  ("int" | "char")
 declare        =  type "*"* ident
-declare_a      =  type "*"* var_a (, "*"* var )*
+declare_a      =  type "*"* var_a (, "*"* var_a )*
 declare_e      =  type "*"* evar (, "*"* evar )*
 evar           =  ident ("[" num "]")?
 var_a          =  ident ("[" num "]")? ("=" assign)?
 expr           =  assign
-assign         =  equality  ("=" assign)*;
+assign         =  equality  ("=" assign)*
+                  | equality "+=" assign
+                  | equality "-=" assign
+                  | equality "*=" assign
+                  | equality "/=" assign
+                  | equality "%=" assign
 equality       =  relational ( "==" | "!=" relational )*
 relational     =  add ("<=" | ">=" | "<" | ">" add)*
 add            =  mul ("+" | "-" mul)*
