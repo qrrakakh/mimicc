@@ -595,6 +595,9 @@ Node *strings();
 
 void program() {
   int i=0;
+  int alloc_unit = 10;
+  int alloc_size = alloc_unit;
+
   Token *_tok;
   Node *node;
   Type *ty, *tgt_ty;
@@ -613,9 +616,21 @@ void program() {
   last_scope_id = 0;
   ctrl_depth = 0;
 
+  codes = calloc(alloc_size, sizeof(Node*));
+
   while(!AtEOF()) {
+
+    if(i>=alloc_size-1) {
+      alloc_size += alloc_unit;
+      Node **_codes = realloc(codes, sizeof(Node*)*alloc_size);
+      if(_codes == NULL) {
+        Error("Memory allocation failure.");
+      }
+      codes = _codes;
+    }
+
     _tok = token;
-    codes[i] = NULL;
+    
     if(Consume("extern")) {
       _tok = token;
 

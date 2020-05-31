@@ -135,7 +135,7 @@ struct Scope {
 //////////
 // global variable definition
 Token *token;         // current token pointer
-Node *codes[100];
+Node **codes;
 char *file_path;     // Input program path
 char *user_input;     // Input program
 Var *locals;
