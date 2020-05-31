@@ -135,8 +135,8 @@ struct Scope {
 //////////
 // global variable definition
 Token *token;         // current token pointer
-Node *code[100];
-char *filepath;     // Input program path
+Node *codes[100];
+char *file_path;     // Input program path
 char *user_input;     // Input program
 Var *locals;
 Var *globals;
@@ -154,39 +154,39 @@ extern TypeKind builtin_type_enum[];
 //////////
 // utility functions
 
-void error(char *fmt, ...);
-void error_at(char *loc, char *fmt, ...);
-void warn_at(char *loc, char *fmt, ...);
+void Error(char *fmt, ...);
+void ErrorAt(char *loc, char *fmt, ...);
+void WarnAt(char *loc, char *fmt, ...);
 
 //////////
 // token-related functions
-Token *tokenize(char *p);
+Token *Tokenize(char *p);
 
 //////////
 // ast-related functions
 
 // find if the global var is already defined
-Var *find_gvar_by_id(int offset);
-Var *find_lvar_by_id(int offset);
+Var *FindGvarById(int offset);
+Var *FindLvarById(int offset);
 
 // get a number of local variables
-int get_num_lvars();
+int GetNumLvars();
 
 // Non-terminal symbols generator
 void program();
 
 // Code generator
-void gen(Node *node);
-void gen_header();
-void gen_footer();
+void Generate(Node *node);
+void GenerateHeader();
+void GenerateFooter();
 
 //////////
 // debug function
-void print_node_tree();
-void print_lvar();
+void PrintNodeTree();
+void PrintLvar();
 
 //////////
 // architecture-dependent functions
 
 // type helper function
-int size_of(Type *ty);
+int GetTypeSize(Type *ty);

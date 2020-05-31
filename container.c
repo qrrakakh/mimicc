@@ -4,7 +4,7 @@
 // utility functions
 
 // error reporter which takes same args to printf
-void error(char *fmt, ...) {
+void Error(char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);
@@ -14,7 +14,7 @@ void error(char *fmt, ...) {
 }
 
 // error reporter with failed position
-void error_at(char *loc, char *fmt, ...) {
+void ErrorAt(char *loc, char *fmt, ...) {
   char *line = loc;
   while (user_input < line && line[-1] != '\n')
     --line;
@@ -28,7 +28,7 @@ void error_at(char *loc, char *fmt, ...) {
     if(*p == '\n')
       line_num++;
   
-  int indent = fprintf(stderr, "%s:%d: ", filepath, line_num);
+  int indent = fprintf(stderr, "%s:%d: ", file_path, line_num);
   fprintf(stderr, "%.*s\n", (int)(end - line), line);
   int pos = loc - line + indent;
   fprintf(stderr, "%*s", pos, "");
@@ -44,7 +44,7 @@ void error_at(char *loc, char *fmt, ...) {
 }
 
 // warn reporter with failed position, but continue to compile.
-void warn_at(char *loc, char *fmt, ...) {
+void WarnAt(char *loc, char *fmt, ...) {
   char *line = loc;
   while (user_input < line && line[-1] != '\n')
     --line;
@@ -58,7 +58,7 @@ void warn_at(char *loc, char *fmt, ...) {
     if(*p == '\n')
       line_num++;
   
-  int indent = fprintf(stderr, "%s:%d: ", filepath, line_num);
+  int indent = fprintf(stderr, "%s:%d: ", file_path, line_num);
   fprintf(stderr, "%.*s\n", (int)(end - line), line);
   int pos = loc - line + indent;
   fprintf(stderr, "%*s", pos, "");
@@ -73,7 +73,7 @@ void warn_at(char *loc, char *fmt, ...) {
 }
 
 // debug function
-void print_node(Node *node, int num_lead_ws) {
+void PrintNode(Node *node, int num_lead_ws) {
   fprintf(stderr, "%*s---\n",num_lead_ws*4, "");
   fprintf(stderr, "%*skind: %d\n",num_lead_ws*4,"", node->kind);
   fprintf(stderr, "%*sval: %d\n",num_lead_ws*4,"",node->val);
@@ -112,17 +112,17 @@ void print_node(Node *node, int num_lead_ws) {
   }
 
   for(int i=0;i<num_children;++i) {
-    print_node(*(node->children+i), num_lead_ws+1);
+    PrintNode(*(node->children+i), num_lead_ws+1);
   }
 }
 
-void print_node_tree() {
-  for(int i=0;code[i];i++) {
-    print_node(code[i], 0);
+void PrintNodeTree() {
+  for(int i=0;codes[i];i++) {
+    PrintNode(codes[i], 0);
   }
 }
 
-void print_lvar() {
+void PrintLvar() {
   Var *l = locals;
   while(l->next) {
     printf("%.*s, id: %d, type: %d\n", l->len, l->name, l->id, l->ty->kind);

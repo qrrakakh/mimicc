@@ -1,7 +1,7 @@
-void hoge() {
+void Hoge() {
   return 1;
 }
 
-int hage() {
+int Hage() {
   return;
 }

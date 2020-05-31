@@ -9,7 +9,7 @@ char x86_64_argreg_64bits[][6] = {"rdi", "rsi", "rdx", "rcx", "r8",  "r9" };
 const int POINTER_SIZE_BYTES = 8;
 
 // type helper function
-int size_of(Type *ty) {
+int GetTypeSize(Type *ty) {
   if(ty->kind == TYPE_CHAR) {
     return 1;
   } else if(ty->kind == TYPE_INT) {
@@ -17,11 +17,11 @@ int size_of(Type *ty) {
   } else if(ty->kind == TYPE_PTR) {
     return 8;
   } else if(ty->kind == TYPE_ARRAY) {
-    return ty->array_size * size_of(ty->ptr_to);
+    return ty->array_size * GetTypeSize(ty->ptr_to);
   }
 }
 
-int size_var(Type *ty) {
+int GetSizeVar(Type *ty) {
   if(ty->kind == TYPE_CHAR) {
     return 1;
   } else if(ty->kind == TYPE_INT) {
@@ -31,16 +31,16 @@ int size_var(Type *ty) {
   }
 }
 
-int size_ptr(Type *ty) {
-  return size_var(ty->ptr_to);
+int GetSizePtrTarget(Type *ty) {
+  return GetSizeVar(ty->ptr_to);
 }
 
 // Code generator
-void store(Type *ty, bool eval) {
+void StoreVar(Type *ty, bool eval) {
   printf("  pop rdi\n");
   printf("  pop rax\n");
 
-  switch(size_var(ty)) {
+  switch(GetSizeVar(ty)) {
     case 1:
       printf("  mov [rax], dil\n");
       break;
@@ -60,8 +60,8 @@ void store(Type *ty, bool eval) {
   }
 }
 
-void load(Type *ty) {
-  switch(size_var(ty)) {
+void LoadVar(Type *ty) {
+  switch(GetSizeVar(ty)) {
     case 1:
       printf("  movsx rax, byte ptr [rax]\n");
       break;
@@ -77,30 +77,30 @@ void load(Type *ty) {
   }
 }
 
-void gen_lval(Node *node) {
+void GenLval(Node *node) {
   Var *var;
   if (node->kind == ND_LVAR) {
     // save the address of lval
-    var = find_lvar_by_id(node->id);
+    var = FindLvarById(node->id);
     printf("  lea rax, [rbp-%d]\n", var->offset_bytes);
   } else if(node->kind == ND_GVAR) {
-    var = find_gvar_by_id(node->id);
+    var = FindGvarById(node->id);
     printf("  lea rax, %.*s[rip]\n", var->len, var->name);
   } else if(node->kind == ND_DEREF) {
-    gen(node->children[0]);
+    Generate(node->children[0]);
   } else if(node->kind == ND_STRINGS) {
     printf("  lea rax, .LC%06d[rip]\n", node->id);
   } else {
-    error("lval is not a variable, %d", node->kind);
+    Error("lval is not a variable, %d", node->kind);
   }
 }
 
-void gen_header() {
+void GenerateHeader() {
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
 }
 
-void gen_footer() {
+void GenerateFooter() {
   Var *g;
   Const_Strings *c;
   // global variable
@@ -110,7 +110,7 @@ void gen_footer() {
       continue;
     }
     printf("%.*s:\n", g->len, g->name);
-    printf("  .zero %d\n", size_of(g->ty));
+    printf("  .zero %d\n", GetTypeSize(g->ty));
   }
   for(c=cstrs;c->next!=NULL;c=c->next) {
     printf(".LC%06d:\n", c->id);
@@ -119,7 +119,7 @@ void gen_footer() {
 }
 
 
-void gen(Node *node) {
+void Generate(Node *node) {
   int label;
   int lvar_area_size;
   int num_lvar;
@@ -147,7 +147,7 @@ void gen(Node *node) {
     var = locals;
     while (var->next) {
       ++num_lvar;
-      lvar_area_size += size_of(var->ty);
+      lvar_area_size += GetTypeSize(var->ty);
       var->offset_bytes = lvar_area_size;
       var = var->next;
     }
@@ -163,7 +163,7 @@ void gen(Node *node) {
 
     for(int i=0;i<node->num_args;++i) {
       lvar_idx = node->num_args-1-i;
-      switch(size_var(var->ty)) {
+      switch(GetSizeVar(var->ty)) {
         case 1:
         printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_8bits[lvar_idx]);
         break;
@@ -181,7 +181,7 @@ void gen(Node *node) {
     }
 
 
-    gen(node->children[0]);
+    Generate(node->children[0]);
 
     // Final evaluated value is already stored on rax, which will be returned.
     // To back to the original address, we fix the rsp
@@ -193,7 +193,7 @@ void gen(Node *node) {
 
     case ND_RETURN:
     if(node->children[0])
-      gen(node->children[0]);
+      Generate(node->children[0]);
     printf("  mov rsp, rbp\n");
     printf("  pop rbp\n");
     printf("  ret\n");
@@ -210,18 +210,18 @@ void gen(Node *node) {
     case ND_BLOCK:
     stmt_list = node->children;
     while (*stmt_list != NULL) {
-      gen(*(stmt_list++));
+      Generate(*(stmt_list++));
     }
     printf("  mov rax, 0\n");
     return;
 
     case ND_ADDR:
-    gen_lval(node->children[0]);
+    GenLval(node->children[0]);
     return;
 
     case ND_DEREF:
-    gen(node->children[0]);
-    load(node->ty);
+    Generate(node->children[0]);
+    LoadVar(node->ty);
     return;
 
     case ND_NUM:
@@ -235,138 +235,138 @@ void gen(Node *node) {
 
     case ND_SIZEOF:
     // TODO: when we implement struct, judge if the var is struct or not
-    printf("  mov rax,%d\n", size_of(node->children[0]->ty));
+    printf("  mov rax,%d\n", GetTypeSize(node->children[0]->ty));
     return;
 
     case ND_PREINC:
     diff = 1;
     if(node->children[0]->ty->kind == TYPE_PTR) {
-      diff = size_ptr(node->children[0]->ty);
+      diff = GetSizePtrTarget(node->children[0]->ty);
     }
-    gen_lval(node->children[0]);
+    GenLval(node->children[0]);
     printf("  push rax\n");
-    load(node->children[0]->ty);
+    LoadVar(node->children[0]->ty);
     printf("  add rax, %d\n", diff);
     printf("  push rax\n");
-    store(node->children[0]->ty, true);
+    StoreVar(node->children[0]->ty, true);
     return;
 
     case ND_PREDEC:
     diff = 1;
     if(node->children[0]->ty->kind == TYPE_PTR) {
-      diff = size_ptr(node->children[0]->ty);
+      diff = GetSizePtrTarget(node->children[0]->ty);
     }
-    gen_lval(node->children[0]);
+    GenLval(node->children[0]);
     printf("  push rax\n");
-    load(node->children[0]->ty);
+    LoadVar(node->children[0]->ty);
     printf("  sub rax, %d\n", diff);
     printf("  push rax\n");
-    store(node->children[0]->ty, true);
+    StoreVar(node->children[0]->ty, true);
     return;
 
     case ND_POSTINC:
     diff = 1;
     if(node->children[0]->ty->kind == TYPE_PTR) {
-      diff = size_ptr(node->children[0]->ty);
+      diff = GetSizePtrTarget(node->children[0]->ty);
     }
-    gen_lval(node->children[0]);
+    GenLval(node->children[0]);
     printf("  push rax\n");
-    load(node->children[0]->ty);
+    LoadVar(node->children[0]->ty);
     printf("  mov rsi, rax\n");
     printf("  add rax, %d\n", diff);
     printf("  push rax\n");
-    store(node->children[0]->ty, false);
+    StoreVar(node->children[0]->ty, false);
     printf("  mov rax, rsi\n");
     return;
 
     case ND_POSTDEC:
     diff = 1;
     if(node->children[0]->ty->kind == TYPE_PTR) {
-      diff = size_ptr(node->children[0]->ty);
+      diff = GetSizePtrTarget(node->children[0]->ty);
     }
-    gen_lval(node->children[0]);
+    GenLval(node->children[0]);
     printf("  push rax\n");
-    load(node->children[0]->ty);
+    LoadVar(node->children[0]->ty);
     printf("  mov rsi, rax\n");
     printf("  sub rax, %d\n", diff);
     printf("  push rax\n");
-    store(node->children[0]->ty, false);
+    StoreVar(node->children[0]->ty, false);
     printf("  mov rax, rsi\n");
     return;
 
     case ND_GVARINIT:
     if(node->children[0] != NULL)
-      error("Global variable initialization is not supported.");
+      Error("Global variable initialization is not supported.");
     return;
 
     case ND_LVARINIT:
     node_cur = node;
     while(node_cur != NULL && node_cur->children[0] != NULL) {
-      gen(node_cur->children[0]);
+      Generate(node_cur->children[0]);
       node_cur = node_cur->children[1];
     }
     return;
 
     case ND_GVAR:
     case ND_LVAR:
-    gen_lval(node);
-    load(node->ty);
+    GenLval(node);
+    LoadVar(node->ty);
     return;
 
     case ND_ASSIGN:
-    gen_lval(node->children[0]);
+    GenLval(node->children[0]);
     printf("  push rax\n");
-    gen(node->children[1]);
+    Generate(node->children[1]);
     printf("  push rax\n");
-    store(node->ty, true);
+    StoreVar(node->ty, true);
     return;
 
     case ND_WHILE:
     label = label_index++;
     printf(".L.next%06d:\n", label);
     ctrl_depth = label;
-    gen(node->children[0]);
+    Generate(node->children[0]);
     printf("  cmp rax, 0\n");
     printf("  je .L.end%06d\n", label);
     ctrl_depth = label;
-    gen(node->children[1]);
+    Generate(node->children[1]);
     printf("  jmp .L.next%06d\n", label);
     printf(".L.end%06d:\n", label);
     return;
 
     case ND_FOR:
     label = label_index++;
-    gen(node->children[0]);
+    Generate(node->children[0]);
     printf(".L.begin%06d:\n", label);
-    gen(node->children[1]);
+    Generate(node->children[1]);
     printf("  cmp rax, 0\n");
     printf("  je .L.end%06d\n", label);
     ctrl_depth = label;
-    gen(node->children[3]);
+    Generate(node->children[3]);
     printf(".L.next%06d:\n", label);
-    gen(node->children[2]);
+    Generate(node->children[2]);
     printf("  jmp .L.begin%06d\n", label);
     printf(".L.end%06d:\n", label);
     return;
 
     case ND_IF:
     label = label_index++;
-    gen(node->children[0]);
+    Generate(node->children[0]);
     printf("  cmp rax, 0\n"); // 0 if cond is not satisfied
     printf("  je .L.else%06d\n", label);
-    gen(node->children[1]);
+    Generate(node->children[1]);
     printf("  jmp .L.end%06d\n",  label);
     printf(".L.else%06d:\n",  label);
     if(node->children[2]!=NULL) {
-      gen(node->children[2]);
+      Generate(node->children[2]);
     }
     printf(".L.end%06d:\n",  label);
     return;
 
     case ND_CALL:
     for(int i=0;i<node->num_args;++i) {
-      gen(node->children[i]);
-      switch(size_var(node->children[i]->ty)) {
+      Generate(node->children[i]);
+      switch(GetSizeVar(node->children[i]->ty)) {
         case 1:
         printf("  mov %s, al\n", x86_64_argreg_8bits[i]);
         break;  
@@ -399,25 +399,25 @@ void gen(Node *node) {
     return;
   }
 
-  gen(node->children[1]);
+  Generate(node->children[1]);
   rhs_ty = node->children[0]->ty;
   printf("  push rax\n");
-  gen(node->children[0]);
+  Generate(node->children[0]);
   lhs_ty = node->children[0]->ty;
   printf("  pop rdi\n");
   
   switch(node->kind) {
     case ND_ADD:
       if(lhs_ty->kind == TYPE_PTR) {
-        printf("  imul rdi, %d\n",size_ptr(lhs_ty));
+        printf("  imul rdi, %d\n",GetSizePtrTarget(lhs_ty));
       } else if(rhs_ty->kind == TYPE_PTR) {
-        printf("  imul rax, %d\n",size_ptr(rhs_ty));
+        printf("  imul rax, %d\n",GetSizePtrTarget(rhs_ty));
       }
       printf("  add rax, rdi\n");
       break;
     case ND_SUB:    
       if(lhs_ty->kind == TYPE_PTR) {
-        printf("  imul rdi, %d\n",size_ptr(lhs_ty));
+        printf("  imul rdi, %d\n",GetSizePtrTarget(lhs_ty));
       }
       printf("  sub rax, rdi\n");
       break;
