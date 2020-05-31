@@ -612,7 +612,7 @@ int Test141() {
 }
 
 int Test142() {
-  int a=0, b=49;
+  int a=0, b=49, c=3;
   for(int i=0;i<100;++i) {
     a=i;
     if(i==b) break;

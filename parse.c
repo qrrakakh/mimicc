@@ -441,6 +441,9 @@ Node *NewNodeVarInitializer(Node *var_node, bool is_global) {
 }
 
 void AddVarInitializer(Node *init_node, Node *var_node, bool is_global) {
+  while(init_node->children[1]) {
+    init_node = init_node->children[1];
+  }
   if(is_global) {
     if(init_node->kind != ND_GVARINIT) {
       Error("Invalid node is passed for GVar init.");
@@ -882,7 +885,7 @@ Node *declare() {
 Node *var_a(Type *_ty, bool is_global) {
   Token *tok, *ident_tok;
   Type *ty;
-  Node *node, *init_node;
+  Node *assgin_node;
   size_t size;
   ty = _ty;
 
@@ -905,12 +908,12 @@ Node *var_a(Type *_ty, bool is_global) {
   }
 
   if (Consume("=")) {
-    init_node = NewNodeBinOp(ND_ASSIGN, NewNodeLvar(ident_tok), assign());
+    assgin_node = NewNodeBinOp(ND_ASSIGN, NewNodeLvar(ident_tok), assign());
   } else {
-    init_node = NULL;
+    assgin_node = NULL;
   }
 
-  return init_node;
+  return assgin_node;
 }
 
 void declare_e() {

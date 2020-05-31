@@ -303,8 +303,9 @@ void Generate(Node *node) {
 
     case ND_LVARINIT:
     node_cur = node;
-    while(node_cur != NULL && node_cur->children[0] != NULL) {
-      Generate(node_cur->children[0]);
+    while(node_cur != NULL) {
+      if(node_cur->children[0])
+        Generate(node_cur->children[0]);
       node_cur = node_cur->children[1];
     }
     return;

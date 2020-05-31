@@ -95,7 +95,8 @@ void PrintNode(Node *node, int num_lead_ws) {
   }  else if(node->kind==ND_WHILE || node->kind == ND_ASSIGN || node->kind == ND_EQUIV || node->kind == ND_INEQUIV
             || node->kind == ND_LE || node->kind == ND_LT
             || node->kind == ND_ADD || node->kind == ND_SUB || node->kind == ND_MUL || node->kind == ND_DIV
-            || node->kind == ND_MOD ) {
+            || node->kind == ND_MOD
+            || node->kind == ND_LVARINIT || node->kind == ND_GVARINIT ) {
     // bin op
     num_children = 2;
   }  else if(node->kind==ND_IF) {
@@ -112,7 +113,12 @@ void PrintNode(Node *node, int num_lead_ws) {
   }
 
   for(int i=0;i<num_children;++i) {
-    PrintNode(*(node->children+i), num_lead_ws+1);
+    if(*(node->children+i)==NULL) {
+      fprintf(stderr, "%*s---\n",num_lead_ws*4+4, "");
+      fprintf(stderr, "%*s<NULL NODE>\n", num_lead_ws*4+4,"");
+  } else {
+      PrintNode(*(node->children+i), num_lead_ws+1);
+    }
   }
 }
 
