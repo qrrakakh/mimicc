@@ -13,6 +13,33 @@ int TestHelperFunction61(){int a;a=1;return a;}
 int TestHelperFunction62(){int a;a=1;return a;}
 int TestHelperFunction65_Test72(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
 int var_Test137; int *TestHelperFunction137(int x) { var_Test137=x; return &var_Test137; }
+int TestHelperFunction144_146(int a) {
+  int b=10;
+  switch(a) {
+    case 1:
+      b = 1;
+      break;
+    case 2:
+      b = 4;
+      break;
+    default:
+      b = 0;
+      break;
+  }
+  return b;
+}
+int TestHelperFunction147(int a) {
+  int b=10;
+  switch(a) {
+    case 1:
+      b = 1;
+      break;
+    case 2:
+      b = 4;
+      break;
+  }
+  return b;
+}
 void TestHelperFunction138_voidfunc() {printf("void func runs correctly\n"); return;}
 
 /* extern declared functions and variables */
@@ -623,6 +650,18 @@ int Test143() {
   int a=1, b=2, c=1, d=5, e=5;
   a+=1; b-=1; c*=3; d/=2; e%=2;
   return (((e*4+d)*4+c)*4+b)*4+a; // 2 + 1*4 + 3*16 + 2*64 + 1*256 = 438
+}
+int Test144() {
+  return TestHelperFunction144_146(1);
+}
+int Test145() {
+  return TestHelperFunction144_146(2);
+}
+int Test146() {
+  return TestHelperFunction144_146(3);
+}
+int Test147() {
+  return TestHelperFunction147(3);
 }
 // main function
 int main() {
@@ -1628,6 +1667,34 @@ int main() {
   if (actual != expected)
   {
     printf("Test143 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=1;
+  actual=Test144();
+  if (actual != expected)
+  {
+    printf("Test144 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=4;
+  actual=Test145();
+  if (actual != expected)
+  {
+    printf("Test145 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=0;
+  actual=Test146();
+  if (actual != expected)
+  {
+    printf("Test146 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=10;
+  actual=Test147();
+  if (actual != expected)
+  {
+    printf("Test147 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
   return 0;

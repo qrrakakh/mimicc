@@ -79,6 +79,9 @@ typedef enum {  // ABS Node kinds
   ND_CONTINUE,  // continue
   ND_WHILE,     // while
   ND_FOR,       // for
+  ND_SWITCH,    // switch
+  ND_CASE,      // case
+  ND_SWLABEL,   // label for switch
   ND_IF,        // if
   ND_BLOCK,     // {} block
   ND_CALL,      // function call
@@ -142,6 +145,7 @@ Var *locals;
 Var *globals;
 Func *funcs;
 Func *current_func;
+Node *current_switch;
 Const_Strings *cstrs;
 int label_index;
 int last_scope_id;

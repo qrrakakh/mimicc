@@ -10,6 +10,8 @@ program        =  ((func block | declare_a ";" | "extern" declare_e "; | "extern
 func           =  type  "*"* ident ("(" ( | declare ("," declare){0,5}) ")")
 block          =  "{ stmt* "}"
 stmt           =  block
+                  | "case" expr ":"
+                  | "default" ":"
                   | "continue" ";"
                   | "break" ";"
                   | declare_a ";"
@@ -18,6 +20,7 @@ stmt           =  block
                   | "for" "(" expr | declare_a ";" expr ";" expr ")" stmt
                   | "if" "(" expr ")" stmt ("else" stmt)?
                   | expr ";"
+                  | "switch" "(" expr ")" stmt
 type           =  ("int" | "char")
 declare        =  type "*"* ident
 declare_a      =  type "*"* var_a (, "*"* var_a )*

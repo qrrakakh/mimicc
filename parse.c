@@ -506,6 +506,37 @@ Node *NewNodeFor(Node *init, Node *cond, Node *next, Node *stmt) {
   return node;
 }
 
+Node *NewNodeSwitch(Node *cond) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_SWITCH;
+  node->children = calloc(3, sizeof(Node*));
+  node->children[0] = cond;
+  node->children[1] = NULL;  // case lists
+  node->children[2] = NULL;  // stmt
+  node->ty = NULL;
+  node->val = 0;  // label counter
+  node->num_args = 1;
+  return node;
+}
+
+Node *NewNodeSwLabel(int c) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_SWLABEL;
+  node->children = NULL;
+  node->val = c;
+  return node;
+}
+
+Node *NewNodeSwCase(Node *expr, Node *next_node, int label_id) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_CASE;
+  node->children = calloc(2, sizeof(Node));
+  node->children[0] = expr;
+  node->children[1] = next_node;
+  node->val = label_id;
+  return node;
+}
+
 Node *NewNodeIf(Node *cond, Node *stmt1, Node *stmt2) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_IF;
@@ -622,6 +653,9 @@ void program() {
 
   last_scope_id = 0;
   ctrl_depth = 0;
+
+  current_func = NULL;
+  current_switch = NULL;
 
   codes = calloc(alloc_size, sizeof(Node*));
 
@@ -838,7 +872,36 @@ Node *stmt() {
       stmt2 = stmt();
     }
     node = NewNodeIf(cond, stmt1, stmt2);
-  } else {
+  } else if(tok = Consume("switch")) {
+    Expect("(");
+    Node *cond = expr();
+    Expect(")");
+    Node *sw = current_switch;
+    node = NewNodeSwitch(cond);
+    current_switch = node;
+    ++ctrl_depth;
+    Node *statement = stmt();
+    --ctrl_depth;
+    node->children[2] = statement;
+    current_switch = sw;
+  } else if(tok = Consume("case")) {
+    if (current_switch==NULL)
+      ErrorAt(tok->str, "Invalid case use in non-switch statement.");
+    tok = token;
+    Node *cond = expr();
+    Expect(":");
+    if (cond->kind != ND_NUM) {
+      ErrorAt(tok->str, "Non-number is invalid for case expression right now.");
+    }
+    int label_id = ++(current_switch->val);
+    node = NewNodeSwLabel(label_id);
+    Node *case_node = NewNodeSwCase(cond, current_switch->children[1], label_id);
+    current_switch->children[1] = case_node;
+  } else if(tok = Consume("default")) {
+    Expect(":");
+    node = NewNodeSwLabel(0);
+    current_switch->num_args = 0;
+  }   else {
     node = expr();
     Expect(";");
   }

@@ -131,6 +131,21 @@ Token *Tokenize(char *p) {
       p+=4;
       continue;
     }
+    if(IsKeyword(p, "switch", false)) {
+      cur = NewToken(TK_RESERVED, cur, p, 6);
+      p+=6;
+      continue;
+    }
+    if(IsKeyword(p, "case", false)) {
+      cur = NewToken(TK_RESERVED, cur, p, 4);
+      p+=4;
+      continue;
+    }
+    if(IsKeyword(p, "default", false)) {
+      cur = NewToken(TK_RESERVED, cur, p, 7);
+      p+=7;
+      continue;
+    }
 
     // local variable (starting from [a-z][A-Z]_ and following[a-z][A-Z][0-9]_)
     if (IsIdentChar(*p)) {
@@ -164,7 +179,7 @@ Token *Tokenize(char *p) {
         || *p == '(' || *p == ')'
         || *p == '[' || *p == ']'
         || *p == '<' || *p == '>' || *p == '='
-        ||*p == ';' || *p == ',' || *p == '{' || *p == '}') {
+        ||*p == ':' ||*p == ';' || *p == ',' || *p == '{' || *p == '}') {
       cur = NewToken(TK_RESERVED, cur, p++, 1);
       continue;
     }
