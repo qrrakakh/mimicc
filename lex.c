@@ -7,6 +7,69 @@ char *builtin_type_names[] = {"int", "char", "void"};
 TypeKind builtin_type_enum[] = {TYPE_INT, TYPE_CHAR, TYPE_VOID};
 int num_builtin_types = 3;
 
+char *reserved_keywords[] = {
+  "auto",
+  "break",
+  "case",
+  "char",
+  "const",
+  "continue",
+  "default",
+  "do",
+  "double",
+  "else",
+  "enum",
+  "extern",
+  "float",
+  "for",
+  "goto",
+  "if",
+  "inline",
+  "int",
+  "long",
+  "register",
+  "restrict",
+  "return",
+  "short",
+  "signed",
+  "sizeof",
+  "static",
+  "struct",
+  "switch",
+  "typedef",
+  "union",
+  "unsigned",
+  "void",
+  "volatile",
+  "while",
+  "_Bool",
+  "_Complex",
+  "_Imaginary",
+};
+int num_reserved_keywords = 37;
+
+
+int IsNondigitChar(int p) {
+  if (('a' <= p && p <= 'z') || ('A' <= p && p <= 'Z') || p == '_') {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+int IsIdentChar(int p) {
+  if (IsNondigitChar(p) || isdigit(p)) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+bool IsKeyword(char *p, char *keyword) {
+  int len = strlen(keyword);
+  return strncmp(p, keyword, len)==0 && p+len && (!IsIdentChar(*(p+len)));
+}
+
 // Generate new token and concatenate to cur
 Token *NewToken(TokenKind kind, Token *cur, char *str, int len) {
   Token *tok = calloc(1, sizeof(Token));
@@ -17,35 +80,22 @@ Token *NewToken(TokenKind kind, Token *cur, char *str, int len) {
   return tok;
 }
 
-int IsIdentChar(int p) {
-  if (('a' <= p && p <= 'z') || ('A' <= p && p <= 'Z') || p == '_') {
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
-bool IsKeyword(char *p, char *keyword, bool need_space) {
+Token *NewReservedToken(char *keyword, Token *cur, char **str) {
   int len = strlen(keyword);
-  bool space_flg = (!need_space) | (p+len && isspace(*(p+len)));
-  return strncmp(p, keyword, len)==0 && space_flg;
-}
-
-int IsType(char *p) {
-  int len;
-  for(int i=0;i<num_builtin_types;++i) {
-    len = strlen(builtin_type_names[i]);
-    if(strncmp(p, builtin_type_names[i], len)==0 && p+len && isspace(*(p+len)))
-      return len;
+  Token *tok;
+  if(IsKeyword(*str, keyword)) {
+    tok = NewToken(TK_RESERVED, cur, *str, len);
+    *str += len;
+    return tok;
   }
-  return 0;
+  return NULL;
 }
 
 // Tokenize input string p
 Token *Tokenize(char *p) {
   Token head;
   head.next = NULL;
-  Token *cur = &head;
+  Token *cur = &head, *tok;
   int l;
 
   while (*p) {
@@ -73,89 +123,35 @@ Token *Tokenize(char *p) {
       continue;
     }
 
-    if (IsKeyword(p, "extern", true)) {
-      cur = NewToken(TK_RESERVED, cur, p, 6);
-      p+=6;
-      continue;
+    // reserved keywords
+    for(int i=0;i<num_reserved_keywords;++i) {
+      if(tok=NewReservedToken(reserved_keywords[i], cur, &p)) {
+        break;
+      }
+    }
+    if(tok) {
+      cur=tok; continue;
     }
 
-    if (IsKeyword(p, "break", false)) {
-      cur = NewToken(TK_RESERVED, cur, p, 5);
-      p+=5;
-      continue;
-    }
-
-    if (IsKeyword(p, "continue", false)) {
-      cur = NewToken(TK_RESERVED, cur, p, 8);
-      p+=8;
-      continue;
-    }
-
-    if (IsKeyword(p, "return", true) || IsKeyword(p, "return;", false)) {
-      cur = NewToken(TK_RESERVED, cur, p, 6);
-      p+=6;
-      continue;
-    }
-
-    if (IsKeyword(p, "sizeof", true) || IsKeyword(p, "sizeof(", false)) {
-      cur = NewToken(TK_RESERVED, cur, p, 6);
-      p+=6;
-      continue;
-    }
-
-    // primitive type
-    if(l = IsType(p)) {
-      cur = NewToken(TK_RESERVED, cur, p, l);
-      p+=l;
-      continue;
-    }
-
-    // control flow keywords
-    if(IsKeyword(p, "for", false)) {
-      cur = NewToken(TK_RESERVED, cur, p, 3);
-      p+=3;
-      continue;
-    }
-    if(IsKeyword(p, "while", false)) {
-      cur = NewToken(TK_RESERVED, cur, p, 5);
-      p+=5;
-      continue;
-    }
-    if(IsKeyword(p, "if", false)) {
-      cur = NewToken(TK_RESERVED, cur, p, 2);
-      p+=2;
-      continue;
-    }
-    if(IsKeyword(p, "else", false)) {
-      cur = NewToken(TK_RESERVED, cur, p, 4);
-      p+=4;
-      continue;
-    }
-    if(IsKeyword(p, "switch", false)) {
-      cur = NewToken(TK_RESERVED, cur, p, 6);
-      p+=6;
-      continue;
-    }
-    if(IsKeyword(p, "case", false)) {
-      cur = NewToken(TK_RESERVED, cur, p, 4);
-      p+=4;
-      continue;
-    }
-    if(IsKeyword(p, "default", false)) {
-      cur = NewToken(TK_RESERVED, cur, p, 7);
-      p+=7;
-      continue;
-    }
-
-    // local variable (starting from [a-z][A-Z]_ and following[a-z][A-Z][0-9]_)
-    if (IsIdentChar(*p)) {
-      for(l=1;(p+l)&&(IsIdentChar(*(p+l)) || isdigit(*(p+l)));++l);
+    // identifier
+    if (IsNondigitChar(*p)) {
+      for(l=1;(p+l)&&(IsIdentChar(*(p+l)));++l);
       cur = NewToken(TK_IDENT, cur, p, l);
       p+=l;
       continue;
     }
 
-    // two chars operator
+    // punctuators
+    // Todo: implement
+    // ->, 
+    // ~, !, 
+    // <<, >>, ^, |, &&, ||, 
+    // ?, ..., 
+    // <<=, >>=, &=, ^=, |=,
+    // #, ##,
+    // <:, :>, <%, %>, %:, %:%:
+
+    // two chars punctuator
     if (strlen(p) >= 2) {
       if( (*p == '<' || *p == '>'  || *p == '='  || *p == '!' ) && *(p+1) == '=') {
         cur = NewToken(TK_RESERVED, cur, p, 2);
@@ -174,12 +170,13 @@ Token *Tokenize(char *p) {
       }
     }
 
-    // reserved once char
+    // one char punctuator
     if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '%' || *p == '&'
         || *p == '(' || *p == ')'
         || *p == '[' || *p == ']'
+        || *p == '{' || *p == '}'
         || *p == '<' || *p == '>' || *p == '='
-        ||*p == ':' ||*p == ';' || *p == ',' || *p == '{' || *p == '}') {
+        ||*p == ':' ||*p == ';' || *p == ',' || *p == '.') {
       cur = NewToken(TK_RESERVED, cur, p++, 1);
       continue;
     }

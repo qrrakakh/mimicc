@@ -110,9 +110,9 @@ struct Node { // ABS Node struct
 };
 
 typedef enum {  // Token definition
-  TK_RESERVED,  // operator symbols
+  TK_RESERVED,  // reserved keywords / punctuators
   TK_IDENT,     // identifier
-  TK_NUM,       // integer token
+  TK_NUM,       // number token
   TK_CHAR,      // single char
   TK_STRINGS,   // strings
   TK_EOF,       // end of input
