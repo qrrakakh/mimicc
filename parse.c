@@ -597,17 +597,6 @@ Node *NewNodeFuncCall(Token *tok, int num_args, Node *arg[]) {
   return node;
 }
 
-// get a number of local variables
-int GetNumLvars() {
-  Var *var = locals;
-  int i = 0;
-  while (var->next) {
-    if(var->id>i) i=var->id;
-    var = var->next;
-  } 
-  return i;
-}
-
 // Non-terminal symbols generator
 void program();
 Node *func(bool is_extern);

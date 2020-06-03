@@ -174,9 +174,6 @@ Var *FindGvarById(int offset);
 Var *FindLvarById(int offset);
 Func *FindFuncByName(char *name, int name_len);
 
-// get a number of local variables
-int GetNumLvars();
-
 // Non-terminal symbols generator
 void program();
 
