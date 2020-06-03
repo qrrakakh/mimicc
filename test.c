@@ -41,6 +41,7 @@ int TestHelperFunction147(int a) {
   return b;
 }
 void TestHelperFunction138_voidfunc() {printf("void func runs correctly\n"); return;}
+void TestHelperFunction148(int *a) { *a = 10; }
 
 /* extern declared functions and variables */
 extern int a_test_func;
@@ -662,6 +663,11 @@ int Test146() {
 }
 int Test147() {
   return TestHelperFunction147(3);
+}
+int Test148() {
+  int a;
+  TestHelperFunction148(&a);
+  return a*2;
 }
 // main function
 int main() {
@@ -1695,6 +1701,13 @@ int main() {
   if (actual != expected)
   {
     printf("Test147 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=20;
+  actual=Test148();
+  if (actual != expected)
+  {
+    printf("Test148 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
   return 0;

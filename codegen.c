@@ -176,7 +176,7 @@ void Generate(Node *node) {
         printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_32bits[lvar_idx]);
         break;
         case 8:
-        printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_8bits[lvar_idx]);
+        printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_64bits[lvar_idx]);
         break;
       }
       var = var->next;
