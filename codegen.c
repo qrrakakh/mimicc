@@ -160,6 +160,7 @@ void GenerateFooter() {
     if(g->scope_id==-1) { // extern
       continue;
     }
+    printf("  .global %.*s\n", g->len, g->name);
     printf("%.*s:\n", g->len, g->name);
     printf("  .zero %d\n", GetTypeSize(g->ty));
   }
@@ -186,6 +187,7 @@ void Generate(Node *node) {
     case ND_FUNC:
     if (!(node->children[0]))
       return;
+    printf("  .global %.*s\n", node->val, node->name);
     printf("%.*s:\n", node->val, node->name);
     current_func = FindFuncByName(node->name, node->val);
 
