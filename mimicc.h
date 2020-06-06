@@ -26,12 +26,14 @@ typedef enum {
   TYPE_VOID,
   TYPE_PTR,
   TYPE_ARRAY,
+  TYPE_STRUCT,
 } TypeKind;
 
 struct Type {
   TypeKind kind;
   struct Type *ptr_to;
   size_t array_size;
+  int id;
 };
 
 typedef struct Var Var;
@@ -42,6 +44,7 @@ struct Var {  // defined variables
   char *name;
   int len;
   int id;
+  int struct_id;
   int scope_id;
   int offset_bytes;
   Type *ty;
@@ -114,6 +117,8 @@ typedef enum {  // ABS Node kinds
   ND_PREDEC,   // pre --
   ND_POSTINC,   // post ++
   ND_POSTDEC,   // post --
+  ND_ARROW,     // ->
+  ND_DOT,       // .
 } NodeKind;
 
 typedef struct Node Node;
@@ -138,6 +143,19 @@ struct Scope {
   Scope *parent;
 };
 
+typedef struct Struct Struct;
+
+struct Struct {
+  char *name;
+  int len;
+  int id;
+  int size;
+  int scope_id;
+  Var *members;
+  Type *ty;
+  Struct *next;
+};
+
 //////////
 // global variable definition
 Token *token;         // current token pointer
@@ -148,6 +166,8 @@ Var *locals;
 Var *globals;
 Func *funcs;
 Func *current_func;
+Struct *structs;
+int last_struct_id;
 Node *current_switch;
 Const_Strings *cstrs;
 int label_index;
@@ -157,6 +177,7 @@ Scope *current_scope;
 extern char *builtin_type_names[];
 extern int num_builtin_types;
 extern TypeKind builtin_type_enum[];
+int is_look_ahead;
 
 //////////
 // utility functions
@@ -177,6 +198,9 @@ Var *FindGvarById(int offset);
 Var *FindLvarById(int offset);
 Func *FindFuncByName(char *name, int name_len);
 
+// Struct
+Struct *FindStructById(int struct_id);
+
 // Non-terminal symbols generator
 void program();
 
@@ -195,3 +219,4 @@ void PrintLvar();
 
 // type helper function
 int GetTypeSize(Type *ty);
+int GetStructMemberOffset(int struct_id, int member_id);

@@ -7,6 +7,7 @@ char x86_64_argreg_16bits[][6] = {"di",  "si",  "dx",  "cx",  "r8w", "r9w"};
 char x86_64_argreg_32bits[][6] = {"edi", "esi", "edx", "ecx", "r8d", "r9d"};
 char x86_64_argreg_64bits[][6] = {"rdi", "rsi", "rdx", "rcx", "r8",  "r9" };
 const int POINTER_SIZE_BYTES = 8;
+const int STRUCT_ALL_ALIGN_BYTES = 4;
 
 // type helper function
 int GetTypeSize(Type *ty) {
@@ -18,6 +19,8 @@ int GetTypeSize(Type *ty) {
     return 8;
   } else if(ty->kind == TYPE_ARRAY) {
     return ty->array_size * GetTypeSize(ty->ptr_to);
+  } else if(ty->kind == TYPE_STRUCT) {
+    return FindStructById(ty->id)->size;
   }
 }
 
@@ -33,6 +36,19 @@ int GetSizeVar(Type *ty) {
 
 int GetSizePtrTarget(Type *ty) {
   return GetSizeVar(ty->ptr_to);
+}
+
+int GetStructMemberOffset(int struct_id, int member_id) {
+  Struct *s;
+  Var *v;
+  
+  s = FindStructById(struct_id);
+  for(v=s->members;v->next;v=v->next) {
+    if(v->id == member_id) {
+      return v->offset_bytes;
+    }
+  }
+  Error("Member not found.");
 }
 
 // Code generator
@@ -90,12 +106,47 @@ void GenLval(Node *node) {
     Generate(node->children[0]);
   } else if(node->kind == ND_STRINGS) {
     printf("  lea rax, .LC%06d[rip]\n", node->id);
+  } else if(node->kind == ND_ARROW) {
+    Generate(node->children[0]);
+    printf("  lea rax, [rax+%d]\n",
+      GetStructMemberOffset(node->children[0]->ty->ptr_to->id, node->id));
+  } else if(node->kind == ND_DOT) {
+    GenLval(node->children[0]);
+    printf("  lea rax, [rax+%d]\n",
+      GetStructMemberOffset(node->children[0]->ty->id, node->id));
   } else {
     Error("lval is not a variable, %d", node->kind);
   }
 }
 
 void InitProgram() {
+  // calculate size and offsets of each structs
+  Struct *s = structs;
+  Var *v;
+  int var_size, diff;
+
+  while(s->next) {
+    for(v=s->members;v->next;v=v->next);
+
+    s->size = 0;
+    for(v=v->prev;v;v=v->prev) {
+      v->offset_bytes = s->size;
+      var_size = GetTypeSize(v->ty);
+      s->size += var_size;
+      diff = v->offset_bytes % var_size;
+      if (diff>0) {
+        v->offset_bytes += var_size - diff;
+      }
+      s->size = v->offset_bytes + var_size;
+    }
+
+    if (s->size % STRUCT_ALL_ALIGN_BYTES > 0) {
+      s->size = (s->size / STRUCT_ALL_ALIGN_BYTES + 1) * STRUCT_ALL_ALIGN_BYTES;
+    }
+
+    s = s->next;
+  }
+  
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
 }
@@ -224,6 +275,20 @@ void Generate(Node *node) {
 
     case ND_DEREF:
     Generate(node->children[0]);
+    LoadVar(node->ty);
+    return;
+
+    case ND_ARROW:
+    Generate(node->children[0]);
+    printf("  lea rax, [rax+%d]\n",
+      GetStructMemberOffset(node->children[0]->ty->ptr_to->id, node->id));
+    LoadVar(node->ty);
+    return;
+
+    case ND_DOT:
+    GenLval(node->children[0]);
+    printf("  lea rax, [rax+%d]\n",
+      GetStructMemberOffset(node->children[0]->ty->id, node->id));
     LoadVar(node->ty);
     return;
 

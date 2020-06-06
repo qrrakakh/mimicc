@@ -21,7 +21,8 @@ stmt           =  block
                   | "if" "(" expr ")" stmt ("else" stmt)?
                   | expr ";"
                   | "switch" "(" expr ")" stmt
-type           =  "int" | "char" | "void"
+type           =  "int" | "char" | "void" | struct
+struct         =  "struct" ident? ("{" (declare_a ";")* "}")?
 declare        =  type "*"* ident
 declare_a      =  type "*"* var_a (, "*"* var_a )*
 declare_e      =  type "*"* evar (, "*"* evar )*
@@ -50,6 +51,8 @@ postfix        =  primay
                   | postfix ("(" ( | expr ("," expr){0,5}) ")")
                   | postfix "++"
                   | postfix "--"
+                  | postfix "->" ident
+                  | postfix "." ident
 primary        =  ident
                   | const
                   | string
@@ -60,3 +63,4 @@ string         =  "\"" char* "\""
 
 ## Known issues
 * External function declarement does not care its type or types of arguments.
+* Struct for function argument is not suuported (struct pointer can be an argument.)

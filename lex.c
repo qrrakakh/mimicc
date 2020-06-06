@@ -143,7 +143,6 @@ Token *Tokenize(char *p) {
 
     // punctuators
     // Todo: implement
-    // ->, 
     // ~, !, 
     // <<, >>, ^, |, &&, ||, 
     // ?, ..., 
@@ -168,6 +167,11 @@ Token *Tokenize(char *p) {
         p+=2;
         continue;
       }
+      if(*p == '-' && *(p+1) == '>') {
+        cur = NewToken(TK_RESERVED, cur, p, 2);
+        p+=2;
+        continue;
+      } 
     }
 
     // one char punctuator

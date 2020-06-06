@@ -38,14 +38,16 @@ void InitScope() {
 }
 
 void EnterScope() {
-  Scope *blk = calloc(1, sizeof(Scope));
-  blk->id = ++last_scope_id;
-  blk->parent = current_scope;
-  current_scope = blk;
+  Scope *scope = calloc(1, sizeof(Scope));
+  scope->id = ++last_scope_id;
+  scope->parent = current_scope;
+  current_scope = scope;
 }
 
 void LeaveScope() {
   current_scope = current_scope->parent;
+  if(is_look_ahead)
+    --last_scope_id;
 }
 
 //////////
@@ -122,13 +124,13 @@ bool AtEOF() {
 // ast-related functions
 
 // find if the local var is already defined
-bool IsParentOfScopeId(int id, Scope *blk) {
-  if (blk->id==id) {
+bool IsParentOfScopeId(int id, Scope *scope) {
+  if (scope->id==id) {
     return true;
-  } else if(blk->parent==NULL) {
+  } else if(scope->parent==NULL || scope->parent->id == 0) {
     return false;
   } else {
-    return IsParentOfScopeId(id, blk->parent);
+    return IsParentOfScopeId(id, scope->parent);
   }
 }
 
@@ -195,6 +197,10 @@ Var *AddLvar(Token *tok, Type *ty) {
   } else {
     var->id = var->next->id + 1;
   }
+  
+  if (ty->kind == TYPE_STRUCT) {
+    var->struct_id = ty->id;
+  }
 
   return var;
 }
@@ -244,6 +250,10 @@ Var *AddGVar(Token *tok, Type *ty, bool is_extern) {
     var->id = var->next->id + 1;
   }
 
+  if (ty->kind == TYPE_STRUCT) {
+    var->struct_id = ty->id;
+  }
+
   return var;
 }
 
@@ -270,6 +280,65 @@ Const_Strings *FindCstr(char *s, int l) {
   new_cs->size = l;
   new_cs->str = s;
   return new_cs;
+}
+
+Type *AddStruct(Token* tok, Var *members) {
+  Type *ty = calloc(1, sizeof(Type));
+  ty->kind = TYPE_STRUCT;
+  ty->id = ++last_struct_id;
+
+  Struct *s = calloc(1, sizeof(Struct));
+  s->next = structs; structs = s;
+  s->id = ty->id;
+  s->ty = ty;
+  s->scope_id = current_scope->id;
+  s->members = members;
+
+  if(tok) {
+    s->name = tok->str;
+    s->len = tok->len;
+  } else {
+    s->name = NULL;
+    s->len = 0;
+  }
+
+  return ty;
+}
+
+Struct *FindStruct(Token *tok, bool is_recursive_search) {
+  Struct *s = structs;
+  while(s->next) {
+    if (tok->len == s->len
+        && strncmp(s->name, tok->str, s->len)==0) {
+      if(is_recursive_search && (IsParentOfScopeId(s->scope_id, current_scope) || s->scope_id==0)) {
+        return s;
+      } else if((!is_recursive_search) && s->scope_id==current_scope->id) {
+        return s;
+      }
+    }
+    s = s->next;
+  }
+  return NULL;
+}
+
+Struct *FindStructById(int struct_id) {
+  Struct *s;
+  for(s=structs;s->next && s->id != struct_id;s=s->next) ;
+  if(!(s->next)) {
+    Error("Struct not found, %d.\n", struct_id);
+  }
+  return s;
+}
+
+Var *FindStructMember(int struct_id, Token *member_token) {
+  Var *v;
+  Struct *s = FindStructById(struct_id);
+  for(v=s->members;
+      v->next!=NULL &&
+      (v->len != member_token->len || strncmp(v->name, member_token->str, v->len)!=0);
+      v=v->next);
+  if(!v->next) return NULL;
+  return v;
 }
 
 bool IsGlobalVar(Token *tok) {
@@ -399,6 +468,46 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
       break;
   }
 
+  return node;
+}
+
+Node *NewNodeArrow(Node *lhs, Token *member_token) {
+  Var *v;
+  if(lhs->ty->kind != TYPE_PTR || lhs->ty->ptr_to->kind != TYPE_STRUCT) {
+    ErrorAt(token->str, "Left hand of the arrow operater must be a pointer of the struct.");
+  }
+
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_ARROW;
+  node->children = calloc(1, sizeof(Node*));
+  node->children[0] = lhs;
+
+  if(!(v = FindStructMember(lhs->ty->ptr_to->id , member_token)))
+    ErrorAt(member_token->str, "member is not found.");
+  node->id = v->id;
+  node->tok = NULL;
+  node->ty = v->ty;
+  
+  return node;
+}
+
+Node *NewNodeDot(Node *lhs, Token *member_token) {
+  Var *v;
+  if(lhs->ty->kind != TYPE_STRUCT) {
+    ErrorAt(token->str, "Left hand of the dot operater must be a struct");
+  }
+
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_DOT;
+  node->children = calloc(1, sizeof(Node*));
+  node->children[0] = lhs;
+
+  if(!(v = FindStructMember(lhs->ty->id , member_token)))
+    ErrorAt(member_token->str, "member is not found.");
+  node->id = v->id;
+  node->tok = NULL;
+  node->ty = v->ty;
+  
   return node;
 }
 
@@ -594,8 +703,8 @@ Node *NewNodeFunc(Token *tok, Type *ty, int num_args, Node *block_node) {
 
 Node *NewNodeFuncCall(Token *tok, int num_args, Node *arg[]) {
   int i;
-  Func *f = FindFunc(tok);
-  if(!f) {
+  Func *f;
+  if(!is_look_ahead && !(f = FindFunc(tok))) {
     WarnAt(tok->str, "Implicitly declared function.");
     f = AddFunc(tok, InitIntType(), 0);
   }
@@ -619,6 +728,7 @@ Node *func(bool is_extern);
 Node *block();
 Node *stmt();
 Type *type();
+Type *struct_();
 Node *declare();
 Node *declare_a();
 void declare_e();
@@ -657,8 +767,14 @@ void program() {
   funcs = calloc(1, sizeof(Func));
   funcs->next = NULL;
 
+  structs = calloc(1, sizeof(Struct));
+  structs->next = NULL;
+  structs->id = 0;
+  last_struct_id = 0;
+
   last_scope_id = 0;
   ctrl_depth = 0;
+  is_look_ahead = 0;
 
   current_func = NULL;
   current_switch = NULL;
@@ -677,6 +793,7 @@ void program() {
       codes = _codes;
     }
 
+    is_look_ahead = 1;
     _tok = token;
     
     if(Consume("extern")) {
@@ -692,34 +809,40 @@ void program() {
 
       if(Consume("(")) {
         token = _tok;
+        is_look_ahead = 0;
         node = func(true);
         Expect(";");
       } else if(Consume("[") ||Consume(",") || Consume(";")) { // global variable
         token = _tok;
+        is_look_ahead = 0;
         declare_e();
         Expect(";");
       } else {
         token = _tok;
+        is_look_ahead = 0;
         ErrorAt(token->str, "Definition of the global variable or the function should be allowed.");
       }
       continue;
-    }
-
-    ty = type();
-    while(Consume("*"));
-    if(!ConsumeIdent()) {
-      ErrorAt(token->str, "Invalid definition statement.");
-    }
-    if(Consume("(")) { // func
-      token = _tok;
-      codes[i++] = func(false);
-    } else if(Consume("[") ||Consume(",") || Consume(";")) { // global variable
-      token = _tok;
-      codes[i++] = declare_a(true);
-      Expect(";");
     } else {
-      token = _tok;
-      ErrorAt(token->str, "Definition of the global variable or the function should be allowed.");
+      ty = type();
+      while(Consume("*"));
+      if(!ConsumeIdent()) {
+        ErrorAt(token->str, "Invalid definition statement.");
+      }
+      if(Consume("(")) { // func
+        token = _tok;
+        is_look_ahead = 0;
+        codes[i++] = func(false);
+      } else if(Consume("[") ||Consume(",") || Consume(";")) { // global variable
+        token = _tok;
+        is_look_ahead = 0;
+        codes[i++] = declare_a();
+        Expect(";");
+      } else {
+        token = _tok;
+        is_look_ahead = 0;
+        ErrorAt(token->str, "Definition of the global variable or the function should be allowed.");
+      }
     }
   }
   codes[i] = NULL;
@@ -765,7 +888,8 @@ Node *func(bool is_extern) {
     Expect(")");
   }
 
-  current_func=AddFunc(ident_tok, ty, num_args);
+  if(!is_look_ahead)
+    current_func=AddFunc(ident_tok, ty, num_args);
 
   if(is_extern) {
     LeaveScope();
@@ -843,7 +967,7 @@ Node *stmt() {
     if(ctrl_depth < 1)
       ErrorAt(tok->str, "continue is used in non-control syntax.");
     node = NewNodeControl(ND_CONTINUE);
-  } else if(node = declare_a(false)) {
+  } else if(node = declare_a()) {
     Expect(";");
   } else if (node = block()) {
     return node;
@@ -858,7 +982,7 @@ Node *stmt() {
     EnterScope();
     Expect("(");
     Node *init;
-    if(!(init=declare_a(false))) {
+    if(!(init=declare_a())) {
       init = expr();
     }
     Expect(";");
@@ -917,10 +1041,53 @@ Node *stmt() {
   return node;
 }
 
+Type *struct_() {
+  Token *tok, *ident_tok;
+  Var *_locals;
+  Node *node;
+  Struct *s;
+  Type *ty;
+  if (!(tok=Consume("struct"))) {
+    return NULL;
+  }
+  ident_tok = ConsumeIdent();
+
+  if(Consume("{")) {
+    if(ident_tok && FindStruct(ident_tok, false)) {
+      ErrorAt(ident_tok->str, "struct is already declared.");
+    }
+
+    _locals = locals;
+    locals = calloc(1, sizeof(Var));
+    locals->next = NULL;
+    locals->id = 0;
+
+    EnterScope();
+    while(!Consume("}")) {
+      node = declare_a();
+      Expect(";");
+    }
+    LeaveScope();
+    if (!is_look_ahead)
+      ty = AddStruct(ident_tok, locals);
+    locals = _locals;
+
+    return ty;
+  } else if(!ident_tok) {
+    ErrorAt(token->str, "identifier expected.");
+  } else if (!(s = FindStruct(ident_tok, true))) {
+    ErrorAt(ident_tok->str, "struct is not declared.");
+  } else {
+    return s->ty;
+  }
+}
+
 Type *type() {
   Type *ty;
   Token *tok;
-  if(!(tok = ConsumeTypeStr())) {
+  if(ty = struct_()) {
+    return ty;
+  } else if(!(tok = ConsumeTypeStr())) {
     return NULL;
   }
   for(int i=0;i<num_builtin_types;++i) {
@@ -948,7 +1115,8 @@ Node *declare() {
   if(!(tok = ConsumeIdent()))
     return NULL;
 
-  AddLvar(tok, ty);
+  if(!is_look_ahead)
+    AddLvar(tok, ty);
 
   return NULL;
 }
@@ -972,10 +1140,12 @@ Node *var_a(Type *_ty) {
     Expect("]");
   }
 
-  if (current_scope->id==0) {
-    AddGVar(ident_tok, ty, false);
-  } else {
-    AddLvar(ident_tok, ty);
+  if(!is_look_ahead) {
+    if (current_scope->id==0) {
+      AddGVar(ident_tok, ty, false);
+    } else {
+      AddLvar(ident_tok, ty);
+    }
   }
 
   if (Consume("=")) {
@@ -1035,7 +1205,8 @@ void evar(Type *_ty) {
     Expect("]");
   }
 
-  AddGVar(tok, ty, true);
+  if(!is_look_ahead)
+    AddGVar(tok, ty, true);
 }
 
 Node *declare_a() {
@@ -1216,6 +1387,10 @@ Node *postfix() {
       node = NewNodeUnaryOp(ND_POSTINC, node);
     } else if (Consume("--")) {
       node = NewNodeUnaryOp(ND_POSTDEC, node);
+    } else if (Consume("->")) {
+      node = NewNodeArrow(node, ConsumeIdent());
+    } else if (Consume(".")) {
+      node = NewNodeDot(node, ConsumeIdent());
     } else {
       break;
     }

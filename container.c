@@ -89,7 +89,8 @@ void PrintNode(Node *node, int num_lead_ws) {
     num_children = node->num_args;
   } else if(node->kind==ND_RETURN || node->kind == ND_SIZEOF
           || node->kind == ND_ADDR || node->kind == ND_DEREF
-          || node->kind == ND_FUNC) {
+          || node->kind == ND_FUNC
+          || node->kind == ND_ARROW || node->kind == ND_DOT) {
     // unary op / func
     num_children = 1;
   }  else if(node->kind==ND_WHILE || node->kind == ND_ASSIGN || node->kind == ND_EQUIV || node->kind == ND_INEQUIV
