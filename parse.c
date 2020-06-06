@@ -33,7 +33,7 @@ int IsArithmeticType(Type *ty) {
 
 void InitScope() {
   current_scope = calloc(1, sizeof(Scope));
-  current_scope->id = 0;
+  current_scope->id = 0;  // scope id for global namespace = 0
   current_scope->parent = NULL;
 }
 
@@ -440,9 +440,9 @@ Node *NewNodeIdent(Token *tok) {
   return node;
 }
 
-Node *NewNodeVarInitializer(Node *var_node, bool is_global) {
+Node *NewNodeVarInitializer(Node *var_node) {
   Node *node = calloc(1, sizeof(Node));
-  if(is_global)
+  if(current_scope->id==0)
     node->kind = ND_GVARINIT;
   else
     node->kind = ND_LVARINIT;
@@ -453,17 +453,17 @@ Node *NewNodeVarInitializer(Node *var_node, bool is_global) {
   return node;
 }
 
-void AddVarInitializer(Node *init_node, Node *var_node, bool is_global) {
+void AddVarInitializer(Node *init_node, Node *var_node) {
   while(init_node->children[1]) {
     init_node = init_node->children[1];
   }
-  if(is_global) {
+  if(current_scope->id==0) {
     if(init_node->kind != ND_GVARINIT) {
       Error("Invalid node is passed for GVar init.");
     }
 
     if(var_node!=NULL) {
-      init_node->children[1] = NewNodeVarInitializer(var_node, is_global);
+      init_node->children[1] = NewNodeVarInitializer(var_node);
     }
   } else {
     if(init_node->kind != ND_LVARINIT) {
@@ -471,7 +471,7 @@ void AddVarInitializer(Node *init_node, Node *var_node, bool is_global) {
     }
 
     if(var_node!=NULL) {
-      init_node->children[1] = NewNodeVarInitializer(var_node, is_global);
+      init_node->children[1] = NewNodeVarInitializer(var_node);
     }
 
   }
@@ -620,10 +620,10 @@ Node *block();
 Node *stmt();
 Type *type();
 Node *declare();
-Node *declare_a(bool is_global);
+Node *declare_a();
 void declare_e();
 void evar(Type *_ty);
-Node *var_a(Type *_ty, bool is_global);
+Node *var_a(Type *_ty);
 Node *expr();
 Node *assign();
 Node *equality();
@@ -662,6 +662,7 @@ void program() {
 
   current_func = NULL;
   current_switch = NULL;
+  InitScope();
 
   codes = calloc(alloc_size, sizeof(Node*));
 
@@ -727,7 +728,7 @@ void program() {
 Node *func(bool is_extern) {
   Token *type_tok, *ident_tok, *arg_tok;
   Type *ty, *tgt_ty;
-  Node *arg[6];
+  Node *arg[6], *block_node;
   int num_args;
   if(!(ty = type())) {
     ErrorAt(token->str, "Invalid type in function declaration.");
@@ -749,8 +750,7 @@ Node *func(bool is_extern) {
   locals->next = NULL;
   locals->id = 0;
 
-  InitScope();
-
+  EnterScope();
   Expect("(");
   num_args = 0;
   if(!Consume(")")) {
@@ -768,11 +768,13 @@ Node *func(bool is_extern) {
   current_func=AddFunc(ident_tok, ty, num_args);
 
   if(is_extern) {
+    LeaveScope();
     return NewNodeFunc(ident_tok, ty, num_args, NULL);
   } else{
-    return NewNodeFunc(ident_tok, ty, num_args, block());
+    block_node = block();
+    LeaveScope();
+    return NewNodeFunc(ident_tok, ty, num_args, block_node);
   }
-  current_func = NULL;
 }
 
 Node *block() {
@@ -951,7 +953,7 @@ Node *declare() {
   return NULL;
 }
 
-Node *var_a(Type *_ty, bool is_global) {
+Node *var_a(Type *_ty) {
   Token *tok, *ident_tok;
   Type *ty;
   Node *assign_node;
@@ -970,7 +972,7 @@ Node *var_a(Type *_ty, bool is_global) {
     Expect("]");
   }
 
-  if (is_global) {
+  if (current_scope->id==0) {
     AddGVar(ident_tok, ty, false);
   } else {
     AddLvar(ident_tok, ty);
@@ -1036,7 +1038,7 @@ void evar(Type *_ty) {
   AddGVar(tok, ty, true);
 }
 
-Node *declare_a(bool is_global) {
+Node *declare_a() {
   Token *tok;
   Type *ty, *tgt_ty, *orig_ty;
   Node *node;
@@ -1052,7 +1054,7 @@ Node *declare_a(bool is_global) {
     ty->ptr_to = tgt_ty;
   }
 
-  node = NewNodeVarInitializer(var_a(ty, is_global), is_global);
+  node = NewNodeVarInitializer(var_a(ty));
 
   while(Consume(",")) {
     ty = orig_ty;
@@ -1062,7 +1064,7 @@ Node *declare_a(bool is_global) {
       ty->kind = TYPE_PTR;
       ty->ptr_to = tgt_ty;
     }
-    AddVarInitializer(node, var_a(ty, is_global), is_global);
+    AddVarInitializer(node, var_a(ty));
   }
 
   return node;
