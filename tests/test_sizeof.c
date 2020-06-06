@@ -47,6 +47,34 @@ int Test54()
 {
   return sizeof(sizeof(1));
 }
+int Test_struct_sizeof1() {
+  struct {
+    int a;
+    char b;
+    int c;
+  } a;
+  return sizeof(a);
+}
+int Test_struct_sizeof2() {
+  struct {
+    int a;
+    char b1;
+    char b2;
+    char b3;
+    int c;
+  } a;
+  return sizeof(a);
+}
+int Test_struct_sizeof3() {
+  struct {
+    int a;
+    char b1;
+    int c;
+    char b2;
+    char b3;
+  } a;
+  return sizeof(a);
+}
 
 int run_sizeof_tests() {
   int expected;
@@ -129,11 +157,25 @@ int run_sizeof_tests() {
     printf("Test53 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
-  expected=4;
-  actual=Test54();
+  expected=12;
+  actual=Test_struct_sizeof1();
   if (actual != expected)
   {
-    printf("Test54 faild, %d expected, but got %d\n", expected, actual);
+    printf("Test struct_sizeof1 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=12;
+  actual=Test_struct_sizeof2();
+  if (actual != expected)
+  {
+    printf("Test struct_sizeof2 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+ expected=16;
+  actual=Test_struct_sizeof3();
+  if (actual != expected)
+  {
+    printf("Test struct_sizeof3 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 
