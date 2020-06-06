@@ -6,7 +6,7 @@ https://www.sigbus.info/compilerbook
 
 ## BNF
 ```
-program        =  ((func block | declare_a ";" | "extern" declare_e "; | "extern" func ";"))*
+program        =  ((func block | declare_a ";" |  "extern" declare_e "; | "extern" func ";"))*
 func           =  type  "*"* ident ("(" ( | declare ("," declare){0,5}) ")")
 block          =  "{ stmt* "}"
 stmt           =  block
@@ -21,7 +21,7 @@ stmt           =  block
                   | "if" "(" expr ")" stmt ("else" stmt)?
                   | expr ";"
                   | "switch" "(" expr ")" stmt
-type           =  ("int" | "char")
+type           =  "int" | "char" | "void"
 declare        =  type "*"* ident
 declare_a      =  type "*"* var_a (, "*"* var_a )*
 declare_e      =  type "*"* evar (, "*"* evar )*
@@ -38,19 +38,24 @@ equality       =  relational ( "==" | "!=" relational )*
 relational     =  add ("<=" | ">=" | "<" | ">" add)*
 add            =  mul ("+" | "-" mul)*
 mul            =  unary ("*" | "/" | "%" unary)*
-unary          =  "+" primary
-                  | "-" primary
+unary          =  postfix
+                  | "+" unary
+                  | "-" unary
                   | "*" unary
                   | "&" unary
                   | "sizeof" unary
-primary        =  num
+                  | ("++" | "--") unary
+postfix        =  primay
+                  | postfix ("[" expr "]")?
+                  | postfix ("(" ( | expr ("," expr){0,5}) ")")
+                  | postfix "++"
+                  | postfix "--"
+primary        =  ident
+                  | const
+                  | string
+const           = num
                   | "'" char "'"
-                  | ("++" | "--") lval
-                  | lval
-                  | lval ("++" | "--") 
-                  | ident ("(" ( | expr ("," expr){0,5}) ")")
-lval           = ident ("[" expr "]")?
-strings        =  "\"" char* "\""
+string         =  "\"" char* "\""
 ```
 
 ## Known issues

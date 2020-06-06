@@ -184,7 +184,8 @@ Var *AddLvar(Token *tok, Type *ty) {
     ErrorAt(tok->str, "Local variable declared void.");
   }
   var = calloc(1, sizeof(Var));
-  var->next = locals; locals = var;
+  var->next = locals; var->prev = NULL;
+  locals->prev = var; locals = var; 
   var->name = tok->str;
   var->len = tok->len;
   var->ty = ty;
@@ -226,7 +227,8 @@ Var *AddGVar(Token *tok, Type *ty, bool is_extern) {
     ErrorAt(tok->str, "Global variable declared void.");
   }
   var = calloc(1, sizeof(Var));
-  var->next = globals; globals = var;
+  var->next = globals; var->prev = NULL;
+  globals->prev = var; globals = var;
   var->name = tok->str;
   var->len = tok->len;
   var->ty = ty;
@@ -400,11 +402,12 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
   return node;
 }
 
-Node *NewNodeChar(char c) {
+Node *NewNodeChar(Token *tok) {
   Node *node = calloc(1, sizeof(Node));
   node->children = NULL;
   node->kind = ND_CHAR;
-  node->val = c;
+  node->val = *(tok->str);
+  node->tok = tok;
   node->ty = InitCharType();
   return node;
 }
@@ -414,16 +417,26 @@ Node *NewNodeStrings(Token *tok) {
   node->children = NULL;
   node->kind = ND_STRINGS;
   node->id = FindCstr(tok->str, tok->len)->id;
+  node->tok = tok;
   node->ty = InitArrayType(InitCharType(), tok->len);
   return node;
 }
 
-Node *NewNodeNum(int val) {
+Node *NewNodeNum(Token *tok, int val) {
   Node *node = calloc(1, sizeof(Node));
   node->children = NULL;
   node->kind = ND_NUM;
   node->val = val;
   node->ty = InitIntType();
+  return node;
+}
+
+Node *NewNodeIdent(Token *tok) {
+  Node *node = calloc(1, sizeof(Node));
+  node->children = NULL;
+  node->kind = ND_IDENT;
+  node->tok = tok;
+  node->ty = NULL;
   return node;
 }
 
@@ -475,6 +488,7 @@ Node *NewNodeLvar(Token *tok) {
   node->children = NULL;
   node->kind = ND_LVAR;
   node->id = var->id;
+  node->tok = tok;
   node->ty = var->ty;
   return node;
 }
@@ -490,6 +504,7 @@ Node *NewNodeGvar(Token *tok) {
 
   node->kind = ND_GVAR;
   node->id = var->id;
+  node->tok = tok;
   node->ty = var->ty;
   return node;
 }
@@ -569,7 +584,7 @@ Node *NewNodeFunc(Token *tok, Type *ty, int num_args, Node *block_node) {
   node->kind = ND_FUNC;
   node->children = calloc(1, sizeof(Node*));
   node->children[0] = block_node;
-  node->func_name = tok->str;
+  node->name = tok->str;
   node->val = tok->len;
   node->num_args = num_args;
   node->lvars = locals;
@@ -590,8 +605,9 @@ Node *NewNodeFuncCall(Token *tok, int num_args, Node *arg[]) {
   for(i=0;i<num_args;++i) {
     node->children[i] = arg[i];
   }
-  node->func_name = tok->str;
+  node->name = tok->str;
   node->val = tok->len;
+  node->tok = tok;
   node->num_args = num_args;
   node->ty = f->ty;
   return node;
@@ -616,8 +632,9 @@ Node *add();
 Node *mul();
 Node *unary();
 Node *primary();
-Node *lval();
-Node *strings();
+Node *postfix();
+Node *const_();
+Node *string();
 
 
 void program() {
@@ -1135,50 +1152,35 @@ Node *mul() {
 }
 
 Node *unary() {
-  if (Consume("sizeof")) {
+  if (Consume("sizeof"))
     return NewNodeUnaryOp(ND_SIZEOF, unary());
-  }
   else if(Consume("&"))
     return NewNodeUnaryOp(ND_ADDR, unary());
   else if(Consume("*"))
     return NewNodeUnaryOp(ND_DEREF, unary());
   else if(Consume("+"))
-    return primary();
-   else if(Consume("-"))
-    return NewNodeBinOp(ND_SUB, NewNodeNum(0), primary());
-  else
-    return primary();
-}
-
-Node *primary() {
-  Node *node;
-  Node *arg[6];
-  size_t num_args;
-  Token *tok;
-
-  // if the next token is '(' then it should be expanded as '(' expr ')'
-  if (Consume("(")) {
-    node = expr();
-    Expect(")");
+    return unary();
+  else if(Consume("-"))
+     return NewNodeBinOp(ND_SUB, NewNodeNum(NULL, 0), unary());
+  else if (Consume("++"))
+    return NewNodeUnaryOp(ND_PREINC, unary());
+  else if (Consume("--"))
+    return NewNodeUnaryOp(ND_PREDEC, unary());
+  else {
+    Node *node = postfix();
     return node;
   }
+}
 
-  if (Consume("++")) {
-    if(!(tok = ConsumeIdent())) {
-      ErrorAt(token->str, "Identifier expected.");
-    }
-    return NewNodeUnaryOp(ND_PREINC, lval(tok));
-  }
+Node *postfix() {
+  Node *node = primary(), *subscript, *arg[6];
+  size_t num_args;
 
-  if (Consume("--")) {
-    if(!(tok = ConsumeIdent())) {
-      ErrorAt(token->str, "Identifier expected.");
-    }
-    return NewNodeUnaryOp(ND_PREDEC, lval(tok));
-  }
-
-  if(tok=ConsumeIdent()) {
+  while(1) {
     if (Consume("(")) {
+      if(node->kind != ND_IDENT) {
+        ErrorAt(node->tok->str, "Identifier expected.");
+      }
       num_args = 0;
       if(!Consume(")")) {
         arg[num_args++] = expr();
@@ -1191,49 +1193,62 @@ Node *primary() {
         }
         Expect(")");
       }
-      return NewNodeFuncCall(tok, num_args, arg);
-    } else {
-      node = lval(tok);
-      if (Consume("++")) {
-        return NewNodeUnaryOp(ND_POSTINC, node);
-      }
-      else if (Consume("--")) {
-        return NewNodeUnaryOp(ND_POSTDEC, node);
+      node = NewNodeFuncCall(node->tok, num_args, arg);
+    } else if(node->kind == ND_IDENT) {
+      if(IsGlobalVar(node->tok)) {
+        node = NewNodeGvar(node->tok);
       } else {
-        return node;
+        node = NewNodeLvar(node->tok);
+      } 
+    } else if(Consume("[")) {
+      subscript = expr();
+      Expect("]");
+      if(IsGlobalVar(node->tok)) {
+        node = NewNodeUnaryOp(ND_DEREF,
+          NewNodeBinOp(ND_ADD, node, subscript));
+      } else {
+        node = NewNodeUnaryOp(ND_DEREF,
+          NewNodeBinOp(ND_ADD, node, subscript));
       }
+    } else if (Consume("++")) {
+      node = NewNodeUnaryOp(ND_POSTINC, node);
+    } else if (Consume("--")) {
+      node = NewNodeUnaryOp(ND_POSTDEC, node);
+    } else {
+      break;
     }
-  } else if (tok=ConsumeChar()) {
-    return NewNodeChar(*(tok->str));
-  } else if(node=strings()) {
+  }
+  return node;
+}
+
+Node *primary() {
+  Node *node;
+  Token *tok;
+
+  // if the next token is '(' then it should be expanded as '(' expr ')'
+  if (Consume("(")) {
+    node = expr();
+    Expect(")");
     return node;
-  } else { // else should be a number.
-    return NewNodeNum(ExpectNumber());
-  }
-}
-
-Node *lval(Token *ident_tok) {
-  Node *subscript;
-  if(Consume("[")) {
-    subscript = expr();
-    Expect("]");
-    if(IsGlobalVar(ident_tok)) {
-      return NewNodeUnaryOp(ND_DEREF,
-        NewNodeBinOp(ND_ADD, NewNodeGvar(ident_tok), subscript));
-    } else {
-      return NewNodeUnaryOp(ND_DEREF,
-        NewNodeBinOp(ND_ADD, NewNodeLvar(ident_tok), subscript));
-    }
+  } else if(tok=ConsumeIdent()) {
+    return NewNodeIdent(tok);
+  } else if(node=string()) {
+    return node;
   } else {
-    if(IsGlobalVar(ident_tok)) {
-      return NewNodeGvar(ident_tok);
-    } else {
-      return NewNodeLvar(ident_tok);
-    }
+    return const_();
   }
 }
 
-Node *strings() {
+Node *const_() {
+  Token *tok;
+  if (tok=ConsumeChar()) {
+    return NewNodeChar(tok);
+  } else { // else should be a number.
+    return NewNodeNum(token, ExpectNumber());
+  }
+}
+
+Node *string() {
   Token *tok;
   if (tok = ConsumeStrings()) {
     return NewNodeStrings(tok);

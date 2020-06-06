@@ -15,7 +15,7 @@ void Compile(char *input) {
   //PrintNodeTree();
 
   // The header of assembler
-  GenerateHeader();
+  InitProgram();
 
   // Follow AST and generate code
   for(int i=0;codes[i];i++) {

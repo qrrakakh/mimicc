@@ -95,7 +95,7 @@ void GenLval(Node *node) {
   }
 }
 
-void GenerateHeader() {
+void InitProgram() {
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
 }
@@ -135,8 +135,8 @@ void Generate(Node *node) {
     case ND_FUNC:
     if (!(node->children[0]))
       return;
-    printf("%.*s:\n", node->val, node->func_name);
-    current_func = FindFuncByName(node->func_name, node->val);
+    printf("%.*s:\n", node->val, node->name);
+    current_func = FindFuncByName(node->name, node->val);
 
     locals = node->lvars;
     // allocate stack for local variables
@@ -185,7 +185,7 @@ void Generate(Node *node) {
 
     Generate(node->children[0]);
 
-    printf(".L.ret%.*s:\n", node->val, node->func_name);
+    printf(".L.ret%.*s:\n", node->val, node->name);
     current_func = NULL;
     
     // Final evaluated value is already stored on rax, which will be returned.
@@ -421,12 +421,12 @@ void Generate(Node *node) {
     printf("  and rax, 15\n");
     printf("  jnz .L.call%06d\n", label);
     printf("  mov rax, 0\n");
-    printf("  call %.*s\n", node->val, node->func_name);
+    printf("  call %.*s\n", node->val, node->name);
     printf("  jmp .L.end%06d\n", label);
     printf(".L.call%06d:\n", label);
     printf("  sub rsp, 8\n");
     printf("  mov rax, 0\n");
-    printf("  call %.*s\n", node->val, node->func_name);
+    printf("  call %.*s\n", node->val, node->name);
     printf("  add rsp, 8\n");
     printf(".L.end%06d:\n", label);
     return;

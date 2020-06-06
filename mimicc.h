@@ -38,6 +38,7 @@ typedef struct Var Var;
 
 struct Var {  // defined variables
   Var *next;
+  Var *prev;
   char *name;
   int len;
   int id;
@@ -56,6 +57,25 @@ struct Func {  // defined variables
   Type *ty;
 };
 
+typedef enum {  // Token definition
+  TK_RESERVED,  // reserved keywords / punctuators
+  TK_IDENT,     // identifier
+  TK_NUM,       // number token
+  TK_CHAR,      // single char
+  TK_STRINGS,   // strings
+  TK_EOF,       // end of input
+} TokenKind;
+
+typedef struct Token Token;
+
+struct Token {  // Token type
+  TokenKind kind;
+  Token * next; // next input token
+  int val;      // value if kind is TK_NUM
+  char *str;    // token string
+  int len;
+};
+
 typedef enum {  // ABS Node kinds
   ND_ADD,       // +
   ND_SUB,       // -
@@ -69,6 +89,7 @@ typedef enum {  // ABS Node kinds
   ND_INEQUIV,  // !=
   ND_LT,        // <
   ND_LE,        // <=
+  ND_IDENT,     // identifier
   ND_LVAR,      // Local variable
   ND_GVAR,      // Global variable
   ND_LVARINIT,  // Local variable initialize
@@ -100,32 +121,14 @@ typedef struct Node Node;
 struct Node { // ABS Node struct
   NodeKind kind;
   Node **children;
-  int val;          // Only when kind==ND_NUM or ND_CALL or ND_GVAR
-  int offset;       // Only when kind=ND_LVAR or ND_GVAR
-  int id;           // Only when kind=ND_LVAR or ND_GVAR
-  int num_args;     // Only when kind=ND_FUNC or ND_CALL
-  char *func_name;  // Only when kind=ND_CALL
-  Var *lvars;      // Only when kind=ND_FUNC
+  int val;
+  int offset;
+  int id;
+  int num_args;
+  char *name;
+  Var *lvars;
+  Token *tok;
   Type *ty;
-};
-
-typedef enum {  // Token definition
-  TK_RESERVED,  // reserved keywords / punctuators
-  TK_IDENT,     // identifier
-  TK_NUM,       // number token
-  TK_CHAR,      // single char
-  TK_STRINGS,   // strings
-  TK_EOF,       // end of input
-} TokenKind;
-
-typedef struct Token Token;
-
-struct Token {  // Token type
-  TokenKind kind;
-  Token * next; // next input token
-  int val;      // value if kind is TK_NUM
-  char *str;    // token string
-  int len;
 };
 
 typedef struct Scope Scope;
@@ -179,7 +182,7 @@ void program();
 
 // Code generator
 void Generate(Node *node);
-void GenerateHeader();
+void InitProgram();
 void GenerateFooter();
 
 //////////
