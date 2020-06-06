@@ -1,9 +1,15 @@
 #!/bin/bash
 
 compiler_bin="./mimicc"
+test_c_files="tests/*.c"
+test_obj_files="tests/*.o"
+test_bin_file="./test_bin"
+tmp_asm="./tmp.s"
+external_test_func_c_file="./test_func.c"
+external_test_func_obj_file="./test_func.o"
 
 compile_test_func() {
-  cc -c -o test_func.o test_func.c
+  cc -c -o ${external_test_func_obj_file} ${external_test_func_c_file}
 }
 
 assert() {
@@ -25,20 +31,32 @@ assert() {
   fi
 }
 
+cleanup_test_obj() {
+  rm -f ${test_obj_files};
+  rm -f ${tmp_asm};
+  rm -f ${external_test_func_obj_file};
+  rm -f ${test_bin_file};
+}
+
 run_test_c_code() {
-  test_c_code=$1
-  ${compiler_bin} ${test_c_code} > tmp.s
-  cc -c -o tmp.o tmp.s
-  cc -o tmp tmp.o test_func.o
-  ./tmp
+  for test_c_file in ${test_c_files}
+  do
+    test_obj_file=${test_c_file}.o
+    ${compiler_bin} ${test_c_file} > ${tmp_asm}
+    cc -c -o ${test_obj_file} ${tmp_asm}
+  done
+  cc -o ${test_bin_file} `eval "echo ${test_obj_files}"` test_func.o
+  ${test_bin_file}
   if [ "0" -ne "$?" ];then
+    cleanup_test_obj
     echo "[TEST FAILED]"
     exit 1
   fi
 }
 
 compile_test_func
-run_test_c_code "./test.c"
+run_test_c_code
+cleanup_test_obj
 
 echo "[TEST PASSED]"
 exit 0
