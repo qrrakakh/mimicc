@@ -148,7 +148,6 @@ void InitProgram() {
   }
   
   printf(".intel_syntax noprefix\n");
-  printf(".global main\n");
 }
 
 void GenerateFooter() {
