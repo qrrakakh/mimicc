@@ -135,11 +135,11 @@ bool IsParentOfScopeId(int id, Scope *scope) {
 }
 
 Symbol *FindLvar(Token *tok) {
-  Symbol *var;
-  for(var=locals;var;var=var->next) {
-    if(var->len == tok->len && !memcmp(var->name, tok->str, var->len)) {
-      if(IsParentOfScopeId(var->scope_id, current_scope))
-        return var;
+  Symbol *symbol;
+  for(symbol=locals;symbol;symbol=symbol->next) {
+    if(symbol->len == tok->len && !memcmp(symbol->name, tok->str, symbol->len)) {
+      if(IsParentOfScopeId(symbol->scope_id, current_scope))
+        return symbol;
     }
   }
   return NULL;
@@ -156,76 +156,76 @@ bool IsSymbolDefinedInScope(Token *tok, Symbol *head, int scope_id) {
 }
 
 Symbol *AddLvar(Token *tok, Type *ty) {
-  Symbol *var;
+  Symbol *symbol;
   if(IsSymbolDefinedInScope(tok, locals, current_scope->id)) {
     ErrorAt(tok->str, "Already declared symbol is used in local variable declaration.");
   } else if(ty->kind == TYPE_VOID) {
     ErrorAt(tok->str, "Local variable declared void.");
   }
-  var = calloc(1, sizeof(Symbol));
-  var->next = locals; var->prev = NULL;
-  locals->prev = var; locals = var; 
-  var->kind = SY_VAR;
-  var->name = tok->str;
-  var->len = tok->len;
-  var->ty = ty;
-  var->scope_id = current_scope->id;
-  var->id = ++last_symbol_id;
+  symbol = calloc(1, sizeof(Symbol));
+  symbol->next = locals; symbol->prev = NULL;
+  locals->prev = symbol; locals = symbol; 
+  symbol->kind = SY_VAR;
+  symbol->name = tok->str;
+  symbol->len = tok->len;
+  symbol->ty = ty;
+  symbol->scope_id = current_scope->id;
+  symbol->id = ++last_symbol_id;
   
   if (ty->kind == TYPE_STRUCT) {
-    var->struct_id = ty->id;
+    symbol->struct_id = ty->id;
   }
 
-  return var;
+  return symbol;
 }
 
 Symbol *FindGvar(Token *tok) {
-  Symbol *var;
-  for(var=globals;var;var=var->next) {
-    if(var->len == tok->len && !memcmp(var->name, tok->str, var->len)) {
-      return var;
+  Symbol *symbol;
+  for(symbol=globals;symbol;symbol=symbol->next) {
+    if(symbol->len == tok->len && !memcmp(symbol->name, tok->str, symbol->len)) {
+      return symbol;
     }
   }
   return NULL;
 }
 
 Symbol *FindVarById(int id, Symbol *head) {
-  Symbol *var;
-  for(var=head;var;var=var->next) {
-    if(var->id == id) {
-      return var;
+  Symbol *symbol;
+  for(symbol=head;symbol;symbol=symbol->next) {
+    if(symbol->id == id) {
+      return symbol;
     }
   }
   return NULL;
 }
 
 Symbol *AddGVar(Token *tok, Type *ty, bool is_extern) {
-  Symbol *var;
+  Symbol *symbol;
   if(IsSymbolDefinedInScope(tok, globals, current_scope->id)) {
     ErrorAt(tok->str, "Already declared symbol is used in global variable declaration.");
   } else if(ty->kind == TYPE_VOID) {
     ErrorAt(tok->str, "Global variable declared void.");
   }
-  var = calloc(1, sizeof(Symbol));
-  var->next = globals; var->prev = NULL;
-  globals->prev = var; globals = var;
-  var->kind = SY_VAR;
-  var->name = tok->str;
-  var->len = tok->len;
-  var->ty = ty;
+  symbol = calloc(1, sizeof(Symbol));
+  symbol->next = globals; symbol->prev = NULL;
+  globals->prev = symbol; globals = symbol;
+  symbol->kind = SY_VAR;
+  symbol->name = tok->str;
+  symbol->len = tok->len;
+  symbol->ty = ty;
   if(is_extern) {
-    var->scope_id = -1;
+    symbol->scope_id = -1;
   } else {
-    var->scope_id = 0;
+    symbol->scope_id = 0;
   }
 
-  var->id = ++last_symbol_id;
+  symbol->id = ++last_symbol_id;
 
   if (ty->kind == TYPE_STRUCT) {
-    var->struct_id = ty->id;
+    symbol->struct_id = ty->id;
   }
 
-  return var;
+  return symbol;
 }
 
 Symbol *FindLvarById(int id) {
@@ -596,33 +596,33 @@ void AddVarInitializer(Node *init_node, Node *var_node) {
 
 Node *NewNodeLvar(Token *tok) {
   Node *node = calloc(1, sizeof(Node));
-  Symbol *var;
+  Symbol *symbol;
 
-  if(!(var=FindLvar(tok))) {
+  if(!(symbol=FindLvar(tok))) {
     ErrorAt(tok->str, "Undefined local variable.");
   }
 
   node->children = NULL;
   node->kind = ND_LVAR;
-  node->id = var->id;
+  node->id = symbol->id;
   node->tok = tok;
-  node->ty = var->ty;
+  node->ty = symbol->ty;
   return node;
 }
 
 Node *NewNodeGvar(Token *tok) {
   Node *node = calloc(1, sizeof(Node));
-  Symbol *var;
+  Symbol *symbol;
   
-  if(!(var=FindGvar(tok))) {
+  if(!(symbol=FindGvar(tok))) {
     ErrorAt(tok->str, "Undefined global variable.");
   }
   node->children=NULL;
 
   node->kind = ND_GVAR;
-  node->id = var->id;
+  node->id = symbol->id;
   node->tok = tok;
-  node->ty = var->ty;
+  node->ty = symbol->ty;
   return node;
 }
 

@@ -94,14 +94,14 @@ void LoadVar(Type *ty) {
 }
 
 void GenLval(Node *node) {
-  Symbol *var;
+  Symbol *symbol;
   if (node->kind == ND_LVAR) {
     // save the address of lval
-    var = FindLvarById(node->id);
-    printf("  lea rax, [rbp-%d]\n", var->offset_bytes);
+    symbol = FindLvarById(node->id);
+    printf("  lea rax, [rbp-%d]\n", symbol->offset_bytes);
   } else if(node->kind == ND_GVAR) {
-    var = FindGvarById(node->id);
-    printf("  lea rax, %.*s[rip]\n", var->len, var->name);
+    symbol = FindGvarById(node->id);
+    printf("  lea rax, %.*s[rip]\n", symbol->len, symbol->name);
   } else if(node->kind == ND_DEREF) {
     Generate(node->children[0]);
   } else if(node->kind == ND_STRINGS) {
