@@ -1,3 +1,9 @@
+/* extern declared functions and variables */
+extern int Alloc4(int **p, int a, int b, int c, int d);
+extern int PrintInt(int a);
+extern int Foo();
+extern void printf();
+
 // Global variables and helper functions
 int fib(int a){if(a==0) return 0;else if(a==1) return 1; else return fib(a-2)+fib(a-1);}
 int TestHelperFunction58(int a){return a*2;}
@@ -5,11 +11,6 @@ int TestHelperFunction61(){int a;a=1;return a;}
 int TestHelperFunction62(){int a;a=1;return a;}
 int TestHelperFunction65_Test72(int a,int b,int c,int d,int e,int f){return a+b*2+c*4+d*8+e*16+f*32;}
 void TestHelperFunction138_voidfunc() {printf("void func runs correctly\n"); return;}
-
-/* extern declared functions and variables */
-extern int Alloc4(int **p, int a, int b, int c, int d);
-extern int PrintInt(int a);
-extern int Foo();
 
 // Test functions
 int Test55() 

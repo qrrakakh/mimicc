@@ -1,3 +1,6 @@
+/* extern declared functions and variables */
+extern void printf();
+
 struct structTest149_152 {
   int v1;
   char c1;

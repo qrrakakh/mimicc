@@ -1,6 +1,7 @@
 /* extern declared functions and variables */
 extern int a_test_func;
 extern int arr_test_func[4];
+extern void printf();
 
 int Test73() 
 {

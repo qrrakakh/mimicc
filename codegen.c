@@ -487,12 +487,14 @@ void Generate(Node *node) {
     printf("  and rax, 15\n");
     printf("  jnz .L.call%06d\n", label);
     printf("  mov rax, 0\n");
-    printf("  call %.*s\n", node->val, node->name);
+    printf("  mov r10, qword ptr %.*s@GOTPCREL[rip]\n", node->val, node->name);
+    printf("  call r10\n");
     printf("  jmp .L.end%06d\n", label);
     printf(".L.call%06d:\n", label);
     printf("  sub rsp, 8\n");
     printf("  mov rax, 0\n");
-    printf("  call %.*s\n", node->val, node->name);
+    printf("  mov r10, qword ptr %.*s@GOTPCREL[rip]\n", node->val, node->name);
+    printf("  call r10\n");
     printf("  add rsp, 8\n");
     printf(".L.end%06d:\n", label);
     return;

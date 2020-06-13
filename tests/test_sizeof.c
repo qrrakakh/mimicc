@@ -1,3 +1,6 @@
+/* extern declared functions and variables */
+extern void printf();
+
 // Test functions
 int Test43() 
 {

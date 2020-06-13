@@ -1,3 +1,6 @@
+/* extern declared functions and variables */
+extern void printf();
+
 // Global variables and helper functions
 int TestHelperFunction144_146(int a) {
   int b=10;

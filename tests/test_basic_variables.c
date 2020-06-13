@@ -1,3 +1,6 @@
+/* extern declared functions and variables */
+extern void printf();
+
 // Global variables and helper functions
 int var_Test11, *var_Test12;
 int var_Test14;int TestHelperFunction14(int z) { return var_Test14+z;}
