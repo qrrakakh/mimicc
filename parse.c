@@ -134,10 +134,112 @@ bool IsParentOfScopeId(int id, Scope *scope) {
   }
 }
 
+Symbol *FindLvar(Token *tok) {
+  Symbol *var;
+  for(var=locals;var;var=var->next) {
+    if(var->len == tok->len && !memcmp(var->name, tok->str, var->len)) {
+      if(IsParentOfScopeId(var->scope_id, current_scope))
+        return var;
+    }
+  }
+  return NULL;
+}
+
+bool IsSymbolDefinedInScope(Token *tok, Symbol *head, int scope_id) {
+  Symbol *s;
+  for(s=head;s;s=s->next) {
+    if(s->len == tok->len && !memcmp(s->name, tok->str, s->len) && s->scope_id == scope_id) {
+      return true;
+    }
+  }
+  return false;
+}
+
+Symbol *AddLvar(Token *tok, Type *ty) {
+  Symbol *var;
+  if(IsSymbolDefinedInScope(tok, locals, current_scope->id)) {
+    ErrorAt(tok->str, "Already declared symbol is used in local variable declaration.");
+  } else if(ty->kind == TYPE_VOID) {
+    ErrorAt(tok->str, "Local variable declared void.");
+  }
+  var = calloc(1, sizeof(Symbol));
+  var->next = locals; var->prev = NULL;
+  locals->prev = var; locals = var; 
+  var->kind = SY_VAR;
+  var->name = tok->str;
+  var->len = tok->len;
+  var->ty = ty;
+  var->scope_id = current_scope->id;
+  var->id = ++last_symbol_id;
+  
+  if (ty->kind == TYPE_STRUCT) {
+    var->struct_id = ty->id;
+  }
+
+  return var;
+}
+
+Symbol *FindGvar(Token *tok) {
+  Symbol *var;
+  for(var=globals;var;var=var->next) {
+    if(var->len == tok->len && !memcmp(var->name, tok->str, var->len)) {
+      return var;
+    }
+  }
+  return NULL;
+}
+
+Symbol *FindVarById(int id, Symbol *head) {
+  Symbol *var;
+  for(var=head;var;var=var->next) {
+    if(var->id == id) {
+      return var;
+    }
+  }
+  return NULL;
+}
+
+Symbol *AddGVar(Token *tok, Type *ty, bool is_extern) {
+  Symbol *var;
+  if(IsSymbolDefinedInScope(tok, globals, current_scope->id)) {
+    ErrorAt(tok->str, "Already declared symbol is used in global variable declaration.");
+  } else if(ty->kind == TYPE_VOID) {
+    ErrorAt(tok->str, "Global variable declared void.");
+  }
+  var = calloc(1, sizeof(Symbol));
+  var->next = globals; var->prev = NULL;
+  globals->prev = var; globals = var;
+  var->kind = SY_VAR;
+  var->name = tok->str;
+  var->len = tok->len;
+  var->ty = ty;
+  if(is_extern) {
+    var->scope_id = -1;
+  } else {
+    var->scope_id = 0;
+  }
+
+  var->id = ++last_symbol_id;
+
+  if (ty->kind == TYPE_STRUCT) {
+    var->struct_id = ty->id;
+  }
+
+  return var;
+}
+
+Symbol *FindLvarById(int id) {
+  return FindVarById(id, locals);
+}
+
+Symbol *FindGvarById(int id) {
+  return FindVarById(id, globals);
+}
+
 Func *FindFuncByName(char *name, int name_len) {
   Func *f;
-  for(f=funcs;f;f=f->next) {
-    if(f->len == name_len && !memcmp(f->name, name, f->len)) {
+  for(f=funcs;f->next;f=f->next) {
+    if(f->symbol->len == name_len && !memcmp(f->symbol->name, name, f->symbol->len)) {
       return f;
     }
   }
@@ -148,121 +250,27 @@ Func *FindFunc(Token *tok) {
   return FindFuncByName(tok->str, tok->len);
 }
 
-Func *AddFunc(Token *tok, Type *ty, int num_args) {
+Func *AddFunc(Token *tok, Type *ty, int num_args, int scope_id) {
   Func *f;
-  if(FindFunc(tok)) {
-    ErrorAt(tok->str, "Function with existing name is declared again.");
+  Symbol *s;
+  if(IsSymbolDefinedInScope(tok, globals, scope_id)) {
+    ErrorAt(tok->str, "Already declared symbol is used in function declaration.");
   }
+
+  s = calloc(1, sizeof(Symbol));
+  s->next = globals; s->prev = NULL;
+  globals->prev = s; globals = s;
+  s->kind = SY_FUNC;
+  s->name = tok->str;
+  s->len = tok->len;
+  s->ty = ty;
+  s->id = ++last_symbol_id;
+
   f = calloc(1, sizeof(Func));
+  f->symbol = s;
   f->next = funcs; funcs = f;
-  f->name = tok->str;
-  f->len = tok->len;
   f->num_args = num_args;
-  f->ty = ty;
   return f;
-}
-
-Var *FindLvar(Token *tok, bool is_recursive_search) {
-  Var *var;
-  for(var=locals;var;var=var->next) {
-    if(var->len == tok->len && !memcmp(var->name, tok->str, var->len)) {
-      if(is_recursive_search) {
-        if(IsParentOfScopeId(var->scope_id, current_scope))
-          return var;
-      } else {
-        if(current_scope->id == var->scope_id)
-          return var;
-      }
-    }
-  }
-  return NULL;
-}
-
-Var *AddLvar(Token *tok, Type *ty) {
-  Var *var;
-  if((var=FindLvar(tok, false))) {
-    ErrorAt(tok->str, "Local variable with existing name is declared again.");
-  } else if(ty->kind == TYPE_VOID) {
-    ErrorAt(tok->str, "Local variable declared void.");
-  }
-  var = calloc(1, sizeof(Var));
-  var->next = locals; var->prev = NULL;
-  locals->prev = var; locals = var; 
-  var->name = tok->str;
-  var->len = tok->len;
-  var->ty = ty;
-  var->scope_id = current_scope->id;
-  if (ty->kind == TYPE_ARRAY) {
-    var->id = var->next->id + ty->array_size;
-  } else {
-    var->id = var->next->id + 1;
-  }
-  
-  if (ty->kind == TYPE_STRUCT) {
-    var->struct_id = ty->id;
-  }
-
-  return var;
-}
-
-Var *FindGvar(Token *tok) {
-  Var *var;
-  for(var=globals;var;var=var->next) {
-    if(var->len == tok->len && !memcmp(var->name, tok->str, var->len)) {
-      return var;
-    }
-  }
-  return NULL;
-}
-
-Var *FindVarById(int id, Var *head) {
-  Var *var;
-  for(var=head;var;var=var->next) {
-    if(var->id == id) {
-      return var;
-    }
-  }
-  return NULL;
-}
-
-Var *AddGVar(Token *tok, Type *ty, bool is_extern) {
-  Var *var;
-  if((var=FindGvar(tok))) {
-    ErrorAt(tok->str, "Global variable with existing name is declared again.");
-  } else if(ty->kind == TYPE_VOID) {
-    ErrorAt(tok->str, "Global variable declared void.");
-  }
-  var = calloc(1, sizeof(Var));
-  var->next = globals; var->prev = NULL;
-  globals->prev = var; globals = var;
-  var->name = tok->str;
-  var->len = tok->len;
-  var->ty = ty;
-  if(is_extern) {
-    var->scope_id = -1;
-  } else {
-    var->scope_id = 0;
-  }
-
-  if (ty->kind == TYPE_ARRAY) {
-    var->id = var->next->id + ty->array_size;
-  } else {
-    var->id = var->next->id + 1;
-  }
-
-  if (ty->kind == TYPE_STRUCT) {
-    var->struct_id = ty->id;
-  }
-
-  return var;
-}
-
-Var *FindLvarById(int id) {
-  return FindVarById(id, locals);
-}
-
-Var *FindGvarById(int id) {
-  return FindVarById(id, globals);
 }
 
 Const_Strings *FindCstr(char *s, int l) {
@@ -282,7 +290,7 @@ Const_Strings *FindCstr(char *s, int l) {
   return new_cs;
 }
 
-Type *AddStruct(Token* tok, Var *members) {
+Type *AddStruct(Token* tok, Symbol *members) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TYPE_STRUCT;
   ty->id = ++last_struct_id;
@@ -330,8 +338,8 @@ Struct *FindStructById(int struct_id) {
   return s;
 }
 
-Var *FindStructMember(int struct_id, Token *member_token) {
-  Var *v;
+Symbol *FindStructMember(int struct_id, Token *member_token) {
+  Symbol *v;
   Struct *s = FindStructById(struct_id);
   for(v=s->members;
       v->next!=NULL &&
@@ -342,7 +350,7 @@ Var *FindStructMember(int struct_id, Token *member_token) {
 }
 
 bool IsGlobalVar(Token *tok) {
-  if(FindLvar(tok, true))
+  if(FindLvar(tok))
     return false;
   else if(FindGvar(tok))
     return true;
@@ -472,7 +480,7 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
 }
 
 Node *NewNodeArrow(Node *lhs, Token *member_token) {
-  Var *v;
+  Symbol *v;
   if(lhs->ty->kind != TYPE_PTR || lhs->ty->ptr_to->kind != TYPE_STRUCT) {
     ErrorAt(token->str, "Left hand of the arrow operater must be a pointer of the struct.");
   }
@@ -492,7 +500,7 @@ Node *NewNodeArrow(Node *lhs, Token *member_token) {
 }
 
 Node *NewNodeDot(Node *lhs, Token *member_token) {
-  Var *v;
+  Symbol *v;
   if(lhs->ty->kind != TYPE_STRUCT) {
     ErrorAt(token->str, "Left hand of the dot operater must be a struct");
   }
@@ -588,9 +596,9 @@ void AddVarInitializer(Node *init_node, Node *var_node) {
 
 Node *NewNodeLvar(Token *tok) {
   Node *node = calloc(1, sizeof(Node));
-  Var *var;
+  Symbol *var;
 
-  if(!(var=FindLvar(tok, true))) {
+  if(!(var=FindLvar(tok))) {
     ErrorAt(tok->str, "Undefined local variable.");
   }
 
@@ -604,7 +612,7 @@ Node *NewNodeLvar(Token *tok) {
 
 Node *NewNodeGvar(Token *tok) {
   Node *node = calloc(1, sizeof(Node));
-  Var *var;
+  Symbol *var;
   
   if(!(var=FindGvar(tok))) {
     ErrorAt(tok->str, "Undefined global variable.");
@@ -706,7 +714,7 @@ Node *NewNodeFuncCall(Token *tok, int num_args, Node *arg[]) {
   Func *f;
   if(!is_look_ahead && !(f = FindFunc(tok))) {
     WarnAt(tok->str, "Implicitly declared function.");
-    f = AddFunc(tok, InitIntType(), 0);
+    f = AddFunc(tok, InitIntType(), 0, current_scope->id);
   }
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_CALL;
@@ -718,7 +726,7 @@ Node *NewNodeFuncCall(Token *tok, int num_args, Node *arg[]) {
   node->val = tok->len;
   node->tok = tok;
   node->num_args = num_args;
-  node->ty = f->ty;
+  node->ty = f->symbol->ty;
   return node;
 }
 
@@ -756,7 +764,7 @@ void program() {
   Node *node;
   Type *ty, *tgt_ty;
 
-  globals = calloc(1, sizeof(Var)); 
+  globals = calloc(1, sizeof(Symbol)); 
   globals->next = NULL;
   globals->id = 0;
 
@@ -772,6 +780,7 @@ void program() {
   structs->id = 0;
   last_struct_id = 0;
 
+  last_symbol_id = 0;
   last_scope_id = 0;
   ctrl_depth = 0;
   is_look_ahead = 0;
@@ -851,7 +860,7 @@ void program() {
 Node *func(bool is_extern) {
   Token *type_tok, *ident_tok, *arg_tok;
   Type *ty, *tgt_ty;
-  Node *arg[6], *block_node;
+  Node *arg[6], *block_node = NULL;
   int num_args;
   if(!(ty = type())) {
     ErrorAt(token->str, "Invalid type in function declaration.");
@@ -869,7 +878,7 @@ Node *func(bool is_extern) {
   }
 
   // dummy lvar
-  locals = calloc(1, sizeof(Var)); 
+  locals = calloc(1, sizeof(Symbol)); 
   locals->next = NULL;
   locals->id = 0;
 
@@ -889,16 +898,14 @@ Node *func(bool is_extern) {
   }
 
   if(!is_look_ahead)
-    current_func=AddFunc(ident_tok, ty, num_args);
+    current_func=AddFunc(ident_tok, ty, num_args, current_scope->parent->id);
 
-  if(is_extern) {
-    LeaveScope();
-    return NewNodeFunc(ident_tok, ty, num_args, NULL);
-  } else{
+  if(!is_extern) {
     block_node = block();
-    LeaveScope();
-    return NewNodeFunc(ident_tok, ty, num_args, block_node);
   }
+  LeaveScope();
+
+  return NewNodeFunc(ident_tok, ty, num_args, block_node);
 }
 
 Node *block() {
@@ -940,7 +947,7 @@ Node *stmt() {
   if (tok = Consume("return")) {
     if(!current_func)
       ErrorAt(tok->str, "Returned outside of function.");
-    if (current_func->ty->kind == TYPE_VOID) {
+    if (current_func->symbol->ty->kind == TYPE_VOID) {
       if(Consume(";")) {
         node = NewNodeUnaryOp(ND_RETURN, NULL);
       } else {
@@ -1043,7 +1050,7 @@ Node *stmt() {
 
 Type *struct_() {
   Token *tok, *ident_tok;
-  Var *_locals;
+  Symbol *_locals;
   Node *node;
   Struct *s;
   Type *ty;
@@ -1058,7 +1065,7 @@ Type *struct_() {
     }
 
     _locals = locals;
-    locals = calloc(1, sizeof(Var));
+    locals = calloc(1, sizeof(Symbol));
     locals->next = NULL;
     locals->id = 0;
 
@@ -1376,13 +1383,8 @@ Node *postfix() {
     } else if(Consume("[")) {
       subscript = expr();
       Expect("]");
-      if(IsGlobalVar(node->tok)) {
-        node = NewNodeUnaryOp(ND_DEREF,
-          NewNodeBinOp(ND_ADD, node, subscript));
-      } else {
-        node = NewNodeUnaryOp(ND_DEREF,
-          NewNodeBinOp(ND_ADD, node, subscript));
-      }
+      node = NewNodeUnaryOp(ND_DEREF,
+        NewNodeBinOp(ND_ADD, node, subscript));
     } else if (Consume("++")) {
       node = NewNodeUnaryOp(ND_POSTINC, node);
     } else if (Consume("--")) {

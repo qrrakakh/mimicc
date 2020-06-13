@@ -40,7 +40,7 @@ int GetSizePtrTarget(Type *ty) {
 
 int GetStructMemberOffset(int struct_id, int member_id) {
   Struct *s;
-  Var *v;
+  Symbol *v;
   
   s = FindStructById(struct_id);
   for(v=s->members;v->next;v=v->next) {
@@ -94,7 +94,7 @@ void LoadVar(Type *ty) {
 }
 
 void GenLval(Node *node) {
-  Var *var;
+  Symbol *var;
   if (node->kind == ND_LVAR) {
     // save the address of lval
     var = FindLvarById(node->id);
@@ -122,7 +122,7 @@ void GenLval(Node *node) {
 void InitProgram() {
   // calculate size and offsets of each structs
   Struct *s = structs;
-  Var *v;
+  Symbol *v;
   int var_size, diff;
 
   while(s->next) {
@@ -151,12 +151,15 @@ void InitProgram() {
 }
 
 void GenerateFooter() {
-  Var *g;
+  Symbol *g;
   Const_Strings *c;
   // global variable
   printf("  .data\n");
   for(g=globals;g->next!=NULL;g=g->next) {
     if(g->scope_id==-1) { // extern
+      continue;
+    }
+    if(g->kind!=SY_VAR) { // not a variable
       continue;
     }
     printf("  .global %.*s\n", g->len, g->name);
@@ -180,7 +183,7 @@ void Generate(Node *node) {
   Node **stmt_list;
   Node *node_cur;
   Type *lhs_ty, *rhs_ty;
-  Var *var;
+  Symbol *var;
   
   switch(node->kind) {
     case ND_FUNC:
@@ -251,7 +254,7 @@ void Generate(Node *node) {
     case ND_RETURN:
     if(node->children[0])
       Generate(node->children[0]);
-    printf("  jmp .L.ret%.*s\n", current_func->len, current_func->name);
+    printf("  jmp .L.ret%.*s\n", current_func->symbol->len, current_func->symbol->name);
     return;
 
     case ND_BREAK:

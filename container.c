@@ -130,7 +130,7 @@ void PrintNodeTree() {
 }
 
 void PrintLvar() {
-  Var *l = locals;
+  Symbol *l = locals;
   while(l->next) {
     printf("%.*s, id: %d, type: %d\n", l->len, l->name, l->id, l->ty->kind);
     l=l->next;

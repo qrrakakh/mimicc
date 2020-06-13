@@ -36,11 +36,17 @@ struct Type {
   int id;
 };
 
-typedef struct Var Var;
+typedef enum {
+  SY_VAR,     // variable
+  SY_FUNC,    // function
+} SymbolKind;
 
-struct Var {  // defined variables
-  Var *next;
-  Var *prev;
+typedef struct Symbol Symbol;
+
+struct Symbol {  // defined variables
+  Symbol *next;
+  Symbol *prev;
+  SymbolKind kind;
   char *name;
   int len;
   int id;
@@ -54,10 +60,8 @@ typedef struct Func Func;
 
 struct Func {  // defined variables
   Func *next;
-  char *name;
-  int len;
+  Symbol *symbol;
   int num_args;
-  Type *ty;
 };
 
 typedef enum {  // Token definition
@@ -131,7 +135,7 @@ struct Node { // ABS Node struct
   int id;
   int num_args;
   char *name;
-  Var *lvars;
+  Symbol *lvars;
   Token *tok;
   Type *ty;
 };
@@ -151,7 +155,7 @@ struct Struct {
   int id;
   int size;
   int scope_id;
-  Var *members;
+  Symbol *members;
   Type *ty;
   Struct *next;
 };
@@ -162,11 +166,12 @@ Token *token;         // current token pointer
 Node **codes;
 char *file_path;     // Input program path
 char *user_input;     // Input program
-Var *locals;
-Var *globals;
+Symbol *locals;
+Symbol *globals;
 Func *funcs;
 Func *current_func;
 Struct *structs;
+int last_symbol_id;
 int last_struct_id;
 Node *current_switch;
 Const_Strings *cstrs;
@@ -194,8 +199,8 @@ Token *Tokenize(char *p);
 // ast-related functions
 
 // find if the global var is already defined
-Var *FindGvarById(int offset);
-Var *FindLvarById(int offset);
+Symbol *FindGvarById(int offset);
+Symbol *FindLvarById(int offset);
 Func *FindFuncByName(char *name, int name_len);
 
 // Struct
