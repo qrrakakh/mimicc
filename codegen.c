@@ -52,7 +52,7 @@ int GetStructMemberOffset(int struct_id, int member_id) {
 }
 
 // Code generator
-void StoreVar(Type *ty, bool eval) {
+void StoreVar(Type *ty, _Bool eval) {
   printf("  pop rdi\n");
   printf("  pop rax\n");
 
@@ -320,7 +320,7 @@ void Generate(Node *node) {
     LoadVar(node->children[0]->ty);
     printf("  add rax, %d\n", diff);
     printf("  push rax\n");
-    StoreVar(node->children[0]->ty, true);
+    StoreVar(node->children[0]->ty, 1);
     return;
 
     case ND_PREDEC:
@@ -333,7 +333,7 @@ void Generate(Node *node) {
     LoadVar(node->children[0]->ty);
     printf("  sub rax, %d\n", diff);
     printf("  push rax\n");
-    StoreVar(node->children[0]->ty, true);
+    StoreVar(node->children[0]->ty, 1);
     return;
 
     case ND_POSTINC:
@@ -347,7 +347,7 @@ void Generate(Node *node) {
     printf("  mov rsi, rax\n");
     printf("  add rax, %d\n", diff);
     printf("  push rax\n");
-    StoreVar(node->children[0]->ty, false);
+    StoreVar(node->children[0]->ty, 0);
     printf("  mov rax, rsi\n");
     return;
 
@@ -362,7 +362,7 @@ void Generate(Node *node) {
     printf("  mov rsi, rax\n");
     printf("  sub rax, %d\n", diff);
     printf("  push rax\n");
-    StoreVar(node->children[0]->ty, false);
+    StoreVar(node->children[0]->ty, 0);
     printf("  mov rax, rsi\n");
     return;
 
@@ -391,7 +391,7 @@ void Generate(Node *node) {
     printf("  push rax\n");
     Generate(node->children[1]);
     printf("  push rax\n");
-    StoreVar(node->ty, true);
+    StoreVar(node->ty, 1);
     return;
 
     case ND_WHILE:

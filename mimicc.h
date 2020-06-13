@@ -1,6 +1,5 @@
 #include <ctype.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -182,7 +181,7 @@ Scope *current_scope;
 extern char *builtin_type_names[];
 extern int num_builtin_types;
 extern TypeKind builtin_type_enum[];
-int is_look_ahead;
+_Bool is_look_ahead;
 
 //////////
 // utility functions

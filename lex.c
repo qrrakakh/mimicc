@@ -48,8 +48,7 @@ char *reserved_keywords[] = {
 };
 int num_reserved_keywords = 37;
 
-
-int IsNondigitChar(int p) {
+_Bool IsNondigitChar(int p) {
   if (('a' <= p && p <= 'z') || ('A' <= p && p <= 'Z') || p == '_') {
     return 1;
   } else {
@@ -57,7 +56,7 @@ int IsNondigitChar(int p) {
   }
 }
 
-int IsIdentChar(int p) {
+_Bool IsIdentChar(int p) {
   if (IsNondigitChar(p) || isdigit(p)) {
     return 1;
   } else {
@@ -65,7 +64,7 @@ int IsIdentChar(int p) {
   }
 }
 
-bool IsKeyword(char *p, char *keyword) {
+_Bool IsKeyword(char *p, char *keyword) {
   int len = strlen(keyword);
   return strncmp(p, keyword, len)==0 && p+len && (!IsIdentChar(*(p+len)));
 }

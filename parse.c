@@ -24,7 +24,7 @@ Type *InitArrayType(Type *_ty, size_t size) {
   return ty;
 }
 
-int IsArithmeticType(Type *ty) {
+_Bool IsArithmeticType(Type *ty) {
   return ty->kind < TYPE_ARITHMETIC_LIMIT;
 }
 
@@ -116,7 +116,7 @@ int ExpectNumber() {
   return val;
 }
 
-bool AtEOF() {
+_Bool AtEOF() {
   return token->kind == TK_EOF;
 }
 
@@ -124,11 +124,11 @@ bool AtEOF() {
 // ast-related functions
 
 // find if the local var is already defined
-bool IsParentOfScopeId(int id, Scope *scope) {
+_Bool IsParentOfScopeId(int id, Scope *scope) {
   if (scope->id==id) {
-    return true;
+    return 1;
   } else if(scope->parent==NULL || scope->parent->id == 0) {
-    return false;
+    return 0;
   } else {
     return IsParentOfScopeId(id, scope->parent);
   }
@@ -145,14 +145,14 @@ Symbol *FindLvar(Token *tok) {
   return NULL;
 }
 
-bool IsSymbolDefinedInScope(Token *tok, Symbol *head, int scope_id) {
+_Bool IsSymbolDefinedInScope(Token *tok, Symbol *head, int scope_id) {
   Symbol *s;
   for(s=head;s;s=s->next) {
     if(s->len == tok->len && !memcmp(s->name, tok->str, s->len) && s->scope_id == scope_id) {
-      return true;
+      return 1;
     }
   }
-  return false;
+  return 0;
 }
 
 Symbol *AddLvar(Token *tok, Type *ty) {
@@ -199,7 +199,7 @@ Symbol *FindVarById(int id, Symbol *head) {
   return NULL;
 }
 
-Symbol *AddGVar(Token *tok, Type *ty, bool is_extern) {
+Symbol *AddGVar(Token *tok, Type *ty, _Bool is_extern) {
   Symbol *symbol;
   if(IsSymbolDefinedInScope(tok, globals, current_scope->id)) {
     ErrorAt(tok->str, "Already declared symbol is used in global variable declaration.");
@@ -313,7 +313,7 @@ Type *AddStruct(Token* tok, Symbol *members) {
   return ty;
 }
 
-Struct *FindStruct(Token *tok, bool is_recursive_search) {
+Struct *FindStruct(Token *tok, _Bool is_recursive_search) {
   Struct *s = structs;
   while(s->next) {
     if (tok->len == s->len
@@ -349,11 +349,11 @@ Symbol *FindStructMember(int struct_id, Token *member_token) {
   return v;
 }
 
-bool IsGlobalVar(Token *tok) {
+_Bool IsGlobalVar(Token *tok) {
   if(FindLvar(tok))
-    return false;
+    return 0;
   else if(FindGvar(tok))
-    return true;
+    return 1;
   else
     ErrorAt(tok->str, "Undefined variable.");
 }
@@ -732,7 +732,7 @@ Node *NewNodeFuncCall(Token *tok, int num_args, Node *arg[]) {
 
 // Non-terminal symbols generator
 void program();
-Node *func(bool is_extern);
+Node *func(_Bool is_extern);
 Node *block();
 Node *stmt();
 Type *type();
@@ -819,7 +819,7 @@ void program() {
       if(Consume("(")) {
         token = _tok;
         is_look_ahead = 0;
-        node = func(true);
+        node = func(1);
         Expect(";");
       } else if(Consume("[") ||Consume(",") || Consume(";")) { // global variable
         token = _tok;
@@ -841,7 +841,7 @@ void program() {
       if(Consume("(")) { // func
         token = _tok;
         is_look_ahead = 0;
-        codes[i++] = func(false);
+        codes[i++] = func(0);
       } else if(Consume("[") ||Consume(",") || Consume(";")) { // global variable
         token = _tok;
         is_look_ahead = 0;
@@ -857,7 +857,7 @@ void program() {
   codes[i] = NULL;
 }
 
-Node *func(bool is_extern) {
+Node *func(_Bool is_extern) {
   Token *type_tok, *ident_tok, *arg_tok;
   Type *ty, *tgt_ty;
   Node *arg[6], *block_node = NULL;
@@ -1060,7 +1060,7 @@ Type *struct_() {
   ident_tok = ConsumeIdent();
 
   if(Consume("{")) {
-    if(ident_tok && FindStruct(ident_tok, false)) {
+    if(ident_tok && FindStruct(ident_tok, 0)) {
       ErrorAt(ident_tok->str, "struct is already declared.");
     }
 
@@ -1082,7 +1082,7 @@ Type *struct_() {
     return ty;
   } else if(!ident_tok) {
     ErrorAt(token->str, "identifier expected.");
-  } else if (!(s = FindStruct(ident_tok, true))) {
+  } else if (!(s = FindStruct(ident_tok, 1))) {
     ErrorAt(ident_tok->str, "struct is not declared.");
   } else {
     return s->ty;
@@ -1149,7 +1149,7 @@ Node *var_a(Type *_ty) {
 
   if(!is_look_ahead) {
     if (current_scope->id==0) {
-      AddGVar(ident_tok, ty, false);
+      AddGVar(ident_tok, ty, 0);
     } else {
       AddLvar(ident_tok, ty);
     }
@@ -1213,7 +1213,7 @@ void evar(Type *_ty) {
   }
 
   if(!is_look_ahead)
-    AddGVar(tok, ty, true);
+    AddGVar(tok, ty, 1);
 }
 
 Node *declare_a() {
