@@ -3,9 +3,9 @@
 //////////
 // tokenizer and helpers
 
-char *builtin_type_names[] = {"int", "char", "void"};
-TypeKind builtin_type_enum[] = {TYPE_INT, TYPE_CHAR, TYPE_VOID};
-int num_builtin_types = 3;
+char *builtin_type_names[] = {"int", "char", "void", "_Bool"};
+TypeKind builtin_type_enum[] = {TYPE_INT, TYPE_CHAR, TYPE_VOID, TYPE_BOOL};
+int num_builtin_types = 4;
 
 char *reserved_keywords[] = {
   "auto",

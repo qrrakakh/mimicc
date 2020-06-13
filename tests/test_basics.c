@@ -227,6 +227,15 @@ int Test143() {
   return (((e*4+d)*4+c)*4+b)*4+a; // 2 + 1*4 + 3*16 + 2*64 + 1*256 = 438
 }
 
+_Bool boolean_test_true() {
+  _Bool a = 1;
+  return a;
+}
+
+_Bool boolean_test_false() {
+  _Bool a = 0;
+  return a;
+}
 
 int run_basic_tests() {
   int expected;
@@ -594,6 +603,21 @@ int run_basic_tests() {
   if (actual != expected)
   {
     printf("Test143 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=1;
+  actual=boolean_test_true();
+  if (actual != expected)
+  {
+    printf("boolean_test_true faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=0;
+  actual=boolean_test_false();
+  if (actual != expected)
+  {
+    printf("boolean_test_false faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 

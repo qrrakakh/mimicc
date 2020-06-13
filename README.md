@@ -21,7 +21,7 @@ stmt           =  block
                   | "if" "(" expr ")" stmt ("else" stmt)?
                   | expr ";"
                   | "switch" "(" expr ")" stmt
-type           =  "int" | "char" | "void" | struct
+type           =  "int" | "char" | "void" | "_Bool" | struct
 struct         =  "struct" ident? ("{" (declare_a ";")* "}")?
 declare        =  type "*"* ident
 declare_a      =  type "*"* var_a (, "*"* var_a )*

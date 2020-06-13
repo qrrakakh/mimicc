@@ -11,7 +11,7 @@ const int STRUCT_ALL_ALIGN_BYTES = 4;
 
 // type helper function
 int GetTypeSize(Type *ty) {
-  if(ty->kind == TYPE_CHAR) {
+  if(ty->kind == TYPE_CHAR || ty->kind == TYPE_BOOL) {
     return 1;
   } else if(ty->kind == TYPE_INT) {
     return 4;
@@ -25,7 +25,7 @@ int GetTypeSize(Type *ty) {
 }
 
 int GetSizeVar(Type *ty) {
-  if(ty->kind == TYPE_CHAR) {
+  if(ty->kind == TYPE_CHAR || ty->kind == TYPE_BOOL) {
     return 1;
   } else if(ty->kind == TYPE_INT) {
     return 4;

@@ -19,6 +19,7 @@ struct Const_Strings {
 typedef struct Type Type;
 
 typedef enum {
+  TYPE_BOOL,
   TYPE_CHAR,
   TYPE_INT,
   TYPE_ARITHMETIC_LIMIT,
