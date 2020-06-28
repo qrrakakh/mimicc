@@ -2,20 +2,6 @@
 
 //////////
 // type-related functions
-Type *InitType(TypeKind t) {
-  Type *ty = calloc(1, sizeof(Type));
-  ty->kind = t;
-  ty->ptr_to = NULL;
-}
-
-Type *InitIntType() {
-  return InitType(TYPE_INT);
-}
-
-Type *InitCharType() {
-  return InitType(TYPE_CHAR);
-}
-
 Type *InitArrayType(Type *_ty, size_t size) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TYPE_ARRAY;
@@ -471,7 +457,7 @@ Node *NewNodeUnaryOp(NodeKind kind, Node *valnode) {
       node->ty = valnode->ty;
     break;
     case ND_SIZEOF:
-      node->ty = InitIntType();
+      node->ty = int_type;
       break;
     case ND_ADDR:
       node->ty = calloc(1, sizeof(Type));
@@ -530,7 +516,7 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
           "both types should be arithmetic or different type cannot be compared; lhs type: %d, rhs type: %d, current scope id: %d",
           lhs->ty->kind, rhs->ty->kind, current_scope->id);
       }
-      node->ty = InitIntType();
+      node->ty = int_type;
       break;
     case ND_ASSIGN:
       if (IsArithmeticType(lhs->ty) && IsArithmeticType(rhs->ty)) {
@@ -623,7 +609,7 @@ Node *NewNodeChar(Token *tok) {
   node->kind = ND_CHAR;
   node->val = *(tok->str);
   node->tok = tok;
-  node->ty = InitCharType();
+  node->ty = char_type;
   return node;
 }
 
@@ -633,7 +619,7 @@ Node *NewNodeStrings(Token *tok) {
   node->kind = ND_STRINGS;
   node->id = FindCstr(tok->str, tok->len)->id;
   node->tok = tok;
-  node->ty = InitArrayType(InitCharType(), tok->len);
+  node->ty = InitArrayType(char_type, tok->len);
   return node;
 }
 
@@ -642,7 +628,7 @@ Node *NewNodeNum(Token *tok, int val) {
   node->children = NULL;
   node->kind = ND_NUM;
   node->val = val;
-  node->ty = InitIntType();
+  node->ty = int_type;
   return node;
 }
 
@@ -705,7 +691,7 @@ Node *NewNodeLvar(Token *tok) {
   node->id = symbol->id;
   node->tok = tok;
   if (symbol->ty->kind == TYPE_ENUM)
-    node->ty = InitIntType();
+    node->ty = int_type;
   else 
     node->ty = symbol->ty;
   return node;
@@ -724,7 +710,7 @@ Node *NewNodeGvar(Token *tok) {
   node->id = symbol->id;
   node->tok = tok;
   if (symbol->ty->kind == TYPE_ENUM)
-    node->ty = InitIntType();
+    node->ty = int_type;
   else 
     node->ty = symbol->ty;
   return node;
@@ -743,7 +729,7 @@ Node *NewNodeConstInt(Token *tok) {
   node->tok = tok;
   node->val = symbol->val;
   if (symbol->ty->kind == TYPE_ENUM)
-    node->ty = InitIntType();
+    node->ty = int_type;
   else 
     node->ty = symbol->ty;
 
@@ -838,7 +824,7 @@ Node *NewNodeFuncCall(Token *tok, int num_args, Node *arg[]) {
   Func *f;
   if(!is_look_ahead && !(f = FindFunc(tok))) {
     WarnAt(tok->str, "Implicitly declared function.");
-    f = AddFunc(tok, InitIntType(), 0, current_scope->id);
+    f = AddFunc(tok, int_type, 0, current_scope->id);
   }
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_CALL;
@@ -1233,7 +1219,7 @@ Type *type() {
   }
   for(int i=0;i<num_builtin_types;++i) {
     if(strncmp(tok->str, builtin_type_names[i], tok->len)==0) {
-      ty = InitType(builtin_type_enum[i]);
+      ty = builtin_type_obj[i];
     }
   }
 

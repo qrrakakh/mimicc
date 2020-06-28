@@ -196,10 +196,16 @@ int label_index;
 int last_scope_id;
 int ctrl_depth;
 Scope *current_scope;
+_Bool is_look_ahead;
+
 extern char *builtin_type_names[];
 extern int num_builtin_types;
 extern TypeKind builtin_type_enum[];
-_Bool is_look_ahead;
+Type **builtin_type_obj;
+Type *int_type;
+Type *char_type;
+Type *void_type;
+Type *bool_type;
 
 //////////
 // utility functions

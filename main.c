@@ -11,6 +11,19 @@ void Compile(char *input) {
   // init label index
   label_index = 0;
 
+  // init built-in type
+  builtin_type_obj = calloc(num_builtin_types, sizeof(Type*));
+  for(int i=0;i<num_builtin_types;++i) {
+    builtin_type_obj[i] = calloc(1, sizeof(Type));
+    builtin_type_obj[i]->kind = builtin_type_enum[i];
+    builtin_type_obj[i]->ptr_to = NULL;
+  }
+
+  int_type = builtin_type_obj[0];
+  char_type = builtin_type_obj[1];
+  void_type = builtin_type_obj[2];
+  bool_type = builtin_type_obj[3];
+
   program();
   //PrintNodeTree();
 
