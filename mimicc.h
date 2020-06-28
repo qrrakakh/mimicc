@@ -22,6 +22,7 @@ typedef enum {
   TYPE_BOOL,
   TYPE_CHAR,
   TYPE_INT,
+  TYPE_ENUM,
   TYPE_ARITHMETIC_LIMIT,
   TYPE_VOID,
   TYPE_PTR,
@@ -37,8 +38,9 @@ struct Type {
 };
 
 typedef enum {
-  SY_VAR,     // variable
-  SY_FUNC,    // function
+  SY_VAR,       // variable
+  SY_FUNC,      // function
+  SY_ENUMCONST, // enum const
 } SymbolKind;
 
 typedef struct Symbol Symbol;
@@ -53,6 +55,7 @@ struct Symbol {  // defined variables
   int struct_id;
   int scope_id;
   int offset_bytes;
+  int val;
   Type *ty;
 };
 
@@ -160,6 +163,18 @@ struct Struct {
   Struct *next;
 };
 
+typedef struct Enum Enum;
+
+struct Enum {
+  char *name;
+  int len;
+  int id;
+  int scope_id;
+  Node *constants;
+  Type *ty;
+  Enum *next;
+};
+
 //////////
 // global variable definition
 Token *token;         // current token pointer
@@ -171,8 +186,10 @@ Symbol *globals;
 Func *funcs;
 Func *current_func;
 Struct *structs;
+Enum *enums;
 int last_symbol_id;
 int last_struct_id;
+int last_enum_id;
 Node *current_switch;
 Const_Strings *cstrs;
 int label_index;

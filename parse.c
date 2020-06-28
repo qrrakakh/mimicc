@@ -137,6 +137,7 @@ _Bool IsParentOfScopeId(int id, Scope *scope) {
 Symbol *FindLvar(Token *tok) {
   Symbol *symbol;
   for(symbol=locals;symbol;symbol=symbol->next) {
+    if(symbol->kind != SY_VAR) continue;
     if(symbol->len == tok->len && !memcmp(symbol->name, tok->str, symbol->len)) {
       if(IsParentOfScopeId(symbol->scope_id, current_scope))
         return symbol;
@@ -182,6 +183,7 @@ Symbol *AddLvar(Token *tok, Type *ty) {
 Symbol *FindGvar(Token *tok) {
   Symbol *symbol;
   for(symbol=globals;symbol;symbol=symbol->next) {
+    if(symbol->kind != SY_VAR) continue;
     if(symbol->len == tok->len && !memcmp(symbol->name, tok->str, symbol->len)) {
       return symbol;
     }
@@ -290,7 +292,7 @@ Const_Strings *FindCstr(char *s, int l) {
   return new_cs;
 }
 
-Type *AddStruct(Token* tok, Symbol *members) {
+Type *AddStruct(Token *tok, Symbol *members) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TYPE_STRUCT;
   ty->id = ++last_struct_id;
@@ -308,6 +310,54 @@ Type *AddStruct(Token* tok, Symbol *members) {
   } else {
     s->name = NULL;
     s->len = 0;
+  }
+
+  return ty;
+}
+
+Symbol *AddEnumConst(int id, int val, Token *tok) {
+  Type *ty = calloc(1, sizeof(Type));
+  ty->id = id;
+  ty->kind = TYPE_ENUM;
+  
+  Symbol *s = calloc(1, sizeof(Symbol));
+  if(current_scope->id==0) {
+    s->next = globals; s->prev = NULL;
+    globals->prev = s; globals = s;
+  }
+  else {
+    s->next = locals; s->prev = NULL;
+    locals->prev = s; locals = s;
+  }
+  s->kind = SY_ENUMCONST;
+  s->name = tok->str;
+  s->len = tok->len;
+  s->ty = ty;
+  s->id = ++last_symbol_id;
+  s->scope_id = current_scope->id;
+  s->struct_id = id;
+  s->val = val;
+
+  return s;
+}
+
+Type *AddEnum(Token *tok) {
+  Type *ty = calloc(1, sizeof(Type));
+  ty->kind = TYPE_ENUM;
+  ty->id = ++last_enum_id;
+
+  Enum *e = calloc(1, sizeof(Enum));
+  e->next = enums; enums = e;
+  e->id = ty->id;
+  e->ty = ty;
+  e->scope_id = current_scope->id;
+  
+  if(tok) {
+    e->name = tok->str;
+    e->len = tok->len;
+  } else {
+    e->name = NULL;
+    e->len = 0;
   }
 
   return ty;
@@ -349,13 +399,61 @@ Symbol *FindStructMember(int struct_id, Token *member_token) {
   return v;
 }
 
+Enum *FindEnum(Token *tok, _Bool is_recursive_search) {
+  Enum *e = enums;
+  while(e->next) {
+    if (tok->len == e->len
+        && strncmp(e->name, tok->str, e->len)==0) {
+      if(is_recursive_search && (IsParentOfScopeId(e->scope_id, current_scope) || e->scope_id==0)) {
+        return e;
+      } else if((!is_recursive_search) && e->scope_id==current_scope->id) {
+        return e;
+      }
+    }
+    e = e->next;
+  }
+  return NULL;
+}
+
+Enum *FindEnumById(int enum_id) {
+  Enum *e;
+  for(e=enums;e->next && e->id != enum_id;e=e->next) ;
+  if(!(e->next)) {
+    Error("Enum not found, %d.\n", enum_id);
+  }
+  return e;
+}
+
 _Bool IsGlobalVar(Token *tok) {
   if(FindLvar(tok))
     return 0;
-  else if(FindGvar(tok))
+  if(FindGvar(tok))
     return 1;
-  else
-    ErrorAt(tok->str, "Undefined variable.");
+  else 
+    return 0;
+}
+
+Symbol *FindConstSymbol(Token *tok) {
+  Symbol *symbol;
+
+  // find local variables
+  for(symbol=locals;symbol;symbol=symbol->next) {
+    if(symbol->kind != SY_ENUMCONST) continue;
+    if(symbol->len == tok->len && !memcmp(symbol->name, tok->str, symbol->len)) {
+      if(IsParentOfScopeId(symbol->scope_id, current_scope))
+        return symbol;
+    }
+  }
+
+  // find global variables
+  for(symbol=globals;symbol;symbol=symbol->next) {
+    if(symbol->kind != SY_ENUMCONST) continue;
+    if(symbol->len == tok->len && !memcmp(symbol->name, tok->str, symbol->len)) {
+      return symbol;
+    }
+  }
+
+  return NULL;
 }
 
 // Generate new node
@@ -606,7 +704,10 @@ Node *NewNodeLvar(Token *tok) {
   node->kind = ND_LVAR;
   node->id = symbol->id;
   node->tok = tok;
-  node->ty = symbol->ty;
+  if (symbol->ty->kind == TYPE_ENUM)
+    node->ty = InitIntType();
+  else 
+    node->ty = symbol->ty;
   return node;
 }
 
@@ -622,7 +723,30 @@ Node *NewNodeGvar(Token *tok) {
   node->kind = ND_GVAR;
   node->id = symbol->id;
   node->tok = tok;
-  node->ty = symbol->ty;
+  if (symbol->ty->kind == TYPE_ENUM)
+    node->ty = InitIntType();
+  else 
+    node->ty = symbol->ty;
+  return node;
+}
+
+Node *NewNodeConstInt(Token *tok) {
+  Node *node = calloc(1, sizeof(Node));
+  Symbol *symbol;
+  
+  if (!(symbol=FindConstSymbol(tok)))
+    return NULL;
+
+  node->children=NULL;
+  node->kind = ND_NUM;
+  node->id = symbol->id;
+  node->tok = tok;
+  node->val = symbol->val;
+  if (symbol->ty->kind == TYPE_ENUM)
+    node->ty = InitIntType();
+  else 
+    node->ty = symbol->ty;
+
   return node;
 }
 
@@ -737,6 +861,9 @@ Node *block();
 Node *stmt();
 Type *type();
 Type *struct_();
+Type *enum_();
+void enumerator_list(int id);
+int enumerator(int id, int my_val);
 Node *declare();
 Node *declare_a();
 void declare_e();
@@ -779,6 +906,11 @@ void program() {
   structs->next = NULL;
   structs->id = 0;
   last_struct_id = 0;
+
+  enums = calloc(1, sizeof(Enum));
+  enums->next = NULL;
+  enums->id = 0;
+  last_enum_id = 0;
 
   last_symbol_id = 0;
   last_scope_id = 0;
@@ -1094,6 +1226,8 @@ Type *type() {
   Token *tok;
   if(ty = struct_()) {
     return ty;
+  } else if(ty = enum_()) {
+    return ty;
   } else if(!(tok = ConsumeTypeStr())) {
     return NULL;
   }
@@ -1104,6 +1238,57 @@ Type *type() {
   }
 
   return ty;
+}
+
+Type *enum_() {
+  Token *tok, *ident_tok;
+  Enum *e;
+  Type *ty;
+  if (!(tok=Consume("enum"))) {
+    return NULL;
+  }
+  ident_tok = ConsumeIdent();
+
+  if(Consume("{")) {
+    if(ident_tok && FindEnum(ident_tok, 0)) {
+      ErrorAt(ident_tok->str, "enum is already declared.");
+    }
+
+    if (!is_look_ahead)
+      ty = AddEnum(ident_tok);
+
+    enumerator_list(ty->id);
+    Consume(",");
+    Expect("}");
+
+    return ty;
+  } else if(!ident_tok) {
+    ErrorAt(token->str, "identifier expected.");
+  } else if (!(e = FindEnum(ident_tok, 1))) {
+    ErrorAt(ident_tok->str, "enum is not declared.");
+  } else {
+    return e->ty;
+  }
+}
+
+void enumerator_list(int id) {
+  int val = enumerator(id, 0);
+  ++val;
+  while(Consume(",")) {
+    val = enumerator(id, val);
+    ++val;
+  }
+}
+
+int enumerator(int id, int my_val) {
+  Token *ident_token;
+  ident_token = ConsumeIdent();
+  if(Consume("=")) {
+    my_val = ExpectNumber();
+  }
+  if (!is_look_ahead)
+    AddEnumConst(id, my_val, ident_token);
+  return my_val;
 }
 
 Node *declare() {
@@ -1353,7 +1538,7 @@ Node *unary() {
 }
 
 Node *postfix() {
-  Node *node = primary(), *subscript, *arg[6];
+  Node *node = primary(), *_node, *subscript, *arg[6];
   size_t num_args;
 
   while(1) {
@@ -1377,6 +1562,8 @@ Node *postfix() {
     } else if(node->kind == ND_IDENT) {
       if(IsGlobalVar(node->tok)) {
         node = NewNodeGvar(node->tok);
+      } else if(_node = NewNodeConstInt(node->tok)) {
+        node = _node;
       } else {
         node = NewNodeLvar(node->tok);
       } 

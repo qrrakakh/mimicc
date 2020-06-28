@@ -13,7 +13,7 @@ const int STRUCT_ALL_ALIGN_BYTES = 4;
 int GetTypeSize(Type *ty) {
   if(ty->kind == TYPE_CHAR || ty->kind == TYPE_BOOL) {
     return 1;
-  } else if(ty->kind == TYPE_INT) {
+  } else if(ty->kind == TYPE_INT || ty->kind == TYPE_ENUM) {
     return 4;
   } else if(ty->kind == TYPE_PTR) {
     return 8;
@@ -27,7 +27,7 @@ int GetTypeSize(Type *ty) {
 int GetSizeVar(Type *ty) {
   if(ty->kind == TYPE_CHAR || ty->kind == TYPE_BOOL) {
     return 1;
-  } else if(ty->kind == TYPE_INT) {
+  } else if(ty->kind == TYPE_INT || ty->kind == TYPE_ENUM) {
     return 4;
   } else if(ty->kind == TYPE_PTR || ty->kind == TYPE_ARRAY) {
     return 8;
@@ -203,6 +203,10 @@ void Generate(Node *node) {
     num_lvar = 0;
     var = locals;
     while (var->next) {
+      if(var->kind !=SY_VAR) {
+        var = var->next;
+        continue;
+      }
       ++num_lvar;
       lvar_area_size += GetTypeSize(var->ty);
       var->offset_bytes = lvar_area_size;

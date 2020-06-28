@@ -7,6 +7,7 @@ extern int run_control_tests();
 extern int run_funccall_tests();
 extern int run_struct_tests();
 extern int run_sizeof_tests();
+extern int run_enum_tests();
 
 // main function
 int main() {
@@ -32,6 +33,9 @@ int main() {
     return 1;
   }
   if(run_sizeof_tests()!=0) {
+    return 1;
+  }
+  if(run_enum_tests()!=0) {
     return 1;
   }
 
