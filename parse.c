@@ -860,18 +860,25 @@ Node *NewNodeFuncCall(Token *tok, int num_args, Node *arg[]) {
 // Non-terminal symbols generator
 void program();
 Node *func(_Bool is_extern);
-Node *block();
-Node *stmt();
 Type *type();
 Type *struct_();
 Type *enum_();
 void enumerator_list(int id);
 int enumerator(int id, int my_val);
 Node *declare();
-Node *declare_a();
+Node *declaration();
 void declare_e();
 void evar(Type *_ty);
 Node *var_a(Type *_ty);
+
+// Statements
+Node *statement();
+Node *labeled_statement();
+Node *compound_statement();
+Node *expression_statement();
+Node *selection_statement();
+Node *iteration_statement();
+Node *jump_statement();
 
 // Expression
 Node *expression();
@@ -890,6 +897,7 @@ Node *or_expression();
 Node *logical_and_expression();
 Node *logical_or_expression();
 Node *conditional_expression();
+Node *constant_expression();
 
 // Primary expression / constants
 Node *primary_expression();
@@ -995,7 +1003,7 @@ void program() {
       } else if(Consume("[") ||Consume(",") || Consume(";")) { // global variable
         token = _tok;
         is_look_ahead = 0;
-        codes[i++] = declare_a();
+        codes[i++] = declaration();
         Expect(";");
       } else {
         token = _tok;
@@ -1051,14 +1059,75 @@ Node *func(_Bool is_extern) {
     current_func=AddFunc(ident_tok, ty, num_args, current_scope->parent->id);
 
   if(!is_extern) {
-    block_node = block();
+    block_node = compound_statement();
   }
   LeaveScope();
 
   return NewNodeFunc(ident_tok, ty, num_args, block_node);
 }
 
-Node *block() {
+Node *statement() {
+  // statement = labeled-statement
+  //           | compound-statement
+  //           | expression-statement
+  //           | selection-statement
+  //           | iteration-statement
+  //           | jump-statement
+
+  Node *node;
+
+  if (node=labeled_statement()) {
+    return node;
+  } else if (node=compound_statement()) {
+    return node;
+  } else if(node=selection_statement()) {
+    return node;
+  } else if(node=iteration_statement()) {
+    return node;
+  } else if(node=jump_statement()) {
+    return node;
+  } else {
+    return expression_statement();
+  }
+}
+
+Node *labeled_statement() {
+  // labeled-statement = identifier ":" statement  ## not implemented
+  //                     | "case" constant-expression ":" statement
+  //                     | "default" ":" statement
+
+  Token *tok;
+  Node *node;
+
+  if(tok = Consume("case")) {
+    if (current_switch==NULL)
+      ErrorAt(tok->str, "Invalid case use in non-switch statement.");
+    tok = token;
+    Node *cond = constant_expression();
+    Expect(":");
+    if (cond->kind != ND_NUM) {
+      ErrorAt(tok->str, "Non-number is invalid for case expression right now.");
+    }
+    int label_id = ++(current_switch->val);
+    node = NewNodeSwLabel(label_id);
+    Node *case_node = NewNodeSwCase(cond, current_switch->children[1], label_id);
+    current_switch->children[1] = case_node;
+    return node;
+  } else if(tok = Consume("default")) {
+    Expect(":");
+    node = NewNodeSwLabel(0);
+    current_switch->num_args = 0;
+    return node;
+  } else {
+    return NULL;
+  }
+}
+
+Node *compound_statement() {
+  // compound-statement = "{" block-item-list? "}"
+  // block-item-list = block-item-list? block-item
+  // block-item = declaration | statement
+
   if(Consume("{")) {
     Node **stmt_list;
     int alloc_unit = 10;
@@ -1077,7 +1146,14 @@ Node *block() {
         }
         stmt_list = _stmt_list;
       }
-      stmt_list[cur++] = stmt();
+
+      if(stmt_list[cur] = declaration()) { // declaration
+       Expect(";");
+       ++cur;
+       continue;
+      } else { // statement
+        stmt_list[cur++] = statement();
+      }
     }
     
     LeaveScope();
@@ -1090,9 +1166,96 @@ Node *block() {
   }
 }
 
-Node *stmt() {
-  Node *node;
+Node *expression_statement() {
+  // expression-statement = expression? ";"
+
+  Node *node = expression();
+  Expect(";");
+  return node;
+}
+
+Node *selection_statement() {
+  // selection-statement = "if" "(" expression ")" statement ("else" statement)?
+  //                       | "switch" "(" expression ")" statement
+
   Token *tok;
+  Node *node;
+
+  if(tok = Consume("if")) {
+    Expect("(");
+    Node *cond = expression();
+    Expect(")");
+    Node *stmt1 = statement();
+    Node *stmt2 = NULL;
+    if (tok = Consume("else")) {
+      stmt2 = statement();
+    }
+    return NewNodeIf(cond, stmt1, stmt2);
+  } else if(tok = Consume("switch")) {
+    Expect("(");
+    Node *cond = expression();
+    Expect(")");
+    Node *sw = current_switch;
+    node = NewNodeSwitch(cond);
+    current_switch = node;
+    ++ctrl_depth;
+    Node *stmt = statement();
+    --ctrl_depth;
+    node->children[2] = stmt;
+    current_switch = sw;
+    return node;
+  } else {
+    return NULL;
+  }
+}
+
+Node *iteration_statement() {
+  // iteration-statement = "while" "(" expression ")" statement
+  //                       | "do" statement "while" "(" expression ")" ";" ## not implemented
+  //                       | "for" "(" expression? ";" expression? ";" expression? ")" statement
+  //                       | "for" "(" declaration expression? ";" expression? ")" statement
+
+  Token *tok;
+  Node *node;
+
+  if(tok = Consume("while")) {
+    Expect("(");
+    Node *cond = expression();
+    Expect(")");
+    ++ctrl_depth;
+    node = NewNodeBinOp(ND_WHILE, cond, statement());
+    --ctrl_depth;
+    return node;
+  } else if(tok = Consume("for")) {
+    EnterScope();
+    Expect("(");
+    Node *init;
+    if(!(init=declaration())) {
+      init = expression();
+    }
+    Expect(";");
+    Node *cond = expression();
+    Expect(";");
+    Node *next = expression();
+    Expect(")");
+    ++ctrl_depth;
+    node = NewNodeFor(init, cond, next, statement());
+    --ctrl_depth;
+    LeaveScope();
+    return node;
+  } else {
+    return NULL;
+  }
+}
+
+Node *jump_statement() {
+  // jump-statement = "goto" identifier ";" ## not implemented
+  //                 | "continue" ";"
+  //                 | "break" ";"
+  //                 | "return" expression? ";"
+
+  Token *tok;
+  Node *node;
 
   if (tok = Consume("return")) {
     if(!current_func)
@@ -1113,89 +1276,20 @@ Node *stmt() {
         Expect(";");
       }
     }
-    
+    return node;
   } else if(tok=Consume("break")) {
     Expect(";");
     if(ctrl_depth < 1)
       ErrorAt(tok->str, "break is used in non-control syntax.");
-    node = NewNodeControl(ND_BREAK);
+    return NewNodeControl(ND_BREAK);
   } else if(tok=Consume("continue")) {
     Expect(";");
     if(ctrl_depth < 1)
       ErrorAt(tok->str, "continue is used in non-control syntax.");
-    node = NewNodeControl(ND_CONTINUE);
-  } else if(node = declare_a()) {
-    Expect(";");
-  } else if (node = block()) {
-    return node;
-  } else if(tok = Consume("while")) {
-    Expect("(");
-    Node *cond = expression();
-    Expect(")");
-    ++ctrl_depth;
-    node = NewNodeBinOp(ND_WHILE, cond, stmt());
-    --ctrl_depth;
-  } else if(tok = Consume("for")) {
-    EnterScope();
-    Expect("(");
-    Node *init;
-    if(!(init=declare_a())) {
-      init = expression();
-    }
-    Expect(";");
-    Node *cond = expression();
-    Expect(";");
-    Node *next = expression();
-    Expect(")");
-    ++ctrl_depth;
-    node = NewNodeFor(init, cond, next, stmt());
-    --ctrl_depth;
-    LeaveScope();
-  } else if(tok = Consume("if")) {
-    Expect("(");
-    Node *cond = expression();
-    Expect(")");
-    Node *stmt1 = stmt();
-    Node *stmt2 = NULL;
-    if (tok = Consume("else")) {
-      stmt2 = stmt();
-    }
-    node = NewNodeIf(cond, stmt1, stmt2);
-  } else if(tok = Consume("switch")) {
-    Expect("(");
-    Node *cond = expression();
-    Expect(")");
-    Node *sw = current_switch;
-    node = NewNodeSwitch(cond);
-    current_switch = node;
-    ++ctrl_depth;
-    Node *statement = stmt();
-    --ctrl_depth;
-    node->children[2] = statement;
-    current_switch = sw;
-  } else if(tok = Consume("case")) {
-    if (current_switch==NULL)
-      ErrorAt(tok->str, "Invalid case use in non-switch statement.");
-    tok = token;
-    Node *cond = expression();
-    Expect(":");
-    if (cond->kind != ND_NUM) {
-      ErrorAt(tok->str, "Non-number is invalid for case expression right now.");
-    }
-    int label_id = ++(current_switch->val);
-    node = NewNodeSwLabel(label_id);
-    Node *case_node = NewNodeSwCase(cond, current_switch->children[1], label_id);
-    current_switch->children[1] = case_node;
-  } else if(tok = Consume("default")) {
-    Expect(":");
-    node = NewNodeSwLabel(0);
-    current_switch->num_args = 0;
-  }   else {
-    node = expression();
-    Expect(";");
+    return NewNodeControl(ND_CONTINUE);
+  } else {
+    return NULL;
   }
-  
-  return node;
 }
 
 Type *struct_() {
@@ -1221,7 +1315,7 @@ Type *struct_() {
 
     EnterScope();
     while(!Consume("}")) {
-      node = declare_a();
+      node = declaration();
       Expect(";");
     }
     LeaveScope();
@@ -1419,7 +1513,7 @@ void evar(Type *_ty) {
     AddGVar(tok, ty, 1);
 }
 
-Node *declare_a() {
+Node *declaration() {
   Token *tok;
   Type *ty, *tgt_ty, *orig_ty;
   Node *node;
@@ -1529,6 +1623,11 @@ Node * conditional_expression() {
   // conditional-expression = logical-OR-expression
   //                          | logical-OR-expression "?" expression ":" conditional-expression ## not implemented  
   return logical_or_expression();
+}
+
+Node * constant_expression() {
+  // constant-expression = conditional-expression
+  return conditional_expression();
 }
 
 

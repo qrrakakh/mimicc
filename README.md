@@ -6,31 +6,50 @@ https://www.sigbus.info/compilerbook
 
 ## BNF
 ```
-program         =  ((func block | declare_a ";" |  "extern" declare_e "; | "extern" func ";"))*
+program         =  ((func compound_statement | declaration ";" |  "extern" declare_e "; | "extern" func ";"))*
 func            =  type  "*"* ident ("(" ( | declare ("," declare){0,5}) ")")
-block           =  "{ stmt* "}"
-stmt            =  block
-                   | "case" expr ":"
-                   | "default" ":"
-                   | "continue" ";"
-                   | "break" ";"
-                   | declare_a ";"
-                   | "return" (expr)? ";"
-                   | "while" "(" expr ")" stmt
-                   | "for" "(" expr | declare_a ";" expr ";" expr ")" stmt
-                   | "if" "(" expr ")" stmt ("else" stmt)?
-                   | expr ";"
-                   | "switch" "(" expr ")" stmt
 type            =  "int" | "char" | "void" | "_Bool" | struct | enum
 enum            =  "enum" ident? ("{" enumerator-list "}" ","? )?
 enumerator-list =  (enumerator-list ",")? enumerator
 enumerator      =  ident ("=" num)?
-struct          =  "struct" ident? ("{" (declare_a ";")* "}")?
+struct          =  "struct" ident? ("{" (declaration ";")* "}")?
 declare         =  type "*"* ident
-declare_a       =  type "*"* var_a (, "*"* var_a )*
+declaration     =  type "*"* var_a (, "*"* var_a )*
 declare_e       =  type "*"* evar (, "*"* evar )*
 evar            =  ident ("[" num "]")?
 var_a           =  ident ("[" num "]")? ("=" assign)?
+
+------------------------------
+
+statement = labeled-statement
+            | compound-statement
+            | expression-statement
+            | selection-statement
+            | iteration-statement
+            | jump-statement
+
+labeled-statement = identifier ":" statement  ## not implemented
+                    | "case" constant-expression ":" statement
+                    | "default" ":" statement
+
+compound-statement = "{" block-item-list? "}"
+block-item-list = block-item-list? block-item
+block-item = declaration | statement
+
+expression-statement = expression? ";"
+
+selection-statement = "if" "(" expression ")" statement ("else" statement)?
+                      | "switch" "(" expression ")" statement
+
+iteration-statement = "while" "(" expression ")" statement
+                      | "do" statement "while" "(" expression ")" ";" ## not implemented
+                      | "for" "(" expression? ";" expression? ";" expression? ")" statement
+                      | "for" "(" declaration expression? ";" expression? ")" statement
+
+jump-statement = "goto" identifier ";" ## not implemented
+                 | "continue" ";"
+                 | "break" ";"
+                 | "return" expression? ";"
 
 ------------------------------
 
@@ -103,6 +122,7 @@ logical-OR-expression = logical-AND-expression
 conditional-expression = logical-OR-expression
                          | logical-OR-expression "?" expression ":" conditional-expression ## not implemented
 
+constant-expression = conditional-expression
 ------------------------------
 
 primary-expression = identifier
