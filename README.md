@@ -31,9 +31,6 @@ declare_a       =  type "*"* var_a (, "*"* var_a )*
 declare_e       =  type "*"* evar (, "*"* evar )*
 evar            =  ident ("[" num "]")?
 var_a           =  ident ("[" num "]")? ("=" assign)?
-const           = num
-                   | "'" char "'"
-string          =  "\"" char* "\""
 
 ------------------------------
 
@@ -105,6 +102,26 @@ logical-OR-expression = logical-AND-expression
 
 conditional-expression = logical-OR-expression
                          | logical-OR-expression "?" expression ":" conditional-expression ## not implemented
+
+------------------------------
+
+primary-expression = identifier
+                     | constant
+                     | string-literal
+                     | "(" expression ")"
+constant = integer-constant
+           | floating-constant ## not implemented
+           | enumeration-constant
+           | character-constant
+integer-constant = decimal-constant ## currently restricted to int integer
+enumeration-constant = identifier
+character-constant = ''' c-char-sequence '''
+                     | 'L'' c-char-sequence ''' ## not implemented
+c-char-sequence = c-char-sequence? c-char
+string-literal = '"' s-char-sequence? '"'
+                 | 'L'' s-char-sequence? ''' ## not implemented
+s-char-sequence = s-char-sequence? c-char  ## currently resticted that c-char is equal to s-char
+
 ```
 
 ## Known issues

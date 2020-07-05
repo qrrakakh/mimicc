@@ -86,6 +86,14 @@ Token *ConsumeStrings() {
   return tok;
 }
 
+Token *ConsumeNumber() {
+  if(token->kind != TK_NUM)
+    return NULL;
+  Token *tok = token;
+  token = token->next;
+  return tok;
+}
+
 void Expect(char *op) {
   if(token->kind != TK_RESERVED ||
      strlen(op) != token-> len ||
@@ -725,12 +733,13 @@ Node *NewNodeGvar(Token *tok) {
 }
 
 Node *NewNodeConstInt(Token *tok) {
-  Node *node = calloc(1, sizeof(Node));
+  Node *node;
   Symbol *symbol;
   
   if (!(symbol=FindConstSymbol(tok)))
     return NULL;
 
+  node = calloc(1, sizeof(Node));
   node->children=NULL;
   node->kind = ND_NUM;
   node->id = symbol->id;
@@ -863,26 +872,33 @@ Node *declare_a();
 void declare_e();
 void evar(Type *_ty);
 Node *var_a(Type *_ty);
+
+// Expression
 Node *expression();
 Node *assignment_expression();
+Node *unary_expression();
+Node *cast_expression();
+Node *postfix_expression();
+Node *additive_expression();
+Node *multiplicative_expression();
+Node *shift_expression();
+Node *relational_expression();
 Node *equality_expression();
 Node *and_expression();
 Node *xor_expression();
 Node *or_expression();
 Node *logical_and_expression();
 Node *logical_or_expression();
-Node * conditional_expression();
-Node *shift_expression();
-Node *relational_expression();
-Node *additive_expression();
-Node *multiplicative_expression();
-Node *unary_expression();
-Node *cast_expression();
-Node *primary_expression();
-Node *postfix_expression();
-Node *const_();
-Node *string();
+Node *conditional_expression();
 
+// Primary expression / constants
+Node *primary_expression();
+Node *identifier();
+Node *constant();
+Node *integer_constant();
+Node *enumeration_constant();
+Node *character_constant();
+Node *string_literal();
 
 void program() {
   int i=0;
@@ -1662,8 +1678,6 @@ Node *postfix_expression() {
     } else if(node->kind == ND_IDENT) {
       if(IsGlobalVar(node->tok)) {
         node = NewNodeGvar(node->tok);
-      } else if(_node = NewNodeConstInt(node->tok)) {
-        node = _node;
       } else {
         node = NewNodeLvar(node->tok);
       } 
@@ -1688,33 +1702,100 @@ Node *postfix_expression() {
 }
 
 Node *primary_expression() {
-  Node *node;
-  Token *tok;
+  // primary-expression = identifier
+  //                    | constant
+  //                    | string-literal
+  //                    | "(" expression ")"
 
+  Node *node;
   // if the next token is '(' then it should be expanded as '(' expr ')'
-  if (Consume("(")) {
+  if (Consume("(")) { // "(" expression ")"
     node = expression();
     Expect(")");
     return node;
-  } else if(tok=ConsumeIdent()) {
+  } else if(node=constant()) { // constant
+  // evaluate earlier than identifier so that enum const must be parsed as a constant.
+    return node;
+  } else if(node=string_literal()) { // string-literal
+    return node;
+  } else {  // identifier
+    return identifier();
+  }
+}
+
+Node *identifier() {
+  Token *tok;
+  if (tok=ConsumeIdent()) {
     return NewNodeIdent(tok);
-  } else if(node=string()) {
+  } else {
+    return NULL;
+  }
+}
+
+Node *constant() {
+  // constant = integer-constant
+  //           | floating-constant ## not implemented
+  //           | enumeration-constant
+  //           | character-constant
+  
+  Node *node;
+  if (node=integer_constant()) { // integer_constant
+    return node;
+  } else if(node=enumeration_constant()) {
+    return node;
+  } else { // character-constant
+    return character_constant();
+  }
+}
+
+Node *integer_constant() {
+  // integer-constant = decimal-constant ## currently restricted to int integer
+
+  Token *tok = ConsumeNumber();
+  if(tok) {
+    return NewNodeNum(tok, tok->val);
+  } else {
+    return NULL;
+  }
+}
+
+Node *enumeration_constant() {
+  // enumeration-constant = identifier
+  Token *tok, *_tok;
+  Node *node;
+  _tok = token;
+  if(!(tok=ConsumeIdent())) {
+    return NULL;
+  } else if(node = NewNodeConstInt(tok)) {
     return node;
   } else {
-    return const_();
+    token = _tok;
+    return NULL;
   }
 }
 
-Node *const_() {
-  Token *tok;
-  if (tok=ConsumeChar()) {
+Node *character_constant() {
+  // character-constant = ''' c-char-sequence '''
+  //                     | 'L'' c-char-sequence ''' ## not implemented
+  // c-char-sequence = c-char-sequence? c-char
+
+  // currently c-char-sequence is parsed by lexer.
+
+  Token *tok = ConsumeChar();
+  if(tok) {
     return NewNodeChar(tok);
-  } else { // else should be a number.
-    return NewNodeNum(token, ExpectNumber());
+  } else {
+    return NULL;
   }
 }
 
-Node *string() {
+Node *string_literal() {
+  // string-literal = '"' s-char-sequence? '"'
+  //                 | 'L'' s-char-sequence? ''' ## not implemented
+  // s-char-sequence = s-char-sequence? c-char  ## currently resticted that c-char is equal to s-char
+
+  // currently s-char-sequence is parsed by lexer.
+
   Token *tok;
   if (tok = ConsumeStrings()) {
     return NewNodeStrings(tok);
