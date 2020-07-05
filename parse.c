@@ -224,6 +224,14 @@ Symbol *FindGvarById(int id) {
   return FindVarById(id, globals);
 }
 
+void RequiresLval(Node *node, char *s) {
+  if (!(node->kind == ND_LVAR || node->kind == ND_GVAR
+        || node->kind == ND_DEREF
+        || node->kind == ND_ARROW || node->kind == ND_DOT)) {
+    ErrorAt(s, "lvalue is expected, the kind is %d.", node->kind);
+  }
+}
+
 Func *FindFuncByName(char *name, int name_len) {
   Func *f;
   for(f=funcs;f->next;f=f->next) {
@@ -855,15 +863,23 @@ Node *declare_a();
 void declare_e();
 void evar(Type *_ty);
 Node *var_a(Type *_ty);
-Node *expr();
-Node *assign();
-Node *equality();
-Node *relational();
-Node *add();
-Node *mul();
-Node *unary();
-Node *primary();
-Node *postfix();
+Node *expression();
+Node *assignment_expression();
+Node *equality_expression();
+Node *and_expression();
+Node *xor_expression();
+Node *or_expression();
+Node *logical_and_expression();
+Node *logical_or_expression();
+Node * conditional_expression();
+Node *shift_expression();
+Node *relational_expression();
+Node *additive_expression();
+Node *multiplicative_expression();
+Node *unary_expression();
+Node *cast_expression();
+Node *primary_expression();
+Node *postfix_expression();
 Node *const_();
 Node *string();
 
@@ -1070,14 +1086,14 @@ Node *stmt() {
         node = NewNodeUnaryOp(ND_RETURN, NULL);
       } else {
         WarnAt(tok->str, "Returned with a value in void function.");
-        node = NewNodeUnaryOp(ND_RETURN, expr());
+        node = NewNodeUnaryOp(ND_RETURN, expression());
         Expect(";");
       }
     } else {
       if(tok = Consume(";")) {
         ErrorAt(tok->str, "Returned without a value in non-void function.");
       } else {
-        node = NewNodeUnaryOp(ND_RETURN, expr());
+        node = NewNodeUnaryOp(ND_RETURN, expression());
         Expect(";");
       }
     }
@@ -1098,7 +1114,7 @@ Node *stmt() {
     return node;
   } else if(tok = Consume("while")) {
     Expect("(");
-    Node *cond = expr();
+    Node *cond = expression();
     Expect(")");
     ++ctrl_depth;
     node = NewNodeBinOp(ND_WHILE, cond, stmt());
@@ -1108,12 +1124,12 @@ Node *stmt() {
     Expect("(");
     Node *init;
     if(!(init=declare_a())) {
-      init = expr();
+      init = expression();
     }
     Expect(";");
-    Node *cond = expr();
+    Node *cond = expression();
     Expect(";");
-    Node *next = expr();
+    Node *next = expression();
     Expect(")");
     ++ctrl_depth;
     node = NewNodeFor(init, cond, next, stmt());
@@ -1121,7 +1137,7 @@ Node *stmt() {
     LeaveScope();
   } else if(tok = Consume("if")) {
     Expect("(");
-    Node *cond = expr();
+    Node *cond = expression();
     Expect(")");
     Node *stmt1 = stmt();
     Node *stmt2 = NULL;
@@ -1131,7 +1147,7 @@ Node *stmt() {
     node = NewNodeIf(cond, stmt1, stmt2);
   } else if(tok = Consume("switch")) {
     Expect("(");
-    Node *cond = expr();
+    Node *cond = expression();
     Expect(")");
     Node *sw = current_switch;
     node = NewNodeSwitch(cond);
@@ -1145,7 +1161,7 @@ Node *stmt() {
     if (current_switch==NULL)
       ErrorAt(tok->str, "Invalid case use in non-switch statement.");
     tok = token;
-    Node *cond = expr();
+    Node *cond = expression();
     Expect(":");
     if (cond->kind != ND_NUM) {
       ErrorAt(tok->str, "Non-number is invalid for case expression right now.");
@@ -1159,7 +1175,7 @@ Node *stmt() {
     node = NewNodeSwLabel(0);
     current_switch->num_args = 0;
   }   else {
-    node = expr();
+    node = expression();
     Expect(";");
   }
   
@@ -1327,7 +1343,7 @@ Node *var_a(Type *_ty) {
   }
 
   if (Consume("=")) {
-    assign_node = NewNodeBinOp(ND_ASSIGN, NewNodeLvar(ident_tok), assign());
+    assign_node = NewNodeBinOp(ND_ASSIGN, NewNodeLvar(ident_tok), assignment_expression());
   } else {
     assign_node = NULL;
   }
@@ -1419,125 +1435,223 @@ Node *declare_a() {
   return node;
 }
 
-Node *expr() {
-  return assign();
+Node *expression() {
+  // expression = assignment-expression
+  //              | expression "," assignment-expression     <<<<< not implemented
+  return assignment_expression();
 }
 
-Node *assign() {
-  Node *node = equality();
+Node *assignment_expression() {
+  // assignment-expression = conditional-expression
+  //                       | unary-expression assignment-operator assignment-expression
+  // assignment-operator = "=" | "*=" | "/=" | "%=" | "+=" | "-="
+  //                     | "<<=" | ">>=" | "&=" | "^=" | "|=" ## not implemented
+  Token *tok = token;
+  Node *node;
+  
+  // Node is evaluated as conditional_expression once.
+  // but it is required to be unary-expression syntactically; more specifically to be lvalue
+  // if assignment-operator appears.
+  node = conditional_expression();
+
   for(;;) {
     if(Consume("=")) {
-      node = NewNodeBinOp(ND_ASSIGN, node, assign());
+      RequiresLval(node, tok->str);
+      node = NewNodeBinOp(ND_ASSIGN, node, assignment_expression());
     } else if(Consume("+=")) {
-      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_ADD, node, assign()));
+      RequiresLval(node, tok->str);
+      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_ADD, node, assignment_expression()));
     } else if(Consume("-=")) {
-      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_SUB, node, assign()));
+      RequiresLval(node, tok->str);
+      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_SUB, node, assignment_expression()));
     } else if(Consume("*=")) {
-      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_MUL, node, assign()));
+      RequiresLval(node, tok->str);
+      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_MUL, node, assignment_expression()));
     } else if(Consume("/=")) {
-      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_DIV, node, assign()));
+      RequiresLval(node, tok->str);
+      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_DIV, node, assignment_expression()));
     } else if(Consume("\%=")) {
-      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_MOD, node, assign()));
-    } else {
+      RequiresLval(node, tok->str);
+      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_MOD, node, assignment_expression()));
+    } else {  // conditional-expression (including unary-expression without assignment)
       return node;
     }
   }
 }
 
-Node *equality() {
-  Node *node = relational();
+Node *and_expression() {
+  // AND-expression = equality-expression
+  //                | AND-expression "&" equality-expression ## not implemented
+  return equality_expression();
+}
+
+Node *xor_expression() {
+  // XOR-expression = AND-expression
+  //                  | XOR-expression "^" AND-expression ## not implemented
+  return and_expression();
+}
+
+Node *or_expression() {
+  // OR-expression = XOR-expression
+  //                 | OR-expression "|" XOR-expression ## not implemented
+  return xor_expression();
+}
+
+Node *logical_and_expression() {
+  // logical-AND-expression = OR-expression
+  //                          | logical-AND-expression "&&" XOR-expression ## not implemented
+  return or_expression();
+}
+
+Node *logical_or_expression() {
+  // logical-OR-expression = logical-AND-expression
+  //                         | logical-OR-expression "||" logical-AND-expression ## not implemented
+  return logical_and_expression();
+}
+
+Node * conditional_expression() {
+  // conditional-expression = logical-OR-expression
+  //                          | logical-OR-expression "?" expression ":" conditional-expression ## not implemented  
+  return logical_or_expression();
+}
+
+
+Node *equality_expression() {
+  // equality-expression = relational-expression
+  //                     | equality-expression "==" relational-expression
+  //                     | equality-expression "!=" relational-expression
+  Node *node = relational_expression();
 
   for(;;) {
     if (Consume("=="))
-      node = NewNodeBinOp(ND_EQUIV, node, relational());
+      node = NewNodeBinOp(ND_EQUIV, node, relational_expression());
     else if (Consume("!="))
-      node = NewNodeBinOp(ND_INEQUIV, node, relational());
+      node = NewNodeBinOp(ND_INEQUIV, node, relational_expression());
     else
       return node;
   }
 }
 
-Node *relational() {
-  Node *node = add();
+Node *shift_expression() {
+  // shift-expression = additive-expression
+  //                    | shift-expression "<<" additive-expression ## not implemented
+  //                    | shift-expression ">>" additive-expression ## not implemented  
+  return additive_expression();
+}
+
+Node *relational_expression() {
+  // relational-expression = shift-expression
+  //                       | relational-expression "<" shift-expression
+  //                       | relational-expression ">" shift-expression
+  //                       | relational-expression "<=" shift-expression
+  //                       | relational-expression ">=" shift-expression
+  Node *node = shift_expression();
 
   for(;;) {
     if (Consume("<="))
-      node = NewNodeBinOp(ND_LE, node, add());
+      node = NewNodeBinOp(ND_LE, node, additive_expression());
     else if (Consume(">="))
-      node = NewNodeBinOp(ND_LE, add(), node);
+      node = NewNodeBinOp(ND_LE, additive_expression(), node);
     else if (Consume("<"))
-      node = NewNodeBinOp(ND_LT, node, add());
+      node = NewNodeBinOp(ND_LT, node, additive_expression());
     else if (Consume(">"))
-      node = NewNodeBinOp(ND_LT, add(), node);
+      node = NewNodeBinOp(ND_LT, additive_expression(), node);
     else
       return node;
   }
 }
 
-Node *add() {
-  Node *node = mul();
+Node *additive_expression() {
+  // additive-expression = multiplicative-expression
+  //                     | additive-expression "+" multiplicative-expression
+  //                     | additive-expression "-" multiplicative-expression
+  Node *node = multiplicative_expression();
 
   for(;;) {
     if (Consume("+"))
-      node = NewNodeBinOp(ND_ADD, node, mul());
+      node = NewNodeBinOp(ND_ADD, node, multiplicative_expression());
     else if (Consume("-"))
-      node = NewNodeBinOp(ND_SUB, node, mul());
+      node = NewNodeBinOp(ND_SUB, node, multiplicative_expression());
     else
       return node;
   }
 }
 
-Node *mul() {
-  Node *node = unary();
+Node *multiplicative_expression() {
+  // multiplicative-expression = cast-expression
+  //                           | multiplicative-expression "*" cast-expression
+  //                           | multiplicative-expression "/" cast-expression
+  //                           | multiplicative-expression "%" cast-expression
+  Node *node = cast_expression();
 
   for(;;) {
     if(Consume("*"))
-      node = NewNodeBinOp(ND_MUL, node, unary());
+      node = NewNodeBinOp(ND_MUL, node, cast_expression());
     else if(Consume("/"))
-      node = NewNodeBinOp(ND_DIV, node, unary());
+      node = NewNodeBinOp(ND_DIV, node, cast_expression());
     else if(Consume("\%"))
-      node = NewNodeBinOp(ND_MOD, node, unary());
+      node = NewNodeBinOp(ND_MOD, node, cast_expression());
     else
       return node;
   }
 }
 
-Node *unary() {
+Node *unary_expression() {
+  // unary-expression = postfix-expression
+  //                    | ++ unary-expression
+  //                    | -- unary-expression
+  //                    | unary-operator cast-expression
+  //                    | "sizeof" unary-expression
+  //                    | sizeof "(" type-name ")"  ## not implemented  
   if (Consume("sizeof"))
-    return NewNodeUnaryOp(ND_SIZEOF, unary());
+    return NewNodeUnaryOp(ND_SIZEOF, unary_expression());
+  // unary-operators
   else if(Consume("&"))
-    return NewNodeUnaryOp(ND_ADDR, unary());
+    return NewNodeUnaryOp(ND_ADDR, cast_expression());
   else if(Consume("*"))
-    return NewNodeUnaryOp(ND_DEREF, unary());
+    return NewNodeUnaryOp(ND_DEREF, cast_expression());
   else if(Consume("+"))
-    return unary();
+    return cast_expression();
   else if(Consume("-"))
-     return NewNodeBinOp(ND_SUB, NewNodeNum(NULL, 0), unary());
+     return NewNodeBinOp(ND_SUB, NewNodeNum(NULL, 0), cast_expression());
+  // ++ / --
   else if (Consume("++"))
-    return NewNodeUnaryOp(ND_PREINC, unary());
+    return NewNodeUnaryOp(ND_PREINC, unary_expression());
   else if (Consume("--"))
-    return NewNodeUnaryOp(ND_PREDEC, unary());
+    return NewNodeUnaryOp(ND_PREDEC, unary_expression());
   else {
-    Node *node = postfix();
+    Node *node = postfix_expression();
     return node;
   }
 }
 
-Node *postfix() {
-  Node *node = primary(), *_node, *subscript, *arg[6];
+Node *cast_expression() {
+  return unary_expression();
+}
+
+Node *postfix_expression() {
+  // postfix-expression = primary-expression
+  //                    | postfix-expression "[" expression "]"
+  //                    | postfix-expression "(" argument-expression-list? ")"
+  //                    | postfix-expression "." identifier
+  //                    | postfix-expression "->" identifier
+  //                    | postfix-expression "++"
+  //                    | postfix-expression "--"
+  //                    | "(" type-name ")" "{" initializer-list ","? "}" ## not implemented
+  Node *node = primary_expression(), *_node, *subscript, *arg[6];
   size_t num_args;
 
   while(1) {
-    if (Consume("(")) {
+    if (Consume("(")) {  // postfix-expression "(" argument-expression-list? ")"
       if(node->kind != ND_IDENT) {
         ErrorAt(node->tok->str, "Identifier expected.");
       }
       num_args = 0;
       if(!Consume(")")) {
-        arg[num_args++] = expr();
+        arg[num_args++] = expression();
         while(num_args<=6) {
           if(Consume(",")) {
-            arg[num_args++] = expr();
+            arg[num_args++] = expression();
           } else {
             break;
           }
@@ -1553,18 +1667,18 @@ Node *postfix() {
       } else {
         node = NewNodeLvar(node->tok);
       } 
-    } else if(Consume("[")) {
-      subscript = expr();
+    } else if(Consume("[")) { // postfix-expression "[" expression "]"
+      subscript = expression();
       Expect("]");
       node = NewNodeUnaryOp(ND_DEREF,
         NewNodeBinOp(ND_ADD, node, subscript));
-    } else if (Consume("++")) {
+    } else if (Consume("++")) { // postfix-expression "++"
       node = NewNodeUnaryOp(ND_POSTINC, node);
-    } else if (Consume("--")) {
+    } else if (Consume("--")) { // postfix-expression "--"
       node = NewNodeUnaryOp(ND_POSTDEC, node);
-    } else if (Consume("->")) {
+    } else if (Consume("->")) { // postfix-expression "->" identifier
       node = NewNodeArrow(node, ConsumeIdent());
-    } else if (Consume(".")) {
+    } else if (Consume(".")) { // postfix-expression "." identifier
       node = NewNodeDot(node, ConsumeIdent());
     } else {
       break;
@@ -1573,13 +1687,13 @@ Node *postfix() {
   return node;
 }
 
-Node *primary() {
+Node *primary_expression() {
   Node *node;
   Token *tok;
 
   // if the next token is '(' then it should be expanded as '(' expr ')'
   if (Consume("(")) {
-    node = expr();
+    node = expression();
     Expect(")");
     return node;
   } else if(tok=ConsumeIdent()) {

@@ -31,37 +31,80 @@ declare_a       =  type "*"* var_a (, "*"* var_a )*
 declare_e       =  type "*"* evar (, "*"* evar )*
 evar            =  ident ("[" num "]")?
 var_a           =  ident ("[" num "]")? ("=" assign)?
-expr            =  assign
-assign          =  equality  ("=" assign)*
-                   | equality "+=" assign
-                   | equality "-=" assign
-                   | equality "*=" assign
-                   | equality "/=" assign
-                   | equality "%=" assign
-equality        =  relational ( "==" | "!=" relational )*
-relational      =  add ("<=" | ">=" | "<" | ">" add)*
-add             =  mul ("+" | "-" mul)*
-mul             =  unary ("*" | "/" | "%" unary)*
-unary           =  postfix
-                   | "+" unary
-                   | "-" unary
-                   | "*" unary
-                   | "&" unary
-                   | "sizeof" unary
-                   | ("++" | "--") unary
-postfix         =  primay
-                   | postfix ("[" expr "]")?
-                   | postfix ("(" ( | expr ("," expr){0,5}) ")")
-                   | postfix "++"
-                   | postfix "--"
-                   | postfix "->" ident
-                   | postfix "." ident
-primary         =  ident
-                   | const
-                   | string
 const           = num
                    | "'" char "'"
 string          =  "\"" char* "\""
+
+------------------------------
+
+expression = assignment-expression
+             | expression "," assignment-expression ## not implemented
+
+assignment-expression = conditional-expression
+                        | unary-expression assignment-operator assignment-expression
+assignment-operator = "=" | "*=" | "/=" | "%=" | "+=" | "-="
+                      | "<<=" | ">>=" | "&=" | "^=" | "|=" ## not implemented
+
+unary-expression = postfix-expression
+                   | ++ unary-expression
+                   | -- unary-expression
+                   | unary-operator cast-expression
+                   | "sizeof" unary-expression
+                   | sizeof "(" type-name ")"  ## not implemented
+
+unary-operator = "&" | "*" | "+" | "-"
+                 | "~" | "!" ## not implemented
+
+cast-expression = unary-expression
+                   | "(" type-name ")" cast-expression ## not implemented
+
+postfix-expression = primary-expression
+                     | postfix-expression "[" expression "]"
+                     | postfix-expression "(" argument-expression-list? ")"
+                     | postfix-expression "." identifier
+                     | postfix-expression "->" identifier
+                     | postfix-expression "++"
+                     | postfix-expression "--"
+                     | "(" type-name ")" "{" initializer-list ","? "}" ## not implemented
+argument-expression-list = (argument-expression-list "," )? assignment-expression
+
+additive-expression = multiplicative-expression
+                      | additive-expression "+" multiplicative-expression
+                      | additive-expression "-" multiplicative-expression
+
+multiplicative-expression = cast-expression
+                            | multiplicative-expression "*" cast-expression
+                            | multiplicative-expression "/" cast-expression
+                            | multiplicative-expression "%" cast-expression
+
+shift-expression = additive-expression
+                   | shift-expression "<<" additive-expression ## not implemented
+                   | shift-expression ">>" additive-expression ## not implemented
+
+relational-expression = shift-expression
+                        | relational-expression "<" shift-expression
+                        | relational-expression ">" shift-expression
+                        | relational-expression "<=" shift-expression
+                        | relational-expression ">=" shift-expression
+
+equality-expression = relational-expression
+                      | equality-expression "==" relational-expression
+                      | equality-expression "!=" relational-expression
+
+AND-expression = equality-expression
+                 | AND-expression "&" equality-expression ## not implemented
+XOR-expression = AND-expression
+                 | XOR-expression "^" AND-expression ## not implemented
+OR-expression = XOR-expression
+                | OR-expression "|" XOR-expression ## not implemented
+
+logical-AND-expression = OR-expression
+                         | logical-AND-expression "&&" XOR-expression ## not implemented
+logical-OR-expression = logical-AND-expression
+                        | logical-OR-expression "||" logical-AND-expression ## not implemented
+
+conditional-expression = logical-OR-expression
+                         | logical-OR-expression "?" expression ":" conditional-expression ## not implemented
 ```
 
 ## Known issues
@@ -174,18 +217,20 @@ jump-statement = "goto" identifier ";" ## not implemented
 
 ### Expression
 ```
-expression = assignment-expression | expression "," assignment-expression
+expression = assignment-expression
+             | expression "," assignment-expression ## not implemented
 
 assignment-expression = conditional-expression
                         | unary-expression assignment-operator assignment-expression
-assignment-operator = "=" | "*=" | "/=" | "%=" | "+=" | "-=" | "<<=" | ">>=" | "&=" | "^=" | "|="
+assignment-operator = "=" | "*=" | "/=" | "%=" | "+=" | "-="
+                      | "<<=" | ">>=" | "&=" | "^=" | "|=" ## not implemented
 
 unary-expression = postfix-expression
                    | ++ unary-expression
                    | -- unary-expression
                    | unary-operator cast-expression
                    | "sizeof" unary-expression
-                   | sizeof "(" type-name ")"
+                   | sizeof "(" type-name ")"  ## not implemented
 
 unary-operator = "&" | "*" | "+" | "-"
                  | "~" | "!" ## not implemented
@@ -234,9 +279,9 @@ OR-expression = XOR-expression
                 | OR-expression "|" XOR-expression ## not implemented
 
 logical-AND-expression = OR-expression
-                         | logical-AND-expression "&&" XOR-expression
+                         | logical-AND-expression "&&" XOR-expression ## not implemented
 logical-OR-expression = logical-AND-expression
-                        | logical-OR-expression "||" logical-AND-expression
+                        | logical-OR-expression "||" logical-AND-expression ## not implemented
 
 conditional-expression = logical-OR-expression
                          | logical-OR-expression "?" expression ":" conditional-expression ## not implemented
