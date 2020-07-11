@@ -179,7 +179,7 @@ external-declaration = function-definition | declaration
 
 ### Declaration
 ```
-function-definition = declaration-specifiers declarator declaration-list? compound-statement
+function-definition = declaration-specifiers function-declarator compound-statement
 declaration-list = declaration declaration*
 declaration = declaration-specifiers init-declarator-list? ";"
 declaration-specifiers = storage-class-specifier declaration-specifiers*
@@ -195,8 +195,8 @@ type-specifier = "void" | "char" | "int" | "_Bool"
                  | typedef-name ## not implemented
 declarator = pointer? direct-declarator
 direct-declarator = identifier
-                    | "(" declarator ")"
-                    | direct-declarator "(" parameter-type-list ")"
+                    | "(" declarator ")"  ## not implementes
+function-declarator = declarator "(" parameter-type-list ")"
 pointer = "*" type-qualifier-list? pointer?
 typer-qualifier-list = type-qualifier-list? type-qualifier
 parameter-type-list = parameter-list
