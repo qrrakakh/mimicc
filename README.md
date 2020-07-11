@@ -8,16 +8,36 @@ https://www.sigbus.info/compilerbook
 ```
 program         =  ((func compound_statement | declaration ";" |  "extern" declare_e "; | "extern" func ";"))*
 func            =  type  "*"* ident ("(" ( | declare ("," declare){0,5}) ")")
-type            =  "int" | "char" | "void" | "_Bool" | struct | enum
-enum            =  "enum" ident? ("{" enumerator-list "}" ","? )?
-enumerator-list =  (enumerator-list ",")? enumerator
-enumerator      =  ident ("=" num)?
-struct          =  "struct" ident? ("{" (declaration ";")* "}")?
+type            =  "int" | "char" | "void" | "_Bool"
+                   | struct-or-union-specifier | enum-specifier
 declare         =  type "*"* ident
 declaration     =  type "*"* var_a (, "*"* var_a )*
 declare_e       =  type "*"* evar (, "*"* evar )*
 evar            =  ident ("[" num "]")?
 var_a           =  ident ("[" num "]")? ("=" assign)?
+
+------------------------------
+
+struct-or-union-specifier = struct-or-union identifier? "{" struct-declaration-list "}"
+                            | struct-or-union identifier
+sturuct-or-union = "struct"
+                   | "union" ## not implemented
+struct-declaration-list = struct-declaration*
+struct-declaration = specifier-qualifier-list struct-declarator-list ";"
+specifier-qualifier-list = type-specifier specifier-qualifier-list*
+                           | type-qualifier specifier-qualifier-list*
+struct-declarator-list = struct-declarator
+                         | struct-declarator-list "," struct-declarator
+struct-declarator = declarator
+
+------------------------------
+
+enum-specifier = "enum" identifier? "{" enumerator-list ","? "}"
+                 | "enum" identifier
+enumerator-list = enumerator
+                 | enumerator-list "," enumerator
+enumerator = enumeration-constant
+             | enumeration-constant "=" constant-expression
 
 ------------------------------
 

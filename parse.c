@@ -861,15 +861,24 @@ Node *NewNodeFuncCall(Token *tok, int num_args, Node *arg[]) {
 void program();
 Node *func(_Bool is_extern);
 Type *type();
-Type *struct_();
-Type *enum_();
-void enumerator_list(int id);
-int enumerator(int id, int my_val);
 Node *declare();
 Node *declaration();
 void declare_e();
 void evar(Type *_ty);
 Node *var_a(Type *_ty);
+
+// Struct
+Type *struct_or_union_specifier();
+void struct_declaration_list();
+Node *struct_declaration();
+// specifier-qualifier-list
+// struct-declarator-list
+// struct-declarator
+
+// Enum
+Type *enum_specifier();
+void enumerator_list(int id);
+int enumerator(int id, int my_val);
 
 // Statements
 Node *statement();
@@ -904,7 +913,7 @@ Node *primary_expression();
 Node *identifier();
 Node *constant();
 Node *integer_constant();
-Node *enumeration_constant();
+Node *enumeration_constant(_Bool is_declare);
 Node *character_constant();
 Node *string_literal();
 
@@ -1292,18 +1301,51 @@ Node *jump_statement() {
   }
 }
 
-Type *struct_() {
+Node *struct_declaration() {
+  // struct-declaration = specifier-qualifier-list struct-declarator-list ";"
+
+  // *** Following syntax will be implemented when declaration codes are refactored.
+  // specifier-qualifier-list = type-specifier specifier-qualifier-list*
+  //                           | type-qualifier specifier-qualifier-list*
+  // struct-declarator-list = struct-declarator
+  //                         | struct-declarator-list "," struct-declarator
+  // struct-declarator = declarator  
+
+  Node *node;
+  if(node=declaration()) {
+    Expect(";");
+    return node;
+  } else {
+    return NULL;
+  }
+}
+
+void struct_declaration_list() {
+  // struct-declaration-list = struct-declaration*  
+
+  Node *node;
+  while(node = struct_declaration()) ;
+}
+
+Type *struct_or_union_specifier() {
+  // struct-or-union-specifier = struct-or-union identifier? "{" struct-declaration-list "}"
+  //                           | struct-or-union identifier
+
   Token *tok, *ident_tok;
   Symbol *_locals;
   Node *node;
   Struct *s;
   Type *ty;
+
+  // sturuct-or-union = "struct"
+  //                  | "union" ## not implemented
   if (!(tok=Consume("struct"))) {
     return NULL;
   }
+
   ident_tok = ConsumeIdent();
 
-  if(Consume("{")) {
+  if(Consume("{")) { // struct-or-union identifier? "{" struct-declaration-list "}"
     if(ident_tok && FindStruct(ident_tok, 0)) {
       ErrorAt(ident_tok->str, "struct is already declared.");
     }
@@ -1314,17 +1356,16 @@ Type *struct_() {
     locals->id = 0;
 
     EnterScope();
-    while(!Consume("}")) {
-      node = declaration();
-      Expect(";");
-    }
+    struct_declaration_list();
+    Expect("}");
     LeaveScope();
+
     if (!is_look_ahead)
       ty = AddStruct(ident_tok, locals);
     locals = _locals;
 
     return ty;
-  } else if(!ident_tok) {
+  } else if(!ident_tok) { // struct-or-union identifier
     ErrorAt(token->str, "identifier expected.");
   } else if (!(s = FindStruct(ident_tok, 1))) {
     ErrorAt(ident_tok->str, "struct is not declared.");
@@ -1336,9 +1377,9 @@ Type *struct_() {
 Type *type() {
   Type *ty;
   Token *tok;
-  if(ty = struct_()) {
+  if(ty = struct_or_union_specifier()) {
     return ty;
-  } else if(ty = enum_()) {
+  } else if(ty = enum_specifier()) {
     return ty;
   } else if(!(tok = ConsumeTypeStr())) {
     return NULL;
@@ -1352,29 +1393,38 @@ Type *type() {
   return ty;
 }
 
-Type *enum_() {
+Type *enum_specifier() {
+  // enum-specifier = "enum" identifier? "{" enumerator-list ","? "}"
+  //                | "enum" identifier
+ 
   Token *tok, *ident_tok;
   Enum *e;
   Type *ty;
+  int id;
   if (!(tok=Consume("enum"))) {
     return NULL;
   }
+
   ident_tok = ConsumeIdent();
 
-  if(Consume("{")) {
+  if(Consume("{")) { // "enum" identifier? "{" enumerator-list ","? "}"
     if(ident_tok && FindEnum(ident_tok, 0)) {
       ErrorAt(ident_tok->str, "enum is already declared.");
     }
 
-    if (!is_look_ahead)
+    if (!is_look_ahead) {
       ty = AddEnum(ident_tok);
+      id = ty->id;
+    } else{
+      id=0;
+    }
 
-    enumerator_list(ty->id);
+    enumerator_list(id);
     Consume(",");
     Expect("}");
 
     return ty;
-  } else if(!ident_tok) {
+  } else if(!ident_tok) { // "enum" identifier
     ErrorAt(token->str, "identifier expected.");
   } else if (!(e = FindEnum(ident_tok, 1))) {
     ErrorAt(ident_tok->str, "enum is not declared.");
@@ -1384,6 +1434,9 @@ Type *enum_() {
 }
 
 void enumerator_list(int id) {
+  // enumerator-list = enumerator
+  //                | enumerator-list "," enumerator  
+
   int val = enumerator(id, 0);
   ++val;
   while(Consume(",")) {
@@ -1393,13 +1446,18 @@ void enumerator_list(int id) {
 }
 
 int enumerator(int id, int my_val) {
-  Token *ident_token;
-  ident_token = ConsumeIdent();
-  if(Consume("=")) {
-    my_val = ExpectNumber();
+  // enumerator = enumeration-constant
+  //            | enumeration-constant "=" constant-expression
+  
+  Node *node = enumeration_constant(1);
+
+  if(Consume("=")) { // enumeration-constant "=" constant-expression
+    my_val = ExpectNumber();  // will be replaced to eval(constant_expression)
   }
+
   if (!is_look_ahead)
-    AddEnumConst(id, my_val, ident_token);
+    AddEnumConst(id, my_val, node->tok);
+
   return my_val;
 }
 
@@ -1840,7 +1898,7 @@ Node *constant() {
   Node *node;
   if (node=integer_constant()) { // integer_constant
     return node;
-  } else if(node=enumeration_constant()) {
+  } else if(node=enumeration_constant(0)) {
     return node;
   } else { // character-constant
     return character_constant();
@@ -1858,13 +1916,15 @@ Node *integer_constant() {
   }
 }
 
-Node *enumeration_constant() {
+Node *enumeration_constant(_Bool is_declare) {
   // enumeration-constant = identifier
   Token *tok, *_tok;
   Node *node;
   _tok = token;
   if(!(tok=ConsumeIdent())) {
     return NULL;
+  } else if(is_declare) {
+    return NewNodeIdent(tok);
   } else if(node = NewNodeConstInt(tok)) {
     return node;
   } else {
