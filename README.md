@@ -6,13 +6,26 @@ https://www.sigbus.info/compilerbook
 
 ## BNF
 ```
-program         =  ((func compound_statement | declaration ";" |  "extern" declare_e "; | "extern" func ";"))*
-func            =  type  "*"* ident ("(" ( | declare ("," declare){0,5}) ")")
-type            =  "int" | "char" | "void" | "_Bool"
+translation-unit =  external-declaration*
+external-declaration = func compound_statement
+                       | declaration ";"
+                       | "extern" declare_e "; | "extern" func ";"
+
+------------------------------
+
+type-specifier  =  "int" | "char" | "void" | "_Bool"
                    | struct-or-union-specifier | enum-specifier
-declare         =  type "*"* ident
-declaration     =  type "*"* var_a (, "*"* var_a )*
-declare_e       =  type "*"* evar (, "*"* evar )*
+init-declarator-list = (init-declarator-list ",")? init-declarator
+init-declarator = declarator
+declaration = type_specifier init_declarator_list? ";"
+declarator = pointer? direct-declarator
+pointer = "*" type-qualifier-list? pointer?
+
+direct-declarator = var_a
+
+func            =  type-specifier pointer ident ("(" ( | declare ("," declare){0,5}) ")")
+declare         =  type-specifier pointer ident
+declare_e       =  type-specifier pointer evar (, "*"* evar )*
 evar            =  ident ("[" num "]")?
 var_a           =  ident ("[" num "]")? ("=" assign)?
 

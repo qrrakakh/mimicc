@@ -16,6 +16,14 @@ struct Const_Strings {
   char *str;
 };
 
+typedef enum {
+  EXTERN   = 1 << 0,
+  TYPEDEF  = 1 << 1,
+  STATIC   = 1 << 2,
+  AUTO     = 1 << 3,
+  REGISTER = 1 << 4,
+} StorageSpec;
+
 typedef struct Type Type;
 
 typedef enum {
@@ -196,7 +204,6 @@ int label_index;
 int last_scope_id;
 int ctrl_depth;
 Scope *current_scope;
-_Bool is_look_ahead;
 
 extern char *builtin_type_names[];
 extern int num_builtin_types;
@@ -230,7 +237,7 @@ Func *FindFuncByName(char *name, int name_len);
 Struct *FindStructById(int struct_id);
 
 // Non-terminal symbols generator
-void program();
+void translation_unit();
 
 // Code generator
 void Generate(Node *node);

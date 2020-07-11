@@ -24,7 +24,7 @@ void Compile(char *input) {
   void_type = builtin_type_obj[2];
   bool_type = builtin_type_obj[3];
 
-  program();
+  translation_unit();
   //PrintNodeTree();
 
   // The header of assembler

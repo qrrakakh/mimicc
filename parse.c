@@ -32,8 +32,6 @@ void EnterScope() {
 
 void LeaveScope() {
   current_scope = current_scope->parent;
-  if(is_look_ahead)
-    --last_scope_id;
 }
 
 //////////
@@ -294,7 +292,7 @@ Const_Strings *FindCstr(char *s, int l) {
   return new_cs;
 }
 
-Type *AddStruct(Token *tok, Symbol *members) {
+Struct *AddStruct(Token *tok, Symbol *members) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TYPE_STRUCT;
   ty->id = ++last_struct_id;
@@ -314,7 +312,7 @@ Type *AddStruct(Token *tok, Symbol *members) {
     s->len = 0;
   }
 
-  return ty;
+  return s;
 }
 
 Symbol *AddEnumConst(int id, int val, Token *tok) {
@@ -343,7 +341,7 @@ Symbol *AddEnumConst(int id, int val, Token *tok) {
   return s;
 }
 
-Type *AddEnum(Token *tok) {
+Enum *AddEnum(Token *tok) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TYPE_ENUM;
   ty->id = ++last_enum_id;
@@ -362,7 +360,7 @@ Type *AddEnum(Token *tok) {
     e->len = 0;
   }
 
-  return ty;
+  return e;
 }
 
 Struct *FindStruct(Token *tok, _Bool is_recursive_search) {
@@ -839,7 +837,7 @@ Node *NewNodeFunc(Token *tok, Type *ty, int num_args, Node *block_node) {
 Node *NewNodeFuncCall(Token *tok, int num_args, Node *arg[]) {
   int i;
   Func *f;
-  if(!is_look_ahead && !(f = FindFunc(tok))) {
+  if(!(f = FindFunc(tok))) {
     WarnAt(tok->str, "Implicitly declared function.");
     f = AddFunc(tok, int_type, 0, current_scope->id);
   }
@@ -858,14 +856,22 @@ Node *NewNodeFuncCall(Token *tok, int num_args, Node *arg[]) {
 }
 
 // Non-terminal symbols generator
-void program();
-Node *func(_Bool is_extern);
-Type *type();
-Node *declare();
+
+// Basic structure
+void translation_unit();
+
+// Declaration
+Type *type_specifier();
+Node *init_declarator_list(Type *orig_ty);
 Node *declaration();
+Token *declarator(Type **ty);
+Type *pointer(Type *orig_ty);
+
+Node *func(_Bool is_extern);
+Node *declare();
 void declare_e();
-void evar(Type *_ty);
-Node *var_a(Type *_ty);
+void evar(Type *_ty, Token *tok);
+Node *var_a(Type *_ty, Token *tok);
 
 // Struct
 Type *struct_or_union_specifier();
@@ -917,12 +923,26 @@ Node *enumeration_constant(_Bool is_declare);
 Node *character_constant();
 Node *string_literal();
 
-void program() {
+_Bool is_function() {
+  Token *tok = token;
+  _Bool is_func;
+  Type *ty = type_specifier();
+  declarator(&ty);
+  is_func = Consume("(");
+  token = tok;
+  return is_func;
+}
+
+void translation_unit() {
+  // translation-unit =  external-declaration*
+  // external-declaration = func compound_statement
+  //                      | declaration ";"
+  //                      | "extern" declare_e "; | "extern" func ";"
+
   int i=0;
   int alloc_unit = 10;
   int alloc_size = alloc_unit;
 
-  Token *_tok;
   Node *node;
   Type *ty, *tgt_ty;
 
@@ -950,8 +970,7 @@ void program() {
   last_symbol_id = 0;
   last_scope_id = 0;
   ctrl_depth = 0;
-  is_look_ahead = 0;
-
+  
   current_func = NULL;
   current_switch = NULL;
   InitScope();
@@ -969,59 +988,30 @@ void program() {
       codes = _codes;
     }
 
-    is_look_ahead = 1;
-    _tok = token;
-    
     if(Consume("extern")) {
-      _tok = token;
-
-      ty = type();
-
-      while(Consume("*"));
-
-      if(!ConsumeIdent()) {
-        ErrorAt(token->str, "Invalid external declaration statement.");
-      }
-
-      if(Consume("(")) {
-        token = _tok;
-        is_look_ahead = 0;
+      if(is_function()) {
         node = func(1);
         Expect(";");
-      } else if(Consume("[") ||Consume(",") || Consume(";")) { // global variable
-        token = _tok;
-        is_look_ahead = 0;
+      } else { // global variable
         declare_e();
         Expect(";");
-      } else {
-        token = _tok;
-        is_look_ahead = 0;
-        ErrorAt(token->str, "Definition of the global variable or the function should be allowed.");
       }
       continue;
     } else {
-      ty = type();
-      while(Consume("*"));
-      if(!ConsumeIdent()) {
-        ErrorAt(token->str, "Invalid definition statement.");
-      }
-      if(Consume("(")) { // func
-        token = _tok;
-        is_look_ahead = 0;
+      if(is_function()) { // func
         codes[i++] = func(0);
-      } else if(Consume("[") ||Consume(",") || Consume(";")) { // global variable
-        token = _tok;
-        is_look_ahead = 0;
+      } else { // global variable
         codes[i++] = declaration();
-        Expect(";");
-      } else {
-        token = _tok;
-        is_look_ahead = 0;
-        ErrorAt(token->str, "Definition of the global variable or the function should be allowed.");
       }
     }
   }
   codes[i] = NULL;
+}
+
+Node *declaration() {
+  Node *node = init_declarator_list(type_specifier());
+  Expect(";");
+  return node;
 }
 
 Node *func(_Bool is_extern) {
@@ -1029,18 +1019,11 @@ Node *func(_Bool is_extern) {
   Type *ty, *tgt_ty;
   Node *arg[6], *block_node = NULL;
   int num_args;
-  if(!(ty = type())) {
+  if(!(ty = type_specifier())) {
     ErrorAt(token->str, "Invalid type in function declaration.");
   }
 
-  while(Consume("*")) {
-    tgt_ty = ty;
-    ty = calloc(1, sizeof(Type));
-    ty->kind = TYPE_PTR;
-    ty->ptr_to = tgt_ty;
-  }
-
-  if(!(ident_tok=ConsumeIdent())) {
+  if(!(ident_tok=declarator(&ty))) {
     ErrorAt(token->str, "Invalid function definition.");
   }
 
@@ -1064,8 +1047,7 @@ Node *func(_Bool is_extern) {
     Expect(")");
   }
 
-  if(!is_look_ahead)
-    current_func=AddFunc(ident_tok, ty, num_args, current_scope->parent->id);
+  current_func=AddFunc(ident_tok, ty, num_args, current_scope->parent->id);
 
   if(!is_extern) {
     block_node = compound_statement();
@@ -1137,6 +1119,9 @@ Node *compound_statement() {
   // block-item-list = block-item-list? block-item
   // block-item = declaration | statement
 
+  Token *tok;
+  Type *ty;
+
   if(Consume("{")) {
     Node **stmt_list;
     int alloc_unit = 10;
@@ -1156,7 +1141,7 @@ Node *compound_statement() {
         stmt_list = _stmt_list;
       }
 
-      if(stmt_list[cur] = declaration()) { // declaration
+      if(stmt_list[cur] = init_declarator_list(type_specifier())) { // declaration
        Expect(";");
        ++cur;
        continue;
@@ -1239,7 +1224,7 @@ Node *iteration_statement() {
     EnterScope();
     Expect("(");
     Node *init;
-    if(!(init=declaration())) {
+    if(!(init=init_declarator_list(type_specifier()))) {
       init = expression();
     }
     Expect(";");
@@ -1312,7 +1297,7 @@ Node *struct_declaration() {
   // struct-declarator = declarator  
 
   Node *node;
-  if(node=declaration()) {
+  if(node=init_declarator_list(type_specifier())) {
     Expect(";");
     return node;
   } else {
@@ -1332,7 +1317,7 @@ Type *struct_or_union_specifier() {
   //                           | struct-or-union identifier
 
   Token *tok, *ident_tok;
-  Symbol *_locals;
+  Symbol *_locals, *struct_symbol;
   Node *node;
   Struct *s;
   Type *ty;
@@ -1346,9 +1331,10 @@ Type *struct_or_union_specifier() {
   ident_tok = ConsumeIdent();
 
   if(Consume("{")) { // struct-or-union identifier? "{" struct-declaration-list "}"
-    if(ident_tok && FindStruct(ident_tok, 0)) {
-      ErrorAt(ident_tok->str, "struct is already declared.");
+    if(!(ident_tok && (s=FindStruct(ident_tok, 0)))) {
+      s = AddStruct(ident_tok, locals);      
     }
+    ty = s->ty;
 
     _locals = locals;
     locals = calloc(1, sizeof(Symbol));
@@ -1360,8 +1346,7 @@ Type *struct_or_union_specifier() {
     Expect("}");
     LeaveScope();
 
-    if (!is_look_ahead)
-      ty = AddStruct(ident_tok, locals);
+    s->members = locals;
     locals = _locals;
 
     return ty;
@@ -1374,7 +1359,7 @@ Type *struct_or_union_specifier() {
   }
 }
 
-Type *type() {
+Type *type_specifier() {
   Type *ty;
   Token *tok;
   if(ty = struct_or_union_specifier()) {
@@ -1384,12 +1369,13 @@ Type *type() {
   } else if(!(tok = ConsumeTypeStr())) {
     return NULL;
   }
+  ty=NULL;
   for(int i=0;i<num_builtin_types;++i) {
     if(strncmp(tok->str, builtin_type_names[i], tok->len)==0) {
       ty = builtin_type_obj[i];
+      break;
     }
   }
-
   return ty;
 }
 
@@ -1408,16 +1394,10 @@ Type *enum_specifier() {
   ident_tok = ConsumeIdent();
 
   if(Consume("{")) { // "enum" identifier? "{" enumerator-list ","? "}"
-    if(ident_tok && FindEnum(ident_tok, 0)) {
-      ErrorAt(ident_tok->str, "enum is already declared.");
+    if(!(ident_tok && (e=FindEnum(ident_tok, 0))))  {
+      e = AddEnum(ident_tok);
     }
-
-    if (!is_look_ahead) {
-      ty = AddEnum(ident_tok);
-      id = ty->id;
-    } else{
-      id=0;
-    }
+    ty = e->ty;
 
     enumerator_list(id);
     Consume(",");
@@ -1455,8 +1435,7 @@ int enumerator(int id, int my_val) {
     my_val = ExpectNumber();  // will be replaced to eval(constant_expression)
   }
 
-  if (!is_look_ahead)
-    AddEnumConst(id, my_val, node->tok);
+  AddEnumConst(id, my_val, node->tok);
 
   return my_val;
 }
@@ -1464,33 +1443,23 @@ int enumerator(int id, int my_val) {
 Node *declare() {
   Token *tok;
   Type *ty, *tgt_ty;
-  if(!(ty = type()))
+  if(!(ty = type_specifier()))
     return NULL;
 
-  while(Consume("*")) {
-    tgt_ty = ty;
-    ty = calloc(1, sizeof(Type));
-    ty->kind = TYPE_PTR;
-    ty->ptr_to = tgt_ty;
-  }
-
-  if(!(tok = ConsumeIdent()))
+  if(!(tok = declarator(&ty)))
     return NULL;
 
-  if(!is_look_ahead)
-    AddLvar(tok, ty);
+  AddLvar(tok, ty);
 
   return NULL;
 }
 
-Node *var_a(Type *_ty) {
-  Token *tok, *ident_tok;
-  Type *ty;
+Node *var_a(Type *ty, Token *ident_tok) {
+  Token *tok;
   Node *assign_node;
   size_t size;
-  ty = _ty;
 
-  if(!(ident_tok = ConsumeIdent()))
+  if(!(ident_tok))
     return NULL;
   if (Consume("[")) {
     tok = token;
@@ -1502,12 +1471,10 @@ Node *var_a(Type *_ty) {
     Expect("]");
   }
 
-  if(!is_look_ahead) {
-    if (current_scope->id==0) {
-      AddGVar(ident_tok, ty, 0);
-    } else {
-      AddLvar(ident_tok, ty);
-    }
+  if (current_scope->id==0) {
+    AddGVar(ident_tok, ty, 0);
+  } else {
+    AddLvar(ident_tok, ty);
   }
 
   if (Consume("=")) {
@@ -1524,39 +1491,24 @@ void declare_e() {
   Type *ty, *tgt_ty, *orig_ty;
   Node *node;
 
-  if(!(orig_ty = type()))
+  if(!(orig_ty = type_specifier()))
     return;
 
   ty = orig_ty;
-  while(Consume("*")) {
-    tgt_ty = ty;
-    ty = calloc(1, sizeof(Type));
-    ty->kind = TYPE_PTR;
-    ty->ptr_to = tgt_ty;
-  }
-
-  evar(ty);
+  tok = declarator(&ty);
+  evar(ty, tok);
 
   while(Consume(",")) {
     ty = orig_ty;
-    while(Consume("*")) {
-      tgt_ty = ty;
-      ty = calloc(1, sizeof(Type));
-      ty->kind = TYPE_PTR;
-      ty->ptr_to = tgt_ty;
-    }
-    evar(ty);
+    evar(ty, declarator(&ty));
   }
 }
 
-void evar(Type *_ty) {
-  Token *tok;
-  Type *ty;
+void evar(Type *ty, Token *tok) {
   Node *node, *init_node;
   size_t size;
-  ty = _ty;
 
-  if(!(tok = ConsumeIdent()))
+  if(!(tok))
     return;
   if (Consume("[")) {
     size = ExpectNumber();
@@ -1567,17 +1519,11 @@ void evar(Type *_ty) {
     Expect("]");
   }
 
-  if(!is_look_ahead)
-    AddGVar(tok, ty, 1);
+  AddGVar(tok, ty, 1);
 }
 
-Node *declaration() {
-  Token *tok;
-  Type *ty, *tgt_ty, *orig_ty;
-  Node *node;
-
-  if(!(orig_ty = type()))
-    return NULL;
+Type *pointer(Type *orig_ty) {
+  Type *ty, *tgt_ty;
 
   ty = orig_ty;
   while(Consume("*")) {
@@ -1587,17 +1533,30 @@ Node *declaration() {
     ty->ptr_to = tgt_ty;
   }
 
-  node = NewNodeVarInitializer(var_a(ty));
+  return ty;
+}
+
+Token *declarator(Type **ty) {
+  *ty = pointer(*ty);
+  return ConsumeIdent();
+}
+
+Node *init_declarator_list(Type *orig_ty) {
+  Token *tok;
+  Node *node;
+  Type *ty = orig_ty;
+
+  if(!orig_ty) {
+    return NULL;
+  }
+
+  tok = declarator(&ty);
+  node = NewNodeVarInitializer(var_a(ty, tok));
 
   while(Consume(",")) {
     ty = orig_ty;
-    while(Consume("*")) {
-      tgt_ty = ty;
-      ty = calloc(1, sizeof(Type));
-      ty->kind = TYPE_PTR;
-      ty->ptr_to = tgt_ty;
-    }
-    AddVarInitializer(node, var_a(ty));
+    tok = declarator(&ty);
+    AddVarInitializer(node, var_a(ty, tok));
   }
 
   return node;
