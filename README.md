@@ -210,7 +210,7 @@ direct-abstract-declarator = "(" abstract-declarator ")"
                              | direct-abstract-declarator? "(" parameter-type-list? ") "
 
 init-declarator-list = (init-declarator-list ",")? init-declarator
-init-declarator = declarator ("=" initializer)
+init-declarator = declarator ("=" initializer)?
 initializer = assignment-expression
               | "{" initializer-list ","? "}"  ## not implemented
 ```
