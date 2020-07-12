@@ -7,25 +7,27 @@ https://www.sigbus.info/compilerbook
 ## BNF
 ```
 translation-unit =  external-declaration*
-external-declaration = func compound_statement
-                       | declaration ";"
-                       | "extern" declare_e "; | "extern" func ";"
+external-declaration = func | declaration
 
 ------------------------------
 
+declaration = declaration_specifier init_declarator_list? ";"
+declaration-specifiers = storage-class-specifier declaration-specifiers*
+                        | type-specifier declaration-specifiers*
+                        | type-qualifier declaration-specifiers*  ### not implemented
+                        | function-specifier declaration-specifiers*  ### not implemented
+storage-class-specifier = "extern"
+                          | "typedef" | "static" | "auto" | "register" ## not implemented
 type-specifier  =  "int" | "char" | "void" | "_Bool"
                    | struct-or-union-specifier | enum-specifier
+declarator = pointer? direct-declarator
+direct-declarator = var_a
+pointer = "*" type-qualifier-list? pointer?
 init-declarator-list = (init-declarator-list ",")? init-declarator
 init-declarator = declarator
-declaration = type_specifier init_declarator_list? ";"
-declarator = pointer? direct-declarator
-pointer = "*" type-qualifier-list? pointer?
 
-direct-declarator = var_a
-
-func            =  type-specifier pointer ident ("(" ( | declare ("," declare){0,5}) ")")
+func            =  declaration-specifier pointer ident ("(" ( | declare ("," declare){0,5}) ")") (compound_statement | ";")
 declare         =  type-specifier pointer ident
-declare_e       =  type-specifier pointer evar (, "*"* evar )*
 evar            =  ident ("[" num "]")?
 var_a           =  ident ("[" num "]")? ("=" assign)?
 
