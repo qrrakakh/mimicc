@@ -197,8 +197,8 @@ declaration-list = declaration declaration*
 declaration = declaration-specifiers init-declarator-list? ";"
 declaration-specifiers = storage-class-specifier declaration-specifiers*
                         | type-specifier declaration-specifiers*
-                        | type-qualifier declaration-specifiers*
-                        | function-specifier declaration-specifiers*
+                        | type-qualifier declaration-specifiers*  ### not implemented
+                        | function-specifier declaration-specifiers*  ### not implemented
 storage-class-specifier = "extern"
                           | "typedef" | "static" | "auto" | "register" ## not implemented
 type-specifier = "void" | "char" | "int" | "_Bool" 

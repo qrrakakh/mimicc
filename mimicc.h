@@ -17,11 +17,12 @@ struct Const_Strings {
 };
 
 typedef enum {
-  EXTERN   = 1 << 0,
-  TYPEDEF  = 1 << 1,
-  STATIC   = 1 << 2,
-  AUTO     = 1 << 3,
-  REGISTER = 1 << 4,
+  NOSTORAGESPEC,
+  EXTERN,
+  TYPEDEF,
+  STATIC,
+  AUTO,
+  REGISTER,
 } StorageSpec;
 
 typedef struct Type Type;
@@ -43,6 +44,13 @@ struct Type {
   struct Type *ptr_to;
   size_t array_size;
   int id;
+};
+
+typedef struct DeclSpec DeclSpec;
+
+struct DeclSpec {
+  Type *ty;
+  StorageSpec sspec;
 };
 
 typedef enum {
@@ -107,6 +115,7 @@ typedef enum {  // ABS Node kinds
   ND_INEQUIV,  // !=
   ND_LT,        // <
   ND_LE,        // <=
+  ND_DUMMY,     // Dummy node, nothing to be compiled.
   ND_IDENT,     // identifier
   ND_LVAR,      // Local variable
   ND_GVAR,      // Global variable

@@ -186,6 +186,8 @@ void Generate(Node *node) {
   Symbol *var;
   
   switch(node->kind) {
+    case ND_DUMMY:
+      return;
     case ND_FUNC:
     if (!(node->children[0]))
       return;

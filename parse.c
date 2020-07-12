@@ -457,6 +457,12 @@ Symbol *FindConstSymbol(Token *tok) {
 }
 
 // Generate new node
+Node *NewNodeDummy() {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_DUMMY;
+  return node;
+}
+
 Node *NewNodeUnaryOp(NodeKind kind, Node *valnode) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = kind;
@@ -787,7 +793,7 @@ Node *NewNodeSwLabel(int c) {
 Node *NewNodeSwCase(Node *expr, Node *next_node, int label_id) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_CASE;
-  node->children = calloc(2, sizeof(Node));
+  node->children = calloc(2, sizeof(Node*));
   node->children[0] = expr;
   node->children[1] = next_node;
   node->val = label_id;
@@ -843,7 +849,7 @@ Node *NewNodeFuncCall(Token *tok, int num_args, Node *arg[]) {
   }
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_CALL;
-  node->children = calloc(num_args, sizeof(Node));
+  node->children = calloc(num_args, sizeof(Node*));
   for(i=0;i<num_args;++i) {
     node->children[i] = arg[i];
   }
@@ -861,15 +867,16 @@ Node *NewNodeFuncCall(Token *tok, int num_args, Node *arg[]) {
 void translation_unit();
 
 // Declaration
-Type *type_specifier();
-Node *init_declarator_list(Type *orig_ty);
 Node *declaration();
+DeclSpec *declaration_specifiers();
+StorageSpec storage_class_specifier();
+Type *type_specifier();
 Token *declarator(Type **ty);
 Type *pointer(Type *orig_ty);
+Node *init_declarator_list(DeclSpec *dspec);
 
-Node *func(_Bool is_extern);
+Node *func();
 Node *declare();
-void declare_e();
 void evar(Type *_ty, Token *tok);
 Node *var_a(Type *_ty, Token *tok);
 
@@ -924,11 +931,17 @@ Node *character_constant();
 Node *string_literal();
 
 _Bool is_function() {
+  // This is looking-ahead function and must preserve token cursor.
   Token *tok = token;
   _Bool is_func;
-  Type *ty = type_specifier();
-  declarator(&ty);
-  is_func = Consume("(");
+  DeclSpec *dspec = declaration_specifiers();
+  if(dspec) {
+    declarator(&(dspec->ty));
+    is_func = Consume("(");
+  } else {
+    is_func = 0;
+  }
+
   token = tok;
   return is_func;
 }
@@ -942,6 +955,7 @@ void translation_unit() {
   int i=0;
   int alloc_unit = 10;
   int alloc_size = alloc_unit;
+  StorageSpec sspec;
 
   Node *node;
   Type *ty, *tgt_ty;
@@ -988,20 +1002,11 @@ void translation_unit() {
       codes = _codes;
     }
 
-    if(Consume("extern")) {
-      if(is_function()) {
-        node = func(1);
-        Expect(";");
-      } else { // global variable
-        declare_e();
-        Expect(";");
-      }
-      continue;
-    } else {
-      if(is_function()) { // func
-        codes[i++] = func(0);
-      } else { // global variable
-        codes[i++] = declaration();
+    if(is_function()) { // func
+      codes[i++] = func();
+    } else { // global variable
+      if(!(codes[i++] = declaration())) {
+        ErrorAt(token->str, "invalid declaration or function definition.");
       }
     }
   }
@@ -1009,21 +1014,34 @@ void translation_unit() {
 }
 
 Node *declaration() {
-  Node *node = init_declarator_list(type_specifier());
+  // declaration-specifiers init-declarator-list? ";"
+
+  Token *tok = token;
+  DeclSpec *dspec = declaration_specifiers();
+  Node *node;
+
+  if(!dspec) {
+    token = tok;
+    return NULL;
+  }
+  node = init_declarator_list(dspec);
   Expect(";");
   return node;
 }
 
-Node *func(_Bool is_extern) {
-  Token *type_tok, *ident_tok, *arg_tok;
-  Type *ty, *tgt_ty;
+Node *func() {
+  Token *tok = token, *ident_tok;
+  DeclSpec *dspec;
   Node *arg[6], *block_node = NULL;
   int num_args;
-  if(!(ty = type_specifier())) {
-    ErrorAt(token->str, "Invalid type in function declaration.");
+
+  dspec=declaration_specifiers();
+
+  if(!dspec) {
+    ErrorAt(tok->str, "Invalid declaration specifiers.");
   }
 
-  if(!(ident_tok=declarator(&ty))) {
+  if(!(ident_tok=declarator(&(dspec->ty)))) {
     ErrorAt(token->str, "Invalid function definition.");
   }
 
@@ -1047,14 +1065,16 @@ Node *func(_Bool is_extern) {
     Expect(")");
   }
 
-  current_func=AddFunc(ident_tok, ty, num_args, current_scope->parent->id);
+  current_func=AddFunc(ident_tok, dspec->ty, num_args, current_scope->parent->id);
 
-  if(!is_extern) {
+  if(dspec->sspec == EXTERN) {
+    Expect(";");
+  } else {
     block_node = compound_statement();
   }
   LeaveScope();
 
-  return NewNodeFunc(ident_tok, ty, num_args, block_node);
+  return NewNodeFunc(ident_tok, dspec->ty, num_args, block_node);
 }
 
 Node *statement() {
@@ -1141,8 +1161,7 @@ Node *compound_statement() {
         stmt_list = _stmt_list;
       }
 
-      if(stmt_list[cur] = init_declarator_list(type_specifier())) { // declaration
-       Expect(";");
+      if(stmt_list[cur] = declaration()) { // declaration
        ++cur;
        continue;
       } else { // statement
@@ -1224,10 +1243,10 @@ Node *iteration_statement() {
     EnterScope();
     Expect("(");
     Node *init;
-    if(!(init=init_declarator_list(type_specifier()))) {
+    if(!(init=declaration())) {
       init = expression();
+      Expect(";");
     }
-    Expect(";");
     Node *cond = expression();
     Expect(";");
     Node *next = expression();
@@ -1297,8 +1316,7 @@ Node *struct_declaration() {
   // struct-declarator = declarator  
 
   Node *node;
-  if(node=init_declarator_list(type_specifier())) {
-    Expect(";");
+  if(node=declaration()) {
     return node;
   } else {
     return NULL;
@@ -1359,7 +1377,69 @@ Type *struct_or_union_specifier() {
   }
 }
 
+StorageSpec storage_class_specifier() {
+  // storage-class-specifier = "extern"
+  //                         | "typedef" | "static" | "auto" | "register" ## not implemented
+
+  Token *tok = token;
+  StorageSpec sspec = NOSTORAGESPEC;
+  if(Consume("extern")) {
+    sspec = EXTERN;
+  }
+
+  return sspec;
+}
+
+DeclSpec *declaration_specifiers() {
+  // declaration-specifiers = storage-class-specifier declaration-specifiers*
+  //                         | type-specifier declaration-specifiers*
+  //                         | type-qualifier declaration-specifiers*  ### not implemented
+  //                         | function-specifier declaration-specifiers*  ### not implemented
+
+  Token *tok;
+  DeclSpec *dspec = calloc(1, sizeof(DeclSpec));
+  StorageSpec sspec;
+  Type *ty;
+
+  while(1) {
+    tok = token;
+
+    sspec = storage_class_specifier();
+    if(sspec != NOSTORAGESPEC) {
+      if (dspec->sspec != NOSTORAGESPEC) {
+        ErrorAt(tok->str, "multiple storage classes in declaration specifiers.");
+      }
+      dspec->sspec = sspec;
+      continue;
+    }
+    
+    // currently multiple type specifier is not supported.
+    ty = type_specifier();
+    if(ty) {
+      if (dspec->ty) {
+        ErrorAt(tok->str, "multiple type specifier is not supported.");
+      }
+      dspec->ty = ty;
+      continue;
+    }
+    break;
+  }
+
+  if (!(dspec->ty)) {
+    return NULL;
+  }
+
+  return dspec;
+
+}
+
 Type *type_specifier() {
+  // type-specifier = "void" | "char" | "int" | "_Bool" 
+  //                 | "short" | "long" | "float" | "double" | "signed" | "unsigned"| "_Complex" ## not implemented
+  //                 | struct-or-union-specifier
+  //                 | enum-specifier
+  //                 | typedef-name ## not implemented
+
   Type *ty;
   Token *tok;
   if(ty = struct_or_union_specifier()) {
@@ -1523,6 +1603,8 @@ void evar(Type *ty, Token *tok) {
 }
 
 Type *pointer(Type *orig_ty) {
+  // pointer = "*" type-qualifier-list? pointer?
+
   Type *ty, *tgt_ty;
 
   ty = orig_ty;
@@ -1537,26 +1619,39 @@ Type *pointer(Type *orig_ty) {
 }
 
 Token *declarator(Type **ty) {
+  // declarator = pointer? direct-declarator
+  // direct-declarator = identifier
+  //                     | "(" declarator ")"  ## not implementes
+
   *ty = pointer(*ty);
   return ConsumeIdent();
 }
 
-Node *init_declarator_list(Type *orig_ty) {
+Node *init_declarator_list(DeclSpec *dspec) {
+  // init-declarator-list = (init-declarator-list ",")? init-declarator
+  // init-declarator = declarator ("=" initializer)?  <<< insufficiently implemented
+
   Token *tok;
   Node *node;
-  Type *ty = orig_ty;
-
-  if(!orig_ty) {
-    return NULL;
-  }
+  Type *ty = dspec->ty;
 
   tok = declarator(&ty);
-  node = NewNodeVarInitializer(var_a(ty, tok));
+  if(dspec->sspec == EXTERN) {
+    evar(ty, tok);
+    node = NewNodeDummy();
+  } else {
+    node = NewNodeVarInitializer(var_a(ty, tok));
+  }
 
   while(Consume(",")) {
-    ty = orig_ty;
+    ty = dspec->ty;
     tok = declarator(&ty);
-    AddVarInitializer(node, var_a(ty, tok));
+
+    if(dspec->sspec == EXTERN) {
+      evar(ty, tok);
+    } else {
+      AddVarInitializer(node, var_a(ty, tok));
+    }
   }
 
   return node;
