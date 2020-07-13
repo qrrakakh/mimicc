@@ -838,8 +838,8 @@ StorageSpec storage_class_specifier();
 Type *type_specifier();
 Token *declarator(Type **ty);
 Type *pointer(Type *orig_ty);
-Node *init_declarator(DeclSpec *dspec);
 Node *init_declarator_list(DeclSpec *dspec);
+Node *init_declarator(DeclSpec *dspec);
 
 Node *func();
 void parameter_declaration();

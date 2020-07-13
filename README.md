@@ -165,8 +165,10 @@ conditional-expression = logical-OR-expression
                          | logical-OR-expression "?" expression ":" conditional-expression ## not implemented
 
 constant-expression = conditional-expression
-------------------------------
+```
 
+### Primary expression / constants
+```
 primary-expression = identifier
                      | constant
                      | string-literal
