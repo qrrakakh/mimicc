@@ -323,6 +323,11 @@ void Generate(Node *node) {
     printf("  mov rax,%d\n", GetTypeSize(node->children[0]->ty));
     return;
 
+    case ND_NOT:
+    Generate(node->children[0]);
+    printf("  not eax\n");
+    return;
+
     case ND_PREINC:
     diff = 1;
     if(node->children[0]->ty->kind == TYPE_PTR) {
@@ -561,6 +566,15 @@ void Generate(Node *node) {
       printf("  cqo\n");
       printf("  idiv rdi\n");
       printf("  mov rax, rdx\n");
+      break;
+    case ND_AND:
+      printf("  and rax, rdi\n");
+      break;
+    case ND_XOR:
+      printf("  xor rax, rdi\n");
+      break;
+    case ND_OR:
+      printf("  or rax, rdi\n");
       break;
   }
 }

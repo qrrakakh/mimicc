@@ -498,6 +498,9 @@ Node *NewNodeUnaryOp(NodeKind kind, Node *valnode) {
       }
       node->ty = NULL;
       break;
+    case ND_NOT:
+      node->ty = node->children[0]->ty;
+      break;
   }
   return node;
 }
@@ -525,12 +528,15 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
     case ND_WHILE:
       node->ty = NULL;
     break;
-    // compare operator
+    // binary operator / compare operator
     // support type: INT/INT
     case ND_EQUIV:
     case ND_INEQUIV:
     case ND_LE:
     case ND_LT:
+    case ND_AND:
+    case ND_XOR:
+    case ND_OR:
       if ((!IsArithmeticType(lhs->ty)) ||
           (!IsArithmeticType(rhs->ty)) ||
           (lhs->ty->kind != rhs->ty->kind)) {
@@ -1690,20 +1696,35 @@ Node *assignment_expression() {
 
 Node *and_expression() {
   // AND-expression = equality-expression
-  //                | AND-expression "&" equality-expression ## not implemented
-  return equality_expression();
+  //                | AND-expression "&" equality-expression
+
+  Node *node = equality_expression();
+  if(Consume("&")) {
+    node = NewNodeBinOp(ND_AND, node, and_expression());
+  }
+  return node;
 }
 
 Node *xor_expression() {
   // XOR-expression = AND-expression
-  //                  | XOR-expression "^" AND-expression ## not implemented
-  return and_expression();
+  //                  | XOR-expression "^" AND-expression
+
+  Node *node = and_expression();
+  if(Consume("^")) {
+    node = NewNodeBinOp(ND_XOR, node, xor_expression());
+  }
+  return node;
 }
 
 Node *or_expression() {
   // OR-expression = XOR-expression
-  //                 | OR-expression "|" XOR-expression ## not implemented
-  return xor_expression();
+  //                 | OR-expression "|" XOR-expression
+
+  Node *node = xor_expression();
+  if(Consume("|")) {
+    node = NewNodeBinOp(ND_OR, node, or_expression());
+  }
+  return node;
 }
 
 Node *logical_and_expression() {
@@ -1824,6 +1845,8 @@ Node *unary_expression() {
     return NewNodeUnaryOp(ND_ADDR, cast_expression());
   else if(Consume("*"))
     return NewNodeUnaryOp(ND_DEREF, cast_expression());
+  else if(Consume("~"))
+    return NewNodeUnaryOp(ND_NOT, cast_expression());
   else if(Consume("+"))
     return cast_expression();
   else if(Consume("-"))

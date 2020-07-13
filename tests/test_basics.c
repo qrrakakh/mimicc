@@ -237,6 +237,30 @@ _Bool boolean_test_false() {
   return a;
 }
 
+int and_test() { // 1
+  int x = 1 + 0 + 4;
+  int y = 1 + 2 + 0;
+  return x & y;
+}
+
+int or_test() { // 1+2+4 = 7
+  int x = 1 + 0 + 4;
+  int y = 1 + 2 + 0;
+  return x | y;
+}
+
+int xor_test() { // 0 + 2 + 4 = 6
+  int x = 1 + 0 + 4;
+  int y = 1 + 2 + 0;
+  return x ^ y;
+}
+
+int not_test() { // ((1<<31)-1) - 1 - 4 - (1<<31) = -6
+  int x = 1 + 0 + 4;
+  int y = 1 + 2 + 0;
+  return ~x;
+}
+
 int run_basic_tests() {
   int expected;
   int actual;
@@ -618,6 +642,38 @@ int run_basic_tests() {
   if (actual != expected)
   {
     printf("boolean_test_false faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+ expected=1;
+  actual=and_test();
+  if (actual != expected)
+  {
+    printf("and_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=7;
+  actual=or_test();
+  if (actual != expected)
+  {
+    printf("or_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+ expected=6;
+  actual=xor_test();
+  if (actual != expected)
+  {
+    printf("xor_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=-6;
+  actual=not_test();
+  if (actual != expected)
+  {
+    printf("not_test faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 
