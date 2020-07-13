@@ -847,9 +847,9 @@ void parameter_declaration();
 // Struct
 Type *struct_or_union_specifier();
 void struct_declaration_list();
-Node *struct_declaration();
-// specifier-qualifier-list
-// struct-declarator-list
+_Bool struct_declaration();
+Type *specifier_qualifier_list();
+_Bool struct_declarator_list(Type *orig_ty);
 // struct-declarator
 
 // Enum
@@ -1274,29 +1274,85 @@ Node *jump_statement() {
   }
 }
 
-Node *struct_declaration() {
-  // struct-declaration = specifier-qualifier-list struct-declarator-list ";"
-
-  // *** Following syntax will be implemented when declaration codes are refactored.
+Type *specifier_qualifier_list() {
   // specifier-qualifier-list = type-specifier specifier-qualifier-list*
-  //                           | type-qualifier specifier-qualifier-list*
+  //                           | type-qualifier specifier-qualifier-list*  ## not implemented
+
+  Token *tok;
+  Type *ty=NULL, *_ty;
+
+  while(1) {
+    tok = token;
+
+    // currently multiple type specifier is not supported.
+    _ty = type_specifier();
+    if(_ty) {
+      if (ty) {
+        ErrorAt(tok->str, "multiple type specifier is not supported");
+      }
+      ty = _ty;
+      continue;
+    }
+    break;
+  }
+
+  if (!(ty)) {
+    return NULL;
+  }
+
+  return ty;
+}
+
+_Bool struct_declarator_list(Type *orig_ty) {
   // struct-declarator-list = struct-declarator
   //                         | struct-declarator-list "," struct-declarator
   // struct-declarator = declarator  
 
-  Node *node;
-  if(node=declaration()) {
-    return node;
-  } else {
-    return NULL;
+  Token *tok;
+  Type *ty;
+  int i=0;
+  int alloc_unit = 10;
+  int alloc_size = alloc_unit;
+
+  ty = orig_ty;
+  tok = declarator(&ty);
+  if(tok) {
+    ++i;
+    AddLvar(tok, ty);
   }
+
+  while(Consume(",")) {
+    ty = orig_ty;
+    tok = declarator(&ty);
+    if(tok) {
+      ++i;
+      AddLvar(tok, ty);
+    }
+  }
+
+  return (i>0);
+}
+
+_Bool struct_declaration() {
+  // struct-declaration = specifier-qualifier-list struct-declarator-list ";"
+
+  _Bool is_declared;
+  Type *ty;
+  ty = specifier_qualifier_list();
+  if(!ty) {
+    return 0;
+  }
+  is_declared = struct_declarator_list(ty);
+  Expect(";");
+
+  return is_declared;
 }
 
 void struct_declaration_list() {
   // struct-declaration-list = struct-declaration*  
 
   Node *node;
-  while(node = struct_declaration()) ;
+  while(struct_declaration()) ;
 }
 
 Type *struct_or_union_specifier() {
