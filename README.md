@@ -44,7 +44,7 @@ sturuct-or-union = "struct"
 struct-declaration-list = struct-declaration*
 struct-declaration = specifier-qualifier-list struct-declarator-list ";"
 specifier-qualifier-list = type-specifier specifier-qualifier-list*
-                           | type-qualifier specifier-qualifier-list*
+                           | type-qualifier specifier-qualifier-list* ## not implemented
 struct-declarator-list = struct-declarator
                          | struct-declarator-list "," struct-declarator
 struct-declarator = declarator
