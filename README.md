@@ -5,12 +5,14 @@ https://www.sigbus.info/compilerbook
 
 
 ## BNF
+### Basic structure
 ```
 translation-unit =  external-declaration*
 external-declaration = func | declaration
+```
 
-------------------------------
-
+### Declaration
+```
 declaration = declaration_specifier init_declarator_list? ";"
 declaration-specifiers = storage-class-specifier declaration-specifiers*
                         | type-specifier declaration-specifiers*
@@ -21,18 +23,20 @@ storage-class-specifier = "extern"
 type-specifier  =  "int" | "char" | "void" | "_Bool"
                    | struct-or-union-specifier | enum-specifier
 declarator = pointer? direct-declarator
-direct-declarator = var_a
+direct-declarator = identifier
+                    | identifier "[" integer-constant "]"
 pointer = "*" type-qualifier-list? pointer?
 init-declarator-list = (init-declarator-list ",")? init-declarator
 init-declarator = declarator
 
-func            =  declaration-specifier pointer ident ("(" ( | declare ("," declare){0,5}) ")") (compound_statement | ";")
-declare         =  type-specifier pointer ident
-evar            =  ident ("[" num "]")?
-var_a           =  ident ("[" num "]")? ("=" assign)?
+func  =  declaration-specifiers declarator "(" ( paraneter-type-list ")" (compound_statement | ";")
+parameter-type-list = parameter-list
+parameter-list = (parameter-list ",")? parameter-declaration  
+parameter-declaration = declaration-specifiers declarator
+```
 
-------------------------------
-
+### Struct
+```
 struct-or-union-specifier = struct-or-union identifier? "{" struct-declaration-list "}"
                             | struct-or-union identifier
 sturuct-or-union = "struct"
@@ -44,18 +48,20 @@ specifier-qualifier-list = type-specifier specifier-qualifier-list*
 struct-declarator-list = struct-declarator
                          | struct-declarator-list "," struct-declarator
 struct-declarator = declarator
+```
 
-------------------------------
-
+### Enum
+```
 enum-specifier = "enum" identifier? "{" enumerator-list ","? "}"
                  | "enum" identifier
 enumerator-list = enumerator
                  | enumerator-list "," enumerator
 enumerator = enumeration-constant
              | enumeration-constant "=" constant-expression
+```
 
-------------------------------
-
+### Statements
+```
 statement = labeled-statement
             | compound-statement
             | expression-statement
@@ -85,9 +91,10 @@ jump-statement = "goto" identifier ";" ## not implemented
                  | "continue" ";"
                  | "break" ";"
                  | "return" expression? ";"
+```
 
-------------------------------
-
+### Expression
+```
 expression = assignment-expression
              | expression "," assignment-expression ## not implemented
 
@@ -217,12 +224,9 @@ typer-qualifier-list = type-qualifier-list? type-qualifier
 parameter-type-list = parameter-list
 parameter-list = (parameter-list ",")? parameter-declaration
 parameter-declaration = declaration-specifiers declarator
-                        | declaration-specifiers abstract-declarator?
+                        | declaration-specifiers abstract-declarator? ## not implemented
 
 type-name = specifier-qualifier-list abstract-declarator?
-abstract-declarator = pointer | pointer? direct-abstract-declarator
-direct-abstract-declarator = "(" abstract-declarator ")"
-                             | direct-abstract-declarator? "(" parameter-type-list? ") "
 
 init-declarator-list = (init-declarator-list ",")? init-declarator
 init-declarator = declarator ("=" initializer)?
@@ -386,6 +390,9 @@ type-qualifier = "const" | "restrict" | "volatile" ## not implemented
 function-specifier = "inline" ## not implemented
 initializer-list = designation? initializer
                    | initializer-list "," designation? initializer
+abstract-declarator = pointer | pointer? direct-abstract-declarator
+direct-abstract-declarator = "(" abstract-declarator ")"
+                             | direct-abstract-declarator? "(" parameter-type-list? ") "
 designation = designator-list "="
 designator-list = designator-list? designator
 designator = "[" constant-expression "]" | "." identifier

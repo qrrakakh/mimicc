@@ -116,11 +116,10 @@ typedef enum {  // ABS Node kinds
   ND_LT,        // <
   ND_LE,        // <=
   ND_DUMMY,     // Dummy node, nothing to be compiled.
+  ND_LIST,      // List node
   ND_IDENT,     // identifier
   ND_LVAR,      // Local variable
   ND_GVAR,      // Global variable
-  ND_LVARINIT,  // Local variable initialize
-  ND_GVARINIT,  // Global variable initialize
   ND_ASSIGN,    // =
   ND_RETURN,    // return
   ND_BREAK,     // break

@@ -372,17 +372,9 @@ void Generate(Node *node) {
     printf("  mov rax, rsi\n");
     return;
 
-    case ND_GVARINIT:
-    if(node->children[0] != NULL)
-      Error("Global variable initialization is not supported.");
-    return;
-
-    case ND_LVARINIT:
-    node_cur = node;
-    while(node_cur != NULL) {
-      if(node_cur->children[0])
-        Generate(node_cur->children[0]);
-      node_cur = node_cur->children[1];
+    case ND_LIST:
+    for(int i=0;i<node->num_args;++i) {
+      Generate(node->children[i]);
     }
     return;
 

@@ -457,9 +457,11 @@ Symbol *FindConstSymbol(Token *tok) {
 }
 
 // Generate new node
-Node *NewNodeDummy() {
+Node *NewNodeList(int len, Node **node_list) {
   Node *node = calloc(1, sizeof(Node));
-  node->kind = ND_DUMMY;
+  node->kind = ND_LIST;
+  node->num_args = len;
+  node->children = node_list;
   return node;
 }
 
@@ -661,43 +663,6 @@ Node *NewNodeIdent(Token *tok) {
   return node;
 }
 
-Node *NewNodeVarInitializer(Node *var_node) {
-  Node *node = calloc(1, sizeof(Node));
-  if(current_scope->id==0)
-    node->kind = ND_GVARINIT;
-  else
-    node->kind = ND_LVARINIT;
-  node->children = calloc(2, sizeof(Node*));
-  node->children[0] = var_node;
-  node->children[1] =  NULL;
-  node->ty = NULL;
-  return node;
-}
-
-void AddVarInitializer(Node *init_node, Node *var_node) {
-  while(init_node->children[1]) {
-    init_node = init_node->children[1];
-  }
-  if(current_scope->id==0) {
-    if(init_node->kind != ND_GVARINIT) {
-      Error("Invalid node is passed for GVar init.");
-    }
-
-    if(var_node!=NULL) {
-      init_node->children[1] = NewNodeVarInitializer(var_node);
-    }
-  } else {
-    if(init_node->kind != ND_LVARINIT) {
-      Error("Invalid node is passed for LVar init.");
-    }
-
-    if(var_node!=NULL) {
-      init_node->children[1] = NewNodeVarInitializer(var_node);
-    }
-
-  }
-}
-
 Node *NewNodeLvar(Token *tok) {
   Node *node = calloc(1, sizeof(Node));
   Symbol *symbol;
@@ -873,12 +838,11 @@ StorageSpec storage_class_specifier();
 Type *type_specifier();
 Token *declarator(Type **ty);
 Type *pointer(Type *orig_ty);
+Node *init_declarator(DeclSpec *dspec);
 Node *init_declarator_list(DeclSpec *dspec);
 
 Node *func();
-Node *declare();
-void evar(Type *_ty, Token *tok);
-Node *var_a(Type *_ty, Token *tok);
+void parameter_declaration();
 
 // Struct
 Type *struct_or_union_specifier();
@@ -950,8 +914,7 @@ void translation_unit() {
   // translation-unit =  external-declaration*
   // external-declaration = func compound_statement
   //                      | declaration ";"
-  //                      | "extern" declare_e "; | "extern" func ";"
-
+  
   int i=0;
   int alloc_unit = 10;
   int alloc_size = alloc_unit;
@@ -1030,9 +993,13 @@ Node *declaration() {
 }
 
 Node *func() {
+  // func  =  declaration-specifiers declarator "(" ( paraneter-type-list ")" (compound_statement | ";")
+  // parameter-type-list = parameter-list
+  // parameter-list = (parameter-list ",")? parameter-declaration  
+
   Token *tok = token, *ident_tok;
   DeclSpec *dspec;
-  Node *arg[6], *block_node = NULL;
+  Node *block_node = NULL;
   int num_args;
 
   dspec=declaration_specifiers();
@@ -1054,10 +1021,12 @@ Node *func() {
   Expect("(");
   num_args = 0;
   if(!Consume(")")) {
-    arg[num_args++] = declare();
+    parameter_declaration();
+    ++num_args;
     while(num_args<=6) {
       if(Consume(",")) {
-        arg[num_args++] = declare();
+        parameter_declaration();
+        ++num_args;
       } else {
         break;
       }
@@ -1520,86 +1489,18 @@ int enumerator(int id, int my_val) {
   return my_val;
 }
 
-Node *declare() {
+void parameter_declaration() {
+  // parameter-declaration = declaration-specifiers declarator
+
+  DeclSpec *dspec;
   Token *tok;
-  Type *ty, *tgt_ty;
-  if(!(ty = type_specifier()))
-    return NULL;
-
-  if(!(tok = declarator(&ty)))
-    return NULL;
-
-  AddLvar(tok, ty);
-
-  return NULL;
-}
-
-Node *var_a(Type *ty, Token *ident_tok) {
-  Token *tok;
-  Node *assign_node;
-  size_t size;
-
-  if(!(ident_tok))
-    return NULL;
-  if (Consume("[")) {
-    tok = token;
-    size = ExpectNumber();
-    if(size<1) {
-      ErrorAt(tok->str, "Array whose length less than 1 is invalid.");
-    }
-    ty = InitArrayType(ty, size);
-    Expect("]");
-  }
-
-  if (current_scope->id==0) {
-    AddGVar(ident_tok, ty, 0);
-  } else {
-    AddLvar(ident_tok, ty);
-  }
-
-  if (Consume("=")) {
-    assign_node = NewNodeBinOp(ND_ASSIGN, NewNodeLvar(ident_tok), assignment_expression());
-  } else {
-    assign_node = NULL;
-  }
-
-  return assign_node;
-}
-
-void declare_e() {
-  Token *tok;
-  Type *ty, *tgt_ty, *orig_ty;
-  Node *node;
-
-  if(!(orig_ty = type_specifier()))
+  if(!(dspec = declaration_specifiers()))
     return;
 
-  ty = orig_ty;
-  tok = declarator(&ty);
-  evar(ty, tok);
-
-  while(Consume(",")) {
-    ty = orig_ty;
-    evar(ty, declarator(&ty));
-  }
-}
-
-void evar(Type *ty, Token *tok) {
-  Node *node, *init_node;
-  size_t size;
-
-  if(!(tok))
+  if(!(tok = declarator(&(dspec->ty))))
     return;
-  if (Consume("[")) {
-    size = ExpectNumber();
-    if(size<1) {
-      ErrorAt(token->str, "Array whose length less than 1 is invalid.");
-    }
-    ty = InitArrayType(ty, size);
-    Expect("]");
-  }
 
-  AddGVar(tok, ty, 1);
+  AddLvar(tok, dspec->ty);
 }
 
 Type *pointer(Type *orig_ty) {
@@ -1621,40 +1522,86 @@ Type *pointer(Type *orig_ty) {
 Token *declarator(Type **ty) {
   // declarator = pointer? direct-declarator
   // direct-declarator = identifier
+  //                     | identifier "[" integer-constant "]"
   //                     | "(" declarator ")"  ## not implementes
 
+  Token *tok, *ident_tok;
+  int size;
   *ty = pointer(*ty);
-  return ConsumeIdent();
+  ident_tok = ConsumeIdent();
+
+  if (Consume("[")) {
+    tok = token;
+    size = ExpectNumber();
+    if(size<1) {
+      ErrorAt(tok->str, "Array whose length less than 1 is invalid.");
+    }
+    *ty = InitArrayType(*ty, size);
+    Expect("]");
+  }
+
+  return ident_tok;
+}
+
+Node *init_declarator(DeclSpec *dspec) {
+  // init-declarator = declarator ("=" initializer)?  <<< insufficiently implemented
+
+  Node *node;
+  Token *tok;
+  Type *ty = dspec->ty;
+  tok = declarator(&ty);
+  if(!tok) {
+    return NULL;
+  }
+
+  if(dspec->sspec == EXTERN) {
+    AddGVar(tok, ty, 1);
+    node = NULL;
+  } else {
+    if (current_scope->id==0) {
+      AddGVar(tok, ty, 0);
+      node = NULL;
+    } else {
+      AddLvar(tok, ty);
+      if (Consume("=")) {
+        node = NewNodeBinOp(ND_ASSIGN, NewNodeLvar(tok), assignment_expression());
+      } else {
+        node = NULL;
+      }
+    }
+
+  }
+  return node;
 }
 
 Node *init_declarator_list(DeclSpec *dspec) {
   // init-declarator-list = (init-declarator-list ",")? init-declarator
-  // init-declarator = declarator ("=" initializer)?  <<< insufficiently implemented
 
-  Token *tok;
-  Node *node;
+  Node **node_list;
   Type *ty = dspec->ty;
+  int i=0;
+  int alloc_unit = 10;
+  int alloc_size = alloc_unit;
 
-  tok = declarator(&ty);
-  if(dspec->sspec == EXTERN) {
-    evar(ty, tok);
-    node = NewNodeDummy();
-  } else {
-    node = NewNodeVarInitializer(var_a(ty, tok));
-  }
+  node_list = calloc(alloc_size, sizeof(Node*));
+
+  node_list[i] = init_declarator(dspec);
+  if(node_list[i]) ++i;
 
   while(Consume(",")) {
-    ty = dspec->ty;
-    tok = declarator(&ty);
-
-    if(dspec->sspec == EXTERN) {
-      evar(ty, tok);
-    } else {
-      AddVarInitializer(node, var_a(ty, tok));
+    if(i>=alloc_size-1) {
+      alloc_size += alloc_unit;
+      Node **_node_list = realloc(codes, sizeof(Node*)*alloc_size);
+      if(_node_list == NULL) {
+        Error("Memory allocation failure.");
+      }
+      node_list = _node_list;
     }
+    node_list[i] = init_declarator(dspec);
+    if(node_list[i]) ++i;
   }
 
-  return node;
+  return NewNodeList(i, node_list);
 }
 
 Node *expression() {
