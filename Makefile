@@ -1,4 +1,4 @@
-CFLAGS=-std=c11 -g -static
+CFLAGS=-std=c11 -g -static -Wall -Wno-switch
 SRCS=codegen.c container.c main.c parse.c lex.c
 OBJS=$(SRCS:.c=.o)
 

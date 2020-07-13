@@ -124,7 +124,7 @@ Token *Tokenize(char *p) {
 
     // reserved keywords
     for(int i=0;i<num_reserved_keywords;++i) {
-      if(tok=NewReservedToken(reserved_keywords[i], cur, &p)) {
+      if((tok=NewReservedToken(reserved_keywords[i], cur, &p))) {
         break;
       }
     }

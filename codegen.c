@@ -21,6 +21,9 @@ int GetTypeSize(Type *ty) {
     return ty->array_size * GetTypeSize(ty->ptr_to);
   } else if(ty->kind == TYPE_STRUCT) {
     return FindStructById(ty->id)->size;
+  } else {
+    Error("Unexpected type is input.");
+    return -1;
   }
 }
 
@@ -31,6 +34,9 @@ int GetSizeVar(Type *ty) {
     return 4;
   } else if(ty->kind == TYPE_PTR || ty->kind == TYPE_ARRAY) {
     return 8;
+  } else {
+    Error("Unexpected type is input.");
+    return -1;
   }
 }
 
@@ -49,6 +55,7 @@ int GetStructMemberOffset(int struct_id, int member_id) {
     }
   }
   Error("Member not found.");
+  return -1;
 }
 
 // Code generator

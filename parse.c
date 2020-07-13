@@ -62,7 +62,7 @@ Token *ConsumeTypeStr() {
   if(token->kind != TK_RESERVED)
     return NULL;
   for(int i=0;i<num_builtin_types;++i) {
-    if(tok=Consume(builtin_type_names[i]))
+    if((tok=Consume(builtin_type_names[i])))
       return tok;
   }
   return NULL;
@@ -918,10 +918,6 @@ void translation_unit() {
   int i=0;
   int alloc_unit = 10;
   int alloc_size = alloc_unit;
-  StorageSpec sspec;
-
-  Node *node;
-  Type *ty, *tgt_ty;
 
   globals = calloc(1, sizeof(Symbol)); 
   globals->next = NULL;
@@ -1056,15 +1052,15 @@ Node *statement() {
 
   Node *node;
 
-  if (node=labeled_statement()) {
+  if ((node=labeled_statement())) {
     return node;
-  } else if (node=compound_statement()) {
+  } else if ((node=compound_statement())) {
     return node;
-  } else if(node=selection_statement()) {
+  } else if((node=selection_statement())) {
     return node;
-  } else if(node=iteration_statement()) {
+  } else if((node=iteration_statement())) {
     return node;
-  } else if(node=jump_statement()) {
+  } else if((node=jump_statement())) {
     return node;
   } else {
     return expression_statement();
@@ -1079,7 +1075,7 @@ Node *labeled_statement() {
   Token *tok;
   Node *node;
 
-  if(tok = Consume("case")) {
+  if((tok = Consume("case"))) {
     if (current_switch==NULL)
       ErrorAt(tok->str, "Invalid case use in non-switch statement.");
     tok = token;
@@ -1093,7 +1089,7 @@ Node *labeled_statement() {
     Node *case_node = NewNodeSwCase(cond, current_switch->children[1], label_id);
     current_switch->children[1] = case_node;
     return node;
-  } else if(tok = Consume("default")) {
+  } else if((tok = Consume("default"))) {
     Expect(":");
     node = NewNodeSwLabel(0);
     current_switch->num_args = 0;
@@ -1107,9 +1103,6 @@ Node *compound_statement() {
   // compound-statement = "{" block-item-list? "}"
   // block-item-list = block-item-list? block-item
   // block-item = declaration | statement
-
-  Token *tok;
-  Type *ty;
 
   if(Consume("{")) {
     Node **stmt_list;
@@ -1130,7 +1123,7 @@ Node *compound_statement() {
         stmt_list = _stmt_list;
       }
 
-      if(stmt_list[cur] = declaration()) { // declaration
+      if((stmt_list[cur] = declaration())) { // declaration
        ++cur;
        continue;
       } else { // statement
@@ -1163,17 +1156,17 @@ Node *selection_statement() {
   Token *tok;
   Node *node;
 
-  if(tok = Consume("if")) {
+  if((tok = Consume("if"))) {
     Expect("(");
     Node *cond = expression();
     Expect(")");
     Node *stmt1 = statement();
     Node *stmt2 = NULL;
-    if (tok = Consume("else")) {
+    if ((tok = Consume("else"))) {
       stmt2 = statement();
     }
     return NewNodeIf(cond, stmt1, stmt2);
-  } else if(tok = Consume("switch")) {
+  } else if((tok = Consume("switch"))) {
     Expect("(");
     Node *cond = expression();
     Expect(")");
@@ -1200,7 +1193,7 @@ Node *iteration_statement() {
   Token *tok;
   Node *node;
 
-  if(tok = Consume("while")) {
+  if((tok = Consume("while"))) {
     Expect("(");
     Node *cond = expression();
     Expect(")");
@@ -1208,7 +1201,7 @@ Node *iteration_statement() {
     node = NewNodeBinOp(ND_WHILE, cond, statement());
     --ctrl_depth;
     return node;
-  } else if(tok = Consume("for")) {
+  } else if((tok = Consume("for"))) {
     EnterScope();
     Expect("(");
     Node *init;
@@ -1239,7 +1232,7 @@ Node *jump_statement() {
   Token *tok;
   Node *node;
 
-  if (tok = Consume("return")) {
+  if ((tok = Consume("return"))) {
     if(!current_func)
       ErrorAt(tok->str, "Returned outside of function.");
     if (current_func->symbol->ty->kind == TYPE_VOID) {
@@ -1251,7 +1244,7 @@ Node *jump_statement() {
         Expect(";");
       }
     } else {
-      if(tok = Consume(";")) {
+      if((tok = Consume(";"))) {
         ErrorAt(tok->str, "Returned without a value in non-void function.");
       } else {
         node = NewNodeUnaryOp(ND_RETURN, expression());
@@ -1259,12 +1252,12 @@ Node *jump_statement() {
       }
     }
     return node;
-  } else if(tok=Consume("break")) {
+  } else if((tok=Consume("break"))) {
     Expect(";");
     if(ctrl_depth < 1)
       ErrorAt(tok->str, "break is used in non-control syntax.");
     return NewNodeControl(ND_BREAK);
-  } else if(tok=Consume("continue")) {
+  } else if((tok=Consume("continue"))) {
     Expect(";");
     if(ctrl_depth < 1)
       ErrorAt(tok->str, "continue is used in non-control syntax.");
@@ -1311,8 +1304,6 @@ _Bool struct_declarator_list(Type *orig_ty) {
   Token *tok;
   Type *ty;
   int i=0;
-  int alloc_unit = 10;
-  int alloc_size = alloc_unit;
 
   ty = orig_ty;
   tok = declarator(&ty);
@@ -1351,7 +1342,6 @@ _Bool struct_declaration() {
 void struct_declaration_list() {
   // struct-declaration-list = struct-declaration*  
 
-  Node *node;
   while(struct_declaration()) ;
 }
 
@@ -1360,8 +1350,7 @@ Type *struct_or_union_specifier() {
   //                           | struct-or-union identifier
 
   Token *tok, *ident_tok;
-  Symbol *_locals, *struct_symbol;
-  Node *node;
+  Symbol *_locals;
   Struct *s;
   Type *ty;
 
@@ -1397,16 +1386,14 @@ Type *struct_or_union_specifier() {
     ErrorAt(token->str, "identifier expected.");
   } else if (!(s = FindStruct(ident_tok, 1))) {
     ErrorAt(ident_tok->str, "struct is not declared.");
-  } else {
-    return s->ty;
   }
+  return s->ty;
 }
 
 StorageSpec storage_class_specifier() {
   // storage-class-specifier = "extern"
   //                         | "typedef" | "static" | "auto" | "register" ## not implemented
 
-  Token *tok = token;
   StorageSpec sspec = NOSTORAGESPEC;
   if(Consume("extern")) {
     sspec = EXTERN;
@@ -1467,9 +1454,9 @@ Type *type_specifier() {
 
   Type *ty;
   Token *tok;
-  if(ty = struct_or_union_specifier()) {
+  if((ty = struct_or_union_specifier())) {
     return ty;
-  } else if(ty = enum_specifier()) {
+  } else if((ty = enum_specifier())) {
     return ty;
   } else if(!(tok = ConsumeTypeStr())) {
     return NULL;
@@ -1491,7 +1478,6 @@ Type *enum_specifier() {
   Token *tok, *ident_tok;
   Enum *e;
   Type *ty;
-  int id;
   if (!(tok=Consume("enum"))) {
     return NULL;
   }
@@ -1504,7 +1490,7 @@ Type *enum_specifier() {
     }
     ty = e->ty;
 
-    enumerator_list(id);
+    enumerator_list(e->id);
     Consume(",");
     Expect("}");
 
@@ -1513,9 +1499,8 @@ Type *enum_specifier() {
     ErrorAt(token->str, "identifier expected.");
   } else if (!(e = FindEnum(ident_tok, 1))) {
     ErrorAt(ident_tok->str, "enum is not declared.");
-  } else {
-    return e->ty;
   }
+  return e->ty;
 }
 
 void enumerator_list(int id) {
@@ -1634,7 +1619,6 @@ Node *init_declarator_list(DeclSpec *dspec) {
   // init-declarator-list = (init-declarator-list ",")? init-declarator
 
   Node **node_list;
-  Type *ty = dspec->ty;
   int i=0;
   int alloc_unit = 10;
   int alloc_size = alloc_unit;
@@ -1868,7 +1852,7 @@ Node *postfix_expression() {
   //                    | postfix-expression "++"
   //                    | postfix-expression "--"
   //                    | "(" type-name ")" "{" initializer-list ","? "}" ## not implemented
-  Node *node = primary_expression(), *_node, *subscript, *arg[6];
+  Node *node = primary_expression(), *subscript, *arg[6];
   size_t num_args;
 
   while(1) {
@@ -1927,10 +1911,10 @@ Node *primary_expression() {
     node = expression();
     Expect(")");
     return node;
-  } else if(node=constant()) { // constant
+  } else if((node=constant())) { // constant
   // evaluate earlier than identifier so that enum const must be parsed as a constant.
     return node;
-  } else if(node=string_literal()) { // string-literal
+  } else if((node=string_literal())) { // string-literal
     return node;
   } else {  // identifier
     return identifier();
@@ -1939,7 +1923,7 @@ Node *primary_expression() {
 
 Node *identifier() {
   Token *tok;
-  if (tok=ConsumeIdent()) {
+  if ((tok=ConsumeIdent())) {
     return NewNodeIdent(tok);
   } else {
     return NULL;
@@ -1953,9 +1937,9 @@ Node *constant() {
   //           | character-constant
   
   Node *node;
-  if (node=integer_constant()) { // integer_constant
+  if ((node=integer_constant())) { // integer_constant
     return node;
-  } else if(node=enumeration_constant(0)) {
+  } else if((node=enumeration_constant(0))) {
     return node;
   } else { // character-constant
     return character_constant();
@@ -1982,7 +1966,7 @@ Node *enumeration_constant(_Bool is_declare) {
     return NULL;
   } else if(is_declare) {
     return NewNodeIdent(tok);
-  } else if(node = NewNodeConstInt(tok)) {
+  } else if((node = NewNodeConstInt(tok))) {
     return node;
   } else {
     token = _tok;
@@ -2013,7 +1997,7 @@ Node *string_literal() {
   // currently s-char-sequence is parsed by lexer.
 
   Token *tok;
-  if (tok = ConsumeStrings()) {
+  if ((tok = ConsumeStrings())) {
     return NewNodeStrings(tok);
   } else {
     return NULL;
