@@ -143,7 +143,7 @@ Token *Tokenize(char *p) {
     // punctuators
     // Todo: implement
     // !, 
-    // <<, >>, &&, ||, 
+    // &&, ||, 
     // ?, ..., 
     // <<=, >>=
     // #, ##,
@@ -152,6 +152,16 @@ Token *Tokenize(char *p) {
     // two chars punctuator
     if (strlen(p) >= 2) {
       if( (*p == '<' || *p == '>'  || *p == '='  || *p == '!' || *p == '&'  || *p == '|'  || *p == '^' ) && *(p+1) == '=') {
+        cur = NewToken(TK_RESERVED, cur, p, 2);
+        p+=2;
+        continue;
+      }
+      if( (*p == '<') && *(p+1) == '<') {
+        cur = NewToken(TK_RESERVED, cur, p, 2);
+        p+=2;
+        continue;
+      }
+      if( (*p == '>') && *(p+1) == '>') {
         cur = NewToken(TK_RESERVED, cur, p, 2);
         p+=2;
         continue;

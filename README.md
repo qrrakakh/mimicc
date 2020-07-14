@@ -138,8 +138,8 @@ multiplicative-expression = cast-expression
                             | multiplicative-expression "%" cast-expression
 
 shift-expression = additive-expression
-                   | shift-expression "<<" additive-expression ## not implemented
-                   | shift-expression ">>" additive-expression ## not implemented
+                   | shift-expression "<<" additive-expression
+                   | shift-expression ">>" additive-expression
 
 relational-expression = shift-expression
                         | relational-expression "<" shift-expression

@@ -576,5 +576,13 @@ void Generate(Node *node) {
     case ND_OR:
       printf("  or rax, rdi\n");
       break;
+    case ND_LSHIFT:
+      printf("  mov rcx, rdi\n");
+      printf("  sal rax, cl\n");
+      break;
+    case ND_RSHIFT:
+      printf("  mov rcx, rdi\n");
+      printf("  sar rax, cl\n");
+      break;
   }
 }

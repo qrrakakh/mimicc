@@ -537,6 +537,8 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
     case ND_AND:
     case ND_XOR:
     case ND_OR:
+    case ND_LSHIFT:
+    case ND_RSHIFT:
       if ((!IsArithmeticType(lhs->ty)) ||
           (!IsArithmeticType(rhs->ty)) ||
           (lhs->ty->kind != rhs->ty->kind)) {
@@ -1779,9 +1781,16 @@ Node *equality_expression() {
 
 Node *shift_expression() {
   // shift-expression = additive-expression
-  //                    | shift-expression "<<" additive-expression ## not implemented
-  //                    | shift-expression ">>" additive-expression ## not implemented  
-  return additive_expression();
+  //                    | shift-expression "<<" additive-expression
+  //                    | shift-expression ">>" additive-expression
+
+  Node *node = additive_expression();
+  if (Consume("<<")) {
+    node = NewNodeBinOp(ND_LSHIFT, node, shift_expression());
+  } else if (Consume(">>")) {
+    node = NewNodeBinOp(ND_RSHIFT, node, shift_expression());
+  }
+  return node;
 }
 
 Node *relational_expression() {
@@ -1828,7 +1837,6 @@ Node *multiplicative_expression() {
   //                           | multiplicative-expression "/" cast-expression
   //                           | multiplicative-expression "%" cast-expression
   Node *node = cast_expression();
-
   for(;;) {
     if(Consume("*"))
       node = NewNodeBinOp(ND_MUL, node, cast_expression());
