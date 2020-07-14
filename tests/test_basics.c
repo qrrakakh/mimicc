@@ -255,6 +255,27 @@ int xor_test() { // 0 + 2 + 4 = 6
   return x ^ y;
 }
 
+int and_test2() { // 1
+  int x = 1 + 0 + 4;
+  int y = 1 + 2 + 0;
+  x &= y;
+  return x;
+}
+
+int or_test2() { // 1+2+4 = 7
+  int x = 1 + 0 + 4;
+  int y = 1 + 2 + 0;
+  x |= y;
+  return x;
+}
+
+int xor_test2() { // 0 + 2 + 4 = 6
+  int x = 1 + 0 + 4;
+  int y = 1 + 2 + 0;
+  x ^= y;
+  return x;
+}
+
 int not_test() { // ((1<<31)-1) - 1 - 4 - (1<<31) = -6
   int x = 1 + 0 + 4;
   int y = 1 + 2 + 0;
@@ -645,7 +666,7 @@ int run_basic_tests() {
     return 1;
   }
 
- expected=1;
+  expected=1;
   actual=and_test();
   if (actual != expected)
   {
@@ -666,6 +687,30 @@ int run_basic_tests() {
   if (actual != expected)
   {
     printf("xor_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=1;
+  actual=and_test2();
+  if (actual != expected)
+  {
+    printf("and_test2 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=7;
+  actual=or_test2();
+  if (actual != expected)
+  {
+    printf("or_test2 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+ expected=6;
+  actual=xor_test2();
+  if (actual != expected)
+  {
+    printf("xor_test2 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 

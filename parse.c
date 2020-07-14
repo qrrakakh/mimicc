@@ -1660,7 +1660,8 @@ Node *assignment_expression() {
   // assignment-expression = conditional-expression
   //                       | unary-expression assignment-operator assignment-expression
   // assignment-operator = "=" | "*=" | "/=" | "%=" | "+=" | "-="
-  //                     | "<<=" | ">>=" | "&=" | "^=" | "|=" ## not implemented
+  //                     | "&=" | "^=" | "|="
+  //                     | "<<=" | ">>="  ## not implemented
   Token *tok = token;
   Node *node;
   
@@ -1688,6 +1689,15 @@ Node *assignment_expression() {
     } else if(Consume("\%=")) {
       RequiresLval(node, tok->str);
       node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_MOD, node, assignment_expression()));
+    } else if(Consume("&=")) {
+      RequiresLval(node, tok->str);
+      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_AND, node, assignment_expression()));
+    } else if(Consume("|=")) {
+      RequiresLval(node, tok->str);
+      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_OR, node, assignment_expression()));
+    } else if(Consume("^=")) {
+      RequiresLval(node, tok->str);
+      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_XOR, node, assignment_expression()));
     } else {  // conditional-expression (including unary-expression without assignment)
       return node;
     }
