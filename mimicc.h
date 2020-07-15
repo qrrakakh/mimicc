@@ -68,7 +68,6 @@ struct Symbol {  // defined variables
   char *name;
   int len;
   int id;
-  int struct_id;
   int scope_id;
   int offset_bytes;
   int val;

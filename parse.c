@@ -165,9 +165,6 @@ Symbol *AddLvar(Token *tok, Type *ty) {
   symbol->scope_id = current_scope->id;
   symbol->id = ++last_symbol_id;
   
-  if (ty->kind == TYPE_STRUCT) {
-    symbol->struct_id = ty->id;
-  }
 
   return symbol;
 }
@@ -214,10 +211,6 @@ Symbol *AddGVar(Token *tok, Type *ty, _Bool is_extern) {
   }
 
   symbol->id = ++last_symbol_id;
-
-  if (ty->kind == TYPE_STRUCT) {
-    symbol->struct_id = ty->id;
-  }
 
   return symbol;
 }
@@ -335,7 +328,6 @@ Symbol *AddEnumConst(int id, int val, Token *tok) {
   s->ty = ty;
   s->id = ++last_symbol_id;
   s->scope_id = current_scope->id;
-  s->struct_id = id;
   s->val = val;
 
   return s;
