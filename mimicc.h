@@ -57,6 +57,7 @@ typedef enum {
   SY_VAR,       // variable
   SY_FUNC,      // function
   SY_ENUMCONST, // enum const
+  SY_TYPEDEF,   // typedef
 } SymbolKind;
 
 typedef struct Symbol Symbol;

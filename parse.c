@@ -190,6 +190,33 @@ Symbol *FindVarById(int id, Symbol *head) {
   return NULL;
 }
 
+void AddTypeDef(Token *tok, Type *ty) {
+  Symbol *symbol;
+
+  symbol = calloc(1, sizeof(Symbol));
+  if(current_scope->id==0) {
+    if(IsSymbolDefinedInScope(tok, globals, current_scope->id)) {
+      ErrorAt(tok->str, "Already declared symbol is used in typedef.");
+    }
+    symbol->next = globals; symbol->prev = NULL;
+    globals->prev = symbol; globals = symbol;
+  } else {
+    if(IsSymbolDefinedInScope(tok, locals, current_scope->id)) {
+      ErrorAt(tok->str, "Already declared symbol is used in typedef.");
+    }
+    symbol->next = locals; symbol->prev = NULL;
+    locals->prev = symbol; locals = symbol;
+  }
+  
+  symbol->kind = SY_TYPEDEF;
+  symbol->name = tok->str;
+  symbol->len = tok->len;
+  symbol->ty = ty;
+  symbol->scope_id = current_scope->id;
+
+  symbol->id = ++last_symbol_id;
+}
+
 Symbol *AddGVar(Token *tok, Type *ty, _Bool is_extern) {
   Symbol *symbol;
   if(IsSymbolDefinedInScope(tok, globals, current_scope->id)) {
@@ -834,6 +861,7 @@ void translation_unit();
 // Declaration
 Node *declaration();
 DeclSpec *declaration_specifiers();
+Type *_typedef_name();
 StorageSpec storage_class_specifier();
 Type *type_specifier();
 Token *declarator(Type **ty);
@@ -1391,12 +1419,14 @@ Type *struct_or_union_specifier() {
 }
 
 StorageSpec storage_class_specifier() {
-  // storage-class-specifier = "extern"
-  //                         | "typedef" | "static" | "auto" | "register" ## not implemented
+  // storage-class-specifier = "extern" | "typedef" 
+  //                         | "static" | "auto" | "register" ## not implemented
 
   StorageSpec sspec = NOSTORAGESPEC;
   if(Consume("extern")) {
     sspec = EXTERN;
+  } else if(Consume("typedef")) {
+    sspec = TYPEDEF;
   }
 
   return sspec;
@@ -1445,18 +1475,48 @@ DeclSpec *declaration_specifiers() {
 
 }
 
+Type *_typedef_name() {
+  Token *tok, *_tok;
+
+  _tok = token;
+  if(!(tok=ConsumeIdent())) {
+    return NULL;
+  }
+
+  Symbol *symbol;
+  for(symbol=locals;symbol;symbol=symbol->next) {
+    if(symbol->kind != SY_TYPEDEF) continue;
+    if(symbol->len == tok->len && !memcmp(symbol->name, tok->str, symbol->len)) {
+      if(IsParentOfScopeId(symbol->scope_id, current_scope))
+        return symbol->ty;
+    }
+  }
+
+  for(symbol=globals;symbol;symbol=symbol->next) {
+    if(symbol->kind != SY_TYPEDEF) continue;
+    if(symbol->len == tok->len && !memcmp(symbol->name, tok->str, symbol->len)) {
+      return symbol->ty;
+    }
+  }
+
+  token = _tok;
+  return NULL;
+}
+
 Type *type_specifier() {
   // type-specifier = "void" | "char" | "int" | "_Bool" 
   //                 | "short" | "long" | "float" | "double" | "signed" | "unsigned"| "_Complex" ## not implemented
   //                 | struct-or-union-specifier
   //                 | enum-specifier
-  //                 | typedef-name ## not implemented
+  //                 | typedef-name
 
   Type *ty;
   Token *tok;
   if((ty = struct_or_union_specifier())) {
     return ty;
   } else if((ty = enum_specifier())) {
+    return ty;
+  } else if((ty = _typedef_name())) {
     return ty;
   } else if(!(tok = ConsumeTypeStr())) {
     return NULL;
@@ -1597,6 +1657,9 @@ Node *init_declarator(DeclSpec *dspec) {
 
   if(dspec->sspec == EXTERN) {
     AddGVar(tok, ty, 1);
+    node = NULL;
+  } else if(dspec->sspec == TYPEDEF) {
+    AddTypeDef(tok, ty);
     node = NULL;
   } else {
     if (current_scope->id==0) {

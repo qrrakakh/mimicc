@@ -18,8 +18,8 @@ declaration-specifiers = storage-class-specifier declaration-specifiers*
                         | type-specifier declaration-specifiers*
                         | type-qualifier declaration-specifiers*  ### not implemented
                         | function-specifier declaration-specifiers*  ### not implemented
-storage-class-specifier = "extern"
-                          | "typedef" | "static" | "auto" | "register" ## not implemented
+storage-class-specifier = "extern" | "typedef"
+                          | "static" | "auto" | "register" ## not implemented
 type-specifier  =  "int" | "char" | "void" | "_Bool"
                    | struct-or-union-specifier | enum-specifier
 declarator = pointer? direct-declarator
@@ -193,6 +193,8 @@ s-char-sequence = s-char-sequence? c-char  ## currently resticted that c-char is
 ## Known issues
 * External function declarement does not care its type or types of arguments.
 * Struct for function argument is not suuported (struct pointer can be an argument.)
+* Struct without tag or without definition is not supported.
+* `typedef` for struct without declaration is not supported.
 * Neverthless the function is static or or defined externally, the code calculate the address of the function dynamically when it is called.
   * Will be implemented when `static` is supported.
 
@@ -218,7 +220,7 @@ type-specifier = "void" | "char" | "int" | "_Bool"
                  | "short" | "long" | "float" | "double" | "signed" | "unsigned"| "_Complex" ## not implemented
                  | struct-or-union-specifier
                  | enum-specifier
-                 | typedef-name ## not implemented
+                 | typedef-name
 declarator = pointer? direct-declarator
 direct-declarator = identifier
                     | "(" declarator ")"  ## not implementes
