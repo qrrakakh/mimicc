@@ -8,7 +8,7 @@ mimicc: $(OBJS)
 $(OBJS): mimicc.h
 
 test: mimicc
-	./test.sh
+	./tests/test.sh
 
 clean:
 	rm -f mimicc *.o *~ tmp*
