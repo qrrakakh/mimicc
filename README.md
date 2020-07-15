@@ -193,8 +193,6 @@ s-char-sequence = s-char-sequence? c-char  ## currently resticted that c-char is
 ## Known issues
 * External function declarement does not care its type or types of arguments.
 * Struct for function argument is not suuported (struct pointer can be an argument.)
-* Struct without tag or without definition is not supported.
-* `typedef` for struct without declaration is not supported.
 * Neverthless the function is static or or defined externally, the code calculate the address of the function dynamically when it is called.
   * Will be implemented when `static` is supported.
 

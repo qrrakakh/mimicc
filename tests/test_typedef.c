@@ -14,11 +14,11 @@ typedef struct {
   int y;
 } St2Type;
 
-// typedef struct st3 St3Type;
+typedef struct st3 St3Type;
 
-// struct st3 {
-//   int z;
-// };
+struct st3 {
+  int z;
+};
 
 int int_typedef_test() {
   IntType x = 1;
@@ -58,11 +58,11 @@ int st2_test() {
   return s.y;
 }
 
-// int st3_test() {
-//   St3Type s;
-//   s.z = 1;
-//   return s.z;
-// }
+int st3_test() {
+  St3Type s;
+  s.z = 1;
+  return s.z;
+}
 
 int run_typedef_tests() {
   int expected;
@@ -116,13 +116,13 @@ int run_typedef_tests() {
     return 1;
   }
 
-  // expected=1;
-  // actual=st3_test();
-  // if (actual != expected)
-  // {
-  //   printf("st3_test faild, %d expected, but got %d\n", expected, actual);
-  //   return 1;
-  // }
+  expected=1;
+  actual=st3_test();
+  if (actual != expected)
+  {
+    printf("st3_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
 
   return 0;
 }

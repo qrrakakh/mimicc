@@ -81,6 +81,7 @@ struct Func {  // defined variables
   Func *next;
   Symbol *symbol;
   int num_args;
+  _Bool is_defined;
 };
 
 typedef enum {  // Token definition
@@ -175,14 +176,14 @@ struct Scope {
 typedef struct Struct Struct;
 
 struct Struct {
-  char *name;
-  int len;
+  Token *tok;
   int id;
   int size;
   int scope_id;
   Symbol *members;
   Type *ty;
   Struct *next;
+  _Bool is_defined;
 };
 
 typedef struct Enum Enum;

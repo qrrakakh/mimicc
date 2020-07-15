@@ -138,19 +138,19 @@ Symbol *FindLvar(Token *tok) {
   return NULL;
 }
 
-_Bool IsSymbolDefinedInScope(Token *tok, Symbol *head, int scope_id) {
+Symbol *FindSymbolDefinedInScope(Token *tok, Symbol *head, int scope_id) {
   Symbol *s;
   for(s=head;s;s=s->next) {
     if(s->len == tok->len && !memcmp(s->name, tok->str, s->len) && s->scope_id == scope_id) {
-      return 1;
+      return s;
     }
   }
-  return 0;
+  return NULL;
 }
 
 Symbol *AddLvar(Token *tok, Type *ty) {
   Symbol *symbol;
-  if(IsSymbolDefinedInScope(tok, locals, current_scope->id)) {
+  if(FindSymbolDefinedInScope(tok, locals, current_scope->id)) {
     ErrorAt(tok->str, "Already declared symbol is used in local variable declaration.");
   } else if(ty->kind == TYPE_VOID) {
     ErrorAt(tok->str, "Local variable declared void.");
@@ -195,13 +195,13 @@ void AddTypeDef(Token *tok, Type *ty) {
 
   symbol = calloc(1, sizeof(Symbol));
   if(current_scope->id==0) {
-    if(IsSymbolDefinedInScope(tok, globals, current_scope->id)) {
+    if(FindSymbolDefinedInScope(tok, globals, current_scope->id)) {
       ErrorAt(tok->str, "Already declared symbol is used in typedef.");
     }
     symbol->next = globals; symbol->prev = NULL;
     globals->prev = symbol; globals = symbol;
   } else {
-    if(IsSymbolDefinedInScope(tok, locals, current_scope->id)) {
+    if(FindSymbolDefinedInScope(tok, locals, current_scope->id)) {
       ErrorAt(tok->str, "Already declared symbol is used in typedef.");
     }
     symbol->next = locals; symbol->prev = NULL;
@@ -219,7 +219,7 @@ void AddTypeDef(Token *tok, Type *ty) {
 
 Symbol *AddGVar(Token *tok, Type *ty, _Bool is_extern) {
   Symbol *symbol;
-  if(IsSymbolDefinedInScope(tok, globals, current_scope->id)) {
+  if(FindSymbolDefinedInScope(tok, globals, current_scope->id)) {
     ErrorAt(tok->str, "Already declared symbol is used in global variable declaration.");
   } else if(ty->kind == TYPE_VOID) {
     ErrorAt(tok->str, "Global variable declared void.");
@@ -275,7 +275,7 @@ Func *FindFunc(Token *tok) {
 Func *AddFunc(Token *tok, Type *ty, int num_args, int scope_id) {
   Func *f;
   Symbol *s;
-  if(IsSymbolDefinedInScope(tok, globals, scope_id)) {
+  if(FindSymbolDefinedInScope(tok, globals, scope_id)) {
     ErrorAt(tok->str, "Already declared symbol is used in function declaration.");
   }
 
@@ -292,6 +292,7 @@ Func *AddFunc(Token *tok, Type *ty, int num_args, int scope_id) {
   f->symbol = s;
   f->next = funcs; funcs = f;
   f->num_args = num_args;
+  f->is_defined = 0;
   return f;
 }
 
@@ -312,7 +313,7 @@ Const_Strings *FindCstr(char *s, int l) {
   return new_cs;
 }
 
-Struct *AddStruct(Token *tok, Symbol *members) {
+Struct *AddStruct(Token *tok) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TYPE_STRUCT;
   ty->id = ++last_struct_id;
@@ -322,14 +323,12 @@ Struct *AddStruct(Token *tok, Symbol *members) {
   s->id = ty->id;
   s->ty = ty;
   s->scope_id = current_scope->id;
-  s->members = members;
+  s->is_defined = 0;
 
   if(tok) {
-    s->name = tok->str;
-    s->len = tok->len;
+    s->tok = tok;
   } else {
-    s->name = NULL;
-    s->len = 0;
+    s->tok = NULL;
   }
 
   return s;
@@ -384,13 +383,19 @@ Enum *AddEnum(Token *tok) {
 
 Struct *FindStruct(Token *tok, _Bool is_recursive_search) {
   Struct *s = structs;
+
+  if(!tok) {
+    return NULL;
+  }
   while(s->next) {
-    if (tok->len == s->len
-        && strncmp(s->name, tok->str, s->len)==0) {
-      if(is_recursive_search && (IsParentOfScopeId(s->scope_id, current_scope) || s->scope_id==0)) {
-        return s;
-      } else if((!is_recursive_search) && s->scope_id==current_scope->id) {
-        return s;
+    if(s->tok) {
+      if (tok->len == s->tok->len
+          && strncmp(s->tok->str, tok->str, s->tok->len)==0) {
+        if(is_recursive_search && (IsParentOfScopeId(s->scope_id, current_scope) || s->scope_id==0)) {
+          return s;
+        } else if((!is_recursive_search) && s->scope_id==current_scope->id) {
+          return s;
+        }
       }
     }
     s = s->next;
@@ -1058,12 +1063,16 @@ Node *func() {
     Expect(")");
   }
 
-  current_func=AddFunc(ident_tok, dspec->ty, num_args, current_scope->parent->id);
+  if(!(current_func=FindFunc(ident_tok))) {
+    current_func=AddFunc(ident_tok, dspec->ty, num_args, current_scope->parent->id);
+  }
 
-  if(dspec->sspec == EXTERN) {
-    Expect(";");
-  } else {
+  if(!Consume(";")) {
+    if(current_func->is_defined) {
+      ErrorAt(ident_tok->str, "multiple definition of the function.");
+    }
     block_node = compound_statement();
+    current_func->is_defined = 1;
   }
   LeaveScope();
 
@@ -1390,9 +1399,18 @@ Type *struct_or_union_specifier() {
 
   ident_tok = ConsumeIdent();
 
+  if(!(s=FindStruct(ident_tok, 1))) {
+    s = AddStruct(ident_tok);
+  }
+
   if(Consume("{")) { // struct-or-union identifier? "{" struct-declaration-list "}"
-    if(!(ident_tok && (s=FindStruct(ident_tok, 0)))) {
-      s = AddStruct(ident_tok, locals);      
+    if (s->is_defined && s->tok != ident_tok) {
+      if (!FindStruct(ident_tok, 0)) {
+        s = AddStruct(ident_tok);
+      }
+      if (s->is_defined && s->tok != ident_tok) {
+        ErrorAt(ident_tok->str, "multiple definition of struct.");
+      }
     }
     ty = s->ty;
 
@@ -1408,12 +1426,12 @@ Type *struct_or_union_specifier() {
 
     s->members = locals;
     locals = _locals;
+    s->tok = ident_tok;
+    s->is_defined = 1;
 
     return ty;
   } else if(!ident_tok) { // struct-or-union identifier
     ErrorAt(token->str, "identifier expected.");
-  } else if (!(s = FindStruct(ident_tok, 1))) {
-    ErrorAt(ident_tok->str, "struct is not declared.");
   }
   return s->ty;
 }

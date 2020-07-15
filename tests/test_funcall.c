@@ -5,6 +5,7 @@ extern int Foo();
 extern void printf();
 
 // Global variables and helper functions
+int fib(int a);
 int fib(int a){if(a==0) return 0;else if(a==1) return 1; else return fib(a-2)+fib(a-1);}
 int TestHelperFunction58(int a){return a*2;}
 int TestHelperFunction61(){int a;a=1;return a;}
