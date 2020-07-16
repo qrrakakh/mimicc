@@ -171,7 +171,16 @@ void GenerateFooter() {
     }
     printf("  .global %.*s\n", g->len, g->name);
     printf("%.*s:\n", g->len, g->name);
-    printf("  .zero %d\n", GetTypeSize(g->ty));
+    //printf("  .zero %d\n", GetTypeSize(g->ty));
+    if (g->ty->kind == TYPE_STRUCT) {
+      printf("  .zero %d\n", GetTypeSize(g->ty));
+    } else if (g->ty->kind == TYPE_ARRAY) {
+      for(int i=0;i<g->ty->array_size;++i) {
+        printf("  .zero %d\n", GetTypeSize(g->ty->ptr_to));
+      }
+    } else {
+      printf("  .%dbyte %d\n", GetTypeSize(g->ty), g->val);
+    }
   }
   for(c=cstrs;c->next!=NULL;c=c->next) {
     printf(".LC%06d:\n", c->id);

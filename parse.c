@@ -1682,6 +1682,10 @@ Node *init_declarator(DeclSpec *dspec) {
   } else {
     if (current_scope->id==0) {
       AddGVar(tok, ty, 0);
+      if (Consume("=")) {
+        Token *num_tok = ConsumeNumber();
+        FindGvar(tok)->val = num_tok->val;
+      }
       node = NULL;
     } else {
       AddLvar(tok, ty);
