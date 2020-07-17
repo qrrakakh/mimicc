@@ -1,6 +1,8 @@
 /* extern declared functions and variables */
 extern void printf();
 
+char str_gvar_init[3] = "abc";
+
 // Test functions
 int Test2() 
 {
@@ -103,6 +105,13 @@ int run_char_strings_tests() {
   if (actual != expected)
   {
     printf("Test134 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=98;
+  actual=str_gvar_init[1];
+  if (actual != expected)
+  {
+    printf("str_gvar_init test faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 }

@@ -284,6 +284,7 @@ Symbol *AddGVar(Token *tok, Type *ty, _Bool is_extern) {
   }
 
   symbol->id = ++last_symbol_id;
+  symbol->val = -1;
 
   return symbol;
 }
@@ -350,6 +351,16 @@ Const_Strings *FindCstr(char *s, int l) {
   cs->size = l;
   cs->str = s;
   return cs;
+}
+
+Const_Strings *FindCstrById(int id) {
+  Const_Strings *cs;
+  for(cs=cstrs;cs->next!=NULL;cs=cs->next) {
+    if (cs->id==id) {
+      return cs;
+    }
+  }
+  return NULL;
 }
 
 Struct *AddStruct(Token *tok) {
@@ -1725,6 +1736,12 @@ Node *init_declarator(DeclSpec *dspec) {
         if (ty->kind < TYPE_ARITHMETIC_LIMIT) {
           // case: ty = arithmetic
           FindGvar(tok)->val = eval(assignment_expression());
+        } else if(ty->kind == TYPE_ARRAY && ty->ptr_to->kind == TYPE_CHAR) {
+          Token *str_tok = ConsumeStrings();
+          if(!str_tok) {
+            ErrorAt(token->str, "String literal expected.");
+          }
+          FindGvar(tok)->val = FindCstr(str_tok->str, str_tok->len)->id;
         } else if(ty->kind == TYPE_ARRAY) {
           // case: ty = array (not implemented)
           ErrorAt(token->str,"Array initializer is not supported.");

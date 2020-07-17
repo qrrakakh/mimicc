@@ -174,7 +174,13 @@ void GenerateFooter() {
     //printf("  .zero %d\n", GetTypeSize(g->ty));
     if (g->ty->kind == TYPE_STRUCT) {
       printf("  .zero %d\n", GetTypeSize(g->ty));
-    } else if (g->ty->kind == TYPE_ARRAY) {
+    } else if(g->ty->kind == TYPE_ARRAY && g->ty->ptr_to->kind == TYPE_CHAR && g->val>=0) {
+      Const_Strings *cstr = FindCstrById(g->val);
+      for(int i=0;i<cstr->size;++i) {
+        printf("  .byte %#x\n", (cstr->str)[i]);
+      }
+    }
+    else if (g->ty->kind == TYPE_ARRAY) {
       for(int i=0;i<g->ty->array_size;++i) {
         printf("  .zero %d\n", GetTypeSize(g->ty->ptr_to));
       }

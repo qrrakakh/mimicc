@@ -251,6 +251,9 @@ Func *FindFuncByName(char *name, int name_len);
 // Struct
 Struct *FindStructById(int struct_id);
 
+// Strings
+Const_Strings *FindCstrById(int struct_id);
+
 // Non-terminal symbols generator
 void translation_unit();
 
