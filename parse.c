@@ -76,7 +76,7 @@ int eval(Node *node) {
       break;
   }
   ErrorAt(node->tok->str, "Not a constant.");
-  return NULL;
+  return 0;
 }
 
 
