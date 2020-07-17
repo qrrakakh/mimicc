@@ -343,20 +343,13 @@ Func *AddFunc(Token *tok, Type *ty, int num_args, int scope_id) {
 }
 
 Const_Strings *FindCstr(char *s, int l) {
-  Const_Strings *cs = cstrs, *new_cs;
-  while(cs->next) {
-    if (strncmp(cs->str, s, cs->size)==0) {
-      return cs;
-    }
-    cs = cs->next;
-  }
-
-  new_cs = calloc(1, sizeof(Const_Strings));
-  new_cs->next = cstrs; cstrs = new_cs;
-  new_cs->id = new_cs->next->id + 1;
-  new_cs->size = l;
-  new_cs->str = s;
-  return new_cs;
+  Const_Strings *cs;
+  cs = calloc(1, sizeof(Const_Strings));
+  cs->next = cstrs; cstrs = cs;
+  cs->id = cs->next->id + 1;
+  cs->size = l;
+  cs->str = s;
+  return cs;
 }
 
 Struct *AddStruct(Token *tok) {
