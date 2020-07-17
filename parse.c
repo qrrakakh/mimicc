@@ -35,6 +35,52 @@ void LeaveScope() {
 }
 
 //////////
+// evaluator for constant
+
+int eval(Node *node) {
+  switch(node->kind) {
+    case ND_ASSIGN:
+      ErrorAt(node->tok->str, "Assignment is not a constant.");
+    case ND_OR:
+      return eval(node->children[0]) | eval(node->children[1]);
+    case ND_XOR:
+      return eval(node->children[0]) ^ eval(node->children[1]);
+    case ND_AND:
+      return eval(node->children[0]) & eval(node->children[1]);
+    case ND_EQUIV:
+      return eval(node->children[0]) == eval(node->children[1]);
+    case ND_INEQUIV:
+      return eval(node->children[0]) != eval(node->children[1]);
+    case ND_LT:
+      return eval(node->children[0]) < eval(node->children[1]);
+    case ND_LE:
+      return eval(node->children[0]) <= eval(node->children[1]);
+    case ND_LSHIFT:
+      return eval(node->children[0]) << eval(node->children[1]);
+    case ND_RSHIFT:
+      return eval(node->children[0]) >> eval(node->children[1]);
+    case ND_MUL:
+      return eval(node->children[0]) * eval(node->children[1]);
+    case ND_DIV:
+      return eval(node->children[0]) / eval(node->children[1]);
+    case ND_MOD:
+      return eval(node->children[0]) % eval(node->children[1]);
+    case ND_ADD:
+      return eval(node->children[0]) + eval(node->children[1]);
+    case ND_SUB:
+      return eval(node->children[0]) - eval(node->children[1]);
+    case ND_NUM:
+    case ND_CHAR:
+      return node->val;
+    default:
+      break;
+  }
+  ErrorAt(node->tok->str, "Not a constant.");
+  return NULL;
+}
+
+
+//////////
 // parse functions
 
 Token *Consume(char *op) {
@@ -1683,8 +1729,16 @@ Node *init_declarator(DeclSpec *dspec) {
     if (current_scope->id==0) {
       AddGVar(tok, ty, 0);
       if (Consume("=")) {
-        Token *num_tok = ConsumeNumber();
-        FindGvar(tok)->val = num_tok->val;
+        if (ty->kind < TYPE_ARITHMETIC_LIMIT) {
+          // case: ty = arithmetic
+          FindGvar(tok)->val = eval(assignment_expression());
+        } else if(ty->kind == TYPE_ARRAY) {
+          // case: ty = array (not implemented)
+          ErrorAt(token->str,"Array initializer is not supported.");
+        } else if(ty->kind == TYPE_STRUCT) {
+          // case: ty = struct (not implemented)
+          ErrorAt(token->str,"Struct initializer is not supported.");
+        }
       }
       node = NULL;
     } else {

@@ -10,8 +10,15 @@ int var_Test17;int TestHelperFunction17() {int a; a=3; return a;}
 int var_Test18;int TestHelperFunction18() {return var_Test18;}
 int var_Test19;int TestHelperFunction19() {return var_Test19;}
 
-int int_gvar_init = 10;
-int char_gvar_init = 20;
+// 10
+int int_gvar_init = ((((((((((2+3)-3)*10)/5)<<1)>>2)+1)%2)+5)/6)*10;
+// 97
+int char_gvar_init = 'a';
+// 1 + 0 + 4 + 8 + 0 + 32 = 45
+int bit_gvar_init = (1&1) + (2&0) + (4|4) + (8|0) + (16^16) + (32^0);
+// 1 + 0 + 4 + 0 + 16 + 32 + 0 + 0 + 256 = 309
+int compare_gvar_init = ((1<2)<<0) + ((2<1)<<1) + ((1<=2)<<2) + ((2<=1)<<3)
+                        + ((2<=2)<<4) + ((1==1)<<5) + ((1==2)<<6) + ((1!=1)<<7) + ((1!=2)<<8);
 
 // Test functions
 int Test1() 
@@ -49,14 +56,6 @@ int Test18()
 int Test19() 
 {
   var_Test19=1; int var_Test19; var_Test19=2;TestHelperFunction19();return var_Test19;
-}
-
-int int_gvar_init_test() {
-  return int_gvar_init;
-}
-
-char char_gvar_init_test() {
-  return char_gvar_init;
 }
 
 int run_basic_variables_tests() {
@@ -127,17 +126,32 @@ int run_basic_variables_tests() {
     return 1;
   }
   expected=10;
-  actual=int_gvar_init_test();
+  actual=int_gvar_init;
   if (actual != expected)
   {
     printf("int_gvar_init_test faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
-  expected=20;
-  actual=char_gvar_init_test();
+  expected=97;
+  actual=char_gvar_init;
   if (actual != expected)
   {
     printf("char_gvar_init_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=45;
+  actual=bit_gvar_init;
+  if (actual != expected)
+  {
+    printf("bit_gvar_init_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=309;
+  actual=compare_gvar_init;
+  if (actual != expected)
+  {
+    printf("compare_gvar_init_test faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 
