@@ -14,7 +14,7 @@ int Test3()
 }
 int Test4() 
 {
-  char *x; x = "abc"; return x[2];
+  char *x = "abc"; return x[2];
 }
 int Test5() 
 {
