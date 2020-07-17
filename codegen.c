@@ -189,6 +189,7 @@ void GenerateFooter() {
     }
   }
   for(c=cstrs;c->next!=NULL;c=c->next) {
+    if(c->is_global_init) continue;
     printf(".LC%06d:\n", c->id);
     printf("  .string \"%.*s\"\n", c->size, c->str);
   }

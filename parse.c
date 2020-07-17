@@ -343,13 +343,14 @@ Func *AddFunc(Token *tok, Type *ty, int num_args, int scope_id) {
   return f;
 }
 
-Const_Strings *AddCstr(char *s, int l) {
+Const_Strings *AddCstr(char *s, int l, _Bool is_global_init) {
   Const_Strings *cs;
   cs = calloc(1, sizeof(Const_Strings));
   cs->next = cstrs; cstrs = cs;
   cs->id = cs->next->id + 1;
   cs->size = l;
   cs->str = s;
+  cs->is_global_init = is_global_init;
   return cs;
 }
 
@@ -721,7 +722,7 @@ Node *NewNodeStrings(Token *tok) {
   Node *node = calloc(1, sizeof(Node));
   node->children = NULL;
   node->kind = ND_STRINGS;
-  node->id = AddCstr(tok->str, tok->len)->id;
+  node->id = AddCstr(tok->str, tok->len, 0)->id;
   node->tok = tok;
   node->ty = InitArrayType(char_type, tok->len);
   return node;
@@ -1742,7 +1743,7 @@ Node *init_declarator(DeclSpec *dspec) {
           if(!str_tok) {
             ErrorAt(token->str, "String literal expected.");
           }
-          FindGvar(tok)->val = AddCstr(str_tok->str, str_tok->len)->id;
+          FindGvar(tok)->val = AddCstr(str_tok->str, str_tok->len, 1)->id;
         } else if(ty->kind == TYPE_ARRAY) {
           // case: ty = array (not implemented)
           ErrorAt(token->str,"Array initializer is not supported.");
