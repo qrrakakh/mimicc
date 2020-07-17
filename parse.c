@@ -1737,6 +1737,7 @@ Node *init_declarator(DeclSpec *dspec) {
           // case: ty = arithmetic
           FindGvar(tok)->val = eval(assignment_expression());
         } else if(ty->kind == TYPE_ARRAY && ty->ptr_to->kind == TYPE_CHAR) {
+          // case: ty = strings
           Token *str_tok = ConsumeStrings();
           if(!str_tok) {
             ErrorAt(token->str, "String literal expected.");
