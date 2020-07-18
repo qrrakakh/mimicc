@@ -1,7 +1,8 @@
 /* extern declared functions and variables */
 extern void printf();
 
-char str_gvar_init[3] = "abc";
+char str_gvar_init[4] = "abc";
+char global_string_array_variable_length[][5] = {"ab", "abc", "abcd"};
 
 // Test functions
 int Test2() 
@@ -42,8 +43,13 @@ char Test134() {
 }
 
 char string_initializer_test() {
-  char a[6] = "abcdef";
+  char a[7] = "abcdef";
   return a[3];
+}
+
+char string_array_variable_length_test() {
+  char a[][5] = {"ab", "abc", "abcd"};
+  return a[2][2];
 }
 
 int run_char_strings_tests() {
@@ -124,6 +130,21 @@ int run_char_strings_tests() {
   if (actual != expected)
   {
     printf("string_initializer_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=99;
+  actual=string_array_variable_length_test();
+  if (actual != expected)
+  {
+    printf("string_array_variable_length_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=99;
+  actual=global_string_array_variable_length[2][2];
+  if (actual != expected)
+  {
+    printf("string_array_variable_length_test faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 }

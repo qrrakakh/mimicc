@@ -28,7 +28,7 @@ int GetTypeSize(Type *ty) {
   }
 }
 
-int GetSizeVar(Type *ty) {
+int GetVarSize(Type *ty) {
   if(ty->kind == TYPE_CHAR || ty->kind == TYPE_BOOL) {
     return 1;
   } else if(ty->kind == TYPE_INT || ty->kind == TYPE_ENUM) {
@@ -41,8 +41,8 @@ int GetSizeVar(Type *ty) {
   }
 }
 
-int GetSizePtrTarget(Type *ty) {
-  return GetSizeVar(ty->ptr_to);
+int GetTargetPtrSize(Type *ty) {
+  return GetTypeSize(ty->ptr_to);
 }
 
 int GetStructMemberOffset(int struct_id, int member_id) {
@@ -111,7 +111,7 @@ void StoreVar(Type *ty, int offset, _Bool eval) {
   printf("  pop rax\n");
 
   if(offset>0) {
-    switch(GetSizeVar(ty)) {
+    switch(GetVarSize(ty)) {
       case 1:
         printf("  mov [rax+%d], dil\n", offset);
         break;
@@ -126,7 +126,7 @@ void StoreVar(Type *ty, int offset, _Bool eval) {
         break;
     }
   } else {
-    switch(GetSizeVar(ty)) {
+    switch(GetVarSize(ty)) {
       case 1:
         printf("  mov [rax], dil\n");
         break;
@@ -148,7 +148,7 @@ void StoreVar(Type *ty, int offset, _Bool eval) {
 }
 
 void LoadVar(Type *ty) {
-  switch(GetSizeVar(ty)) {
+  switch(GetVarSize(ty)) {
     case 1:
       printf("  movsx rax, byte ptr [rax]\n");
       break;
@@ -207,7 +207,7 @@ void InitArrayLvar(Node *node, int offset) {
   Node *node_cur = node;
   for(int i=0;i<node->ty->array_size;++i) {
     printf("  push rax\n");
-    InitLvar(node_cur->children[0], i*GetSizePtrTarget(node->ty)+offset,0);
+    InitLvar(node_cur->children[0], i*GetTargetPtrSize(node->ty)+offset,0);
     printf("  pop rax\n");
 
     node_cur = node_cur->children[1];
@@ -220,8 +220,9 @@ void InitArrayLvar(Node *node, int offset) {
 void InitCstrLvar(Node *node, int offset) {
   Const_Strings *cstr = FindCstrById(node->children[0]->id);
   for(int i=0;i<cstr->size;++i) {
-    printf("  mov byte ptr [rax+%d], %#x\n", i, (cstr->str)[i]+offset);
+    printf("  mov byte ptr [rax+%d], %#x\n", i+offset, (cstr->str)[i]);
   }
+  printf("  mov byte ptr [rax+%d], 0x0\n", cstr->size+offset);
 }
 
 void InitLvar(Node *node, int offset, _Bool eval) {
@@ -259,9 +260,11 @@ void InitArrayGvar(Node *node) {
 
 void InitCstrGvar(Node *node) {
   Const_Strings *cstr = FindCstrById(node->children[0]->id);
+  int num_zeros = node->ty->array_size - cstr->size;
   for(int i=0;i<cstr->size;++i) {
     printf("  .byte %#x\n", (cstr->str)[i]);
   }
+  printf("  .zero %d\n", num_zeros);
 }
 
 void InitGvar(Node *node) {
@@ -400,7 +403,7 @@ void Generate(Node *node) {
 
       for(int i=0;i<node->num_args;++i) {
         lvar_idx = node->num_args-1-i;
-        switch(GetSizeVar(var->ty)) {
+        switch(GetVarSize(var->ty)) {
           case 1:
             printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_8bits[lvar_idx]);
             break;
@@ -498,7 +501,7 @@ void Generate(Node *node) {
     case ND_PREINC:
       diff = 1;
       if(node->children[0]->ty->kind == TYPE_PTR) {
-        diff = GetSizePtrTarget(node->children[0]->ty);
+        diff = GetTargetPtrSize(node->children[0]->ty);
       }
       GenLval(node->children[0]);
       printf("  push rax\n");
@@ -511,7 +514,7 @@ void Generate(Node *node) {
     case ND_PREDEC:
       diff = 1;
       if(node->children[0]->ty->kind == TYPE_PTR) {
-        diff = GetSizePtrTarget(node->children[0]->ty);
+        diff = GetTargetPtrSize(node->children[0]->ty);
       }
       GenLval(node->children[0]);
       printf("  push rax\n");
@@ -524,7 +527,7 @@ void Generate(Node *node) {
     case ND_POSTINC:
       diff = 1;
       if(node->children[0]->ty->kind == TYPE_PTR) {
-        diff = GetSizePtrTarget(node->children[0]->ty);
+        diff = GetTargetPtrSize(node->children[0]->ty);
       }
       GenLval(node->children[0]);
       printf("  push rax\n");
@@ -539,7 +542,7 @@ void Generate(Node *node) {
     case ND_POSTDEC:
       diff = 1;
       if(node->children[0]->ty->kind == TYPE_PTR) {
-        diff = GetSizePtrTarget(node->children[0]->ty);
+        diff = GetTargetPtrSize(node->children[0]->ty);
       }
       GenLval(node->children[0]);
       printf("  push rax\n");
@@ -650,7 +653,7 @@ void Generate(Node *node) {
     case ND_CALL:
       for(int i=0;i<node->num_args;++i) {
         Generate(node->children[i]);
-        switch(GetSizeVar(node->children[i]->ty)) {
+        switch(GetVarSize(node->children[i]->ty)) {
           case 1:
             printf("  mov %s, al\n", x86_64_argreg_8bits[i]);
             break;  
@@ -695,15 +698,15 @@ void Generate(Node *node) {
   switch(node->kind) {
     case ND_ADD:
       if(lhs_ty->kind == TYPE_PTR) {
-        printf("  imul rdi, %d\n",GetSizePtrTarget(lhs_ty));
+        printf("  imul rdi, %d\n",GetTargetPtrSize(lhs_ty));
       } else if(rhs_ty->kind == TYPE_PTR) {
-        printf("  imul rax, %d\n",GetSizePtrTarget(rhs_ty));
+        printf("  imul rax, %d\n",GetTargetPtrSize(rhs_ty));
       }
       printf("  add rax, rdi\n");
       break;
     case ND_SUB:    
       if(lhs_ty->kind == TYPE_PTR) {
-        printf("  imul rdi, %d\n",GetSizePtrTarget(lhs_ty));
+        printf("  imul rdi, %d\n",GetTargetPtrSize(lhs_ty));
       }
       printf("  sub rax, rdi\n");
       break;

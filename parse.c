@@ -681,7 +681,7 @@ Node *NewNodeStrings(Token *tok) {
   node->kind = ND_STRINGS;
   node->id = AddCstr(tok->str, tok->len)->id;
   node->tok = tok;
-  node->ty = InitArrayType(char_type, tok->len);
+  node->ty = InitArrayType(char_type, tok->len+1);
   return node;
 }
 
@@ -1653,7 +1653,8 @@ Token *declarator(Type **ty) {
   //                     | "(" declarator ")"  ## not implementes
 
   Token *tok, *len_tok, *ident_tok;
-  int size;
+  Type *_ty;
+  int size, _size;
   *ty = pointer(*ty);
   ident_tok = ConsumeIdent();
 
@@ -1668,8 +1669,14 @@ Token *declarator(Type **ty) {
     } else {
       size = 0;
     }
-    *ty = InitArrayType(*ty, size);
     Expect("]");
+    if((*ty)->kind == TYPE_ARRAY) {
+      _size = (*ty)->array_size;
+      _ty = InitArrayType((*ty)->ptr_to, size);
+      *ty = InitArrayType(_ty, _size);
+    } else {
+      *ty = InitArrayType(*ty, size);
+    }
   }
 
   return ident_tok;
@@ -1679,7 +1686,7 @@ Node *initializer(Type *ty) {
   //               | "{" initializer-list ","? "}"
 
   Node *node = calloc(1, sizeof(Node)), *tail;
-  Token *tok;
+  Token *tok = token;
   int len = 0;
 
   node->kind = ND_INIT;
@@ -1694,6 +1701,10 @@ Node *initializer(Type *ty) {
     // case: ty = array
     if (ty->ptr_to->kind == TYPE_CHAR && (tail=string_literal())) {
       // case: ty = strings
+      if(!(ty->is_variable_length) && ty->array_size < tail->ty->array_size) {
+        ErrorAt(tok->str, "too long string literal to initialize.");
+      }
+
       node->num_args = 1;
       node->children = calloc(1, sizeof(Node*));
       node->children[0] = tail;
