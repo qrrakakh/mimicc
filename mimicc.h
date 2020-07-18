@@ -16,7 +16,6 @@ struct Const_Strings {
   int size;
   Const_Strings *next;
   char *str;
-  _Bool is_global_init;
 };
 
 typedef enum {
