@@ -45,6 +45,7 @@ struct Type {
   TypeKind kind;
   struct Type *ptr_to;
   size_t array_size;
+  _Bool is_variable_length;
   int id;
 };
 

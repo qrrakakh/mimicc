@@ -7,6 +7,11 @@ Type *InitArrayType(Type *_ty, size_t size) {
   ty->kind = TYPE_ARRAY;
   ty->ptr_to = _ty;
   ty->array_size = size;
+  if(size==0) {
+    ty->is_variable_length = 1;
+  } else {
+    ty->is_variable_length = 0;
+  }
   return ty;
 }
 
@@ -1692,7 +1697,7 @@ Node *initializer(Type *ty) {
       node->num_args = 1;
       node->children = calloc(1, sizeof(Node*));
       node->children[0] = tail;
-      if(ty->array_size == 0) {
+      if(ty->is_variable_length && ty->array_size < node->children[0]->ty->array_size) {
         ty->array_size = node->children[0]->ty->array_size;
       }
     } else {
@@ -1713,7 +1718,7 @@ Node *initializer(Type *ty) {
         }
         Consume(",");
       }
-      if(ty->array_size == 0) {
+      if(ty->is_variable_length) {
         ty->array_size = len;
       }
       tail->num_args = 0;
