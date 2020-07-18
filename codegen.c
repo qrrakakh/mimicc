@@ -149,7 +149,7 @@ void LoadVar(Type *ty) {
 
 void GenLval(Node *node) {
   Symbol *symbol;
-  if (node->kind == ND_LVAR) {
+  if (node->kind == ND_LVAR || node->kind == ND_INIT) {
     // save the address of lval
     symbol = FindLvarById(node->id);
     printf("  lea rax, [rbp-%d]\n", symbol->offset_bytes);
@@ -457,6 +457,14 @@ void Generate(Node *node) {
     case ND_LVAR:
     GenLval(node);
     LoadVar(node->ty);
+    return;
+
+    case ND_INIT:
+    GenLval(node);
+    printf("  push rax\n");
+    Generate(node->children[0]);
+    printf("  push rax\n");
+    StoreVar(node->ty, 1);
     return;
 
     case ND_ASSIGN:

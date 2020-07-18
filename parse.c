@@ -164,7 +164,6 @@ Symbol *AddLvar(Token *tok, Type *ty) {
   symbol->ty = ty;
   symbol->scope_id = current_scope->id;
   symbol->id = ++last_symbol_id;
-  
 
   return symbol;
 }
@@ -1673,8 +1672,9 @@ Node *initializer(Type *ty) {
 
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_INIT;
+  node->ty = ty;
 
-  if (ty->kind < TYPE_ARITHMETIC_LIMIT) {
+  if (ty->kind < TYPE_ARITHMETIC_LIMIT || ty->kind == TYPE_PTR) {
     // case: ty = arithmetic
     node->num_args = 1;
     node->children = calloc(1, sizeof(Node*));
@@ -1703,6 +1703,8 @@ Node *init_declarator(DeclSpec *dspec) {
   Node *node;
   Token *tok;
   Type *ty = dspec->ty;
+  Symbol *s;
+
   tok = declarator(&ty);
   if(!tok) {
     return NULL;
@@ -1716,15 +1718,17 @@ Node *init_declarator(DeclSpec *dspec) {
     node = NULL;
   } else {
     if (current_scope->id==0) {
-      AddGVar(tok, ty, 0);
+      s = AddGVar(tok, ty, 0);
       if (Consume("=")) {
-        FindGvar(tok)->initializer = initializer(ty);
+        s->initializer = initializer(ty);
       }
       node = NULL;
     } else {
-      AddLvar(tok, ty);
+      s = AddLvar(tok, ty);
       if (Consume("=")) {
-        node = NewNodeBinOp(ND_ASSIGN, NewNodeLvar(tok), assignment_expression());
+        node = initializer(ty);
+        node->id = s->id;
+        s->initializer = node;
       } else {
         node = NULL;
       }
