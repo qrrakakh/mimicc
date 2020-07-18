@@ -8,6 +8,8 @@
 // struct definition
 
 typedef struct Const_Strings Const_Strings;
+typedef struct Node Node;
+
 
 struct Const_Strings {
   int id;
@@ -74,6 +76,7 @@ struct Symbol {  // defined variables
   int offset_bytes;
   int val;
   Type *ty;
+  Node *initializer;
 };
 
 typedef struct Func Func;
@@ -150,9 +153,8 @@ typedef enum {  // ABS Node kinds
   ND_POSTDEC,   // post --
   ND_ARROW,     // ->
   ND_DOT,       // .
+  ND_INIT,      // initializer
 } NodeKind;
-
-typedef struct Node Node;
 
 struct Node { // ABS Node struct
   NodeKind kind;

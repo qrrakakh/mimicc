@@ -9,6 +9,7 @@ char x86_64_argreg_64bits[][6] = {"rdi", "rsi", "rdx", "rcx", "r8",  "r9" };
 const int POINTER_SIZE_BYTES = 8;
 const int STRUCT_ALL_ALIGN_BYTES = 4;
 
+//////////
 // type helper function
 int GetTypeSize(Type *ty) {
   if(ty->kind == TYPE_CHAR || ty->kind == TYPE_BOOL) {
@@ -58,6 +59,52 @@ int GetStructMemberOffset(int struct_id, int member_id) {
   return -1;
 }
 
+//////////
+// evaluator for constant
+
+int eval(Node *node) {
+  switch(node->kind) {
+    case ND_ASSIGN:
+      ErrorAt(node->tok->str, "Assignment is not a constant.");
+    case ND_OR:
+      return eval(node->children[0]) | eval(node->children[1]);
+    case ND_XOR:
+      return eval(node->children[0]) ^ eval(node->children[1]);
+    case ND_AND:
+      return eval(node->children[0]) & eval(node->children[1]);
+    case ND_EQUIV:
+      return eval(node->children[0]) == eval(node->children[1]);
+    case ND_INEQUIV:
+      return eval(node->children[0]) != eval(node->children[1]);
+    case ND_LT:
+      return eval(node->children[0]) < eval(node->children[1]);
+    case ND_LE:
+      return eval(node->children[0]) <= eval(node->children[1]);
+    case ND_LSHIFT:
+      return eval(node->children[0]) << eval(node->children[1]);
+    case ND_RSHIFT:
+      return eval(node->children[0]) >> eval(node->children[1]);
+    case ND_MUL:
+      return eval(node->children[0]) * eval(node->children[1]);
+    case ND_DIV:
+      return eval(node->children[0]) / eval(node->children[1]);
+    case ND_MOD:
+      return eval(node->children[0]) % eval(node->children[1]);
+    case ND_ADD:
+      return eval(node->children[0]) + eval(node->children[1]);
+    case ND_SUB:
+      return eval(node->children[0]) - eval(node->children[1]);
+    case ND_NUM:
+    case ND_CHAR:
+      return node->val;
+    default:
+      break;
+  }
+  ErrorAt(node->tok->str, "Not a constant.");
+  return 0;
+}
+
+//////////
 // Code generator
 void StoreVar(Type *ty, _Bool eval) {
   printf("  pop rdi\n");
@@ -173,8 +220,8 @@ void GenerateFooter() {
     printf("%.*s:\n", g->len, g->name);
     if (g->ty->kind == TYPE_STRUCT) {
       printf("  .zero %d\n", GetTypeSize(g->ty));
-    } else if(g->ty->kind == TYPE_ARRAY && g->ty->ptr_to->kind == TYPE_CHAR && g->val>=0) {
-      Const_Strings *cstr = FindCstrById(g->val);
+    } else if(g->ty->kind == TYPE_ARRAY && g->ty->ptr_to->kind == TYPE_CHAR && g->initializer) {
+      Const_Strings *cstr = FindCstrById(g->initializer->children[0]->id);
       for(int i=0;i<cstr->size;++i) {
         printf("  .byte %#x\n", (cstr->str)[i]);
       }
@@ -182,8 +229,10 @@ void GenerateFooter() {
       for(int i=0;i<g->ty->array_size;++i) {
         printf("  .zero %d\n", GetTypeSize(g->ty->ptr_to));
       }
+    } else if(g->initializer) {
+      printf("  .%dbyte %d\n", GetTypeSize(g->ty), eval(g->initializer->children[0]));
     } else {
-      printf("  .%dbyte %d\n", GetTypeSize(g->ty), g->val);
+      printf("  .zero %d\n", GetTypeSize(g->ty));
     }
   }
   for(c=cstrs;c->next!=NULL;c=c->next) {

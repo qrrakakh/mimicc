@@ -27,7 +27,9 @@ direct-declarator = identifier
                     | identifier "[" integer-constant "]"
 pointer = "*" type-qualifier-list? pointer?
 init-declarator-list = (init-declarator-list ",")? init-declarator
-init-declarator = declarator
+init-declarator = declarator ("=" initializer)?
+initializer = assignment-expression
+              | "{" initializer-list ","? "}"  ## not implemented
 
 func  =  declaration-specifiers declarator "(" ( paraneter-type-list ")" (compound_statement | ";")
 parameter-type-list = parameter-list
