@@ -106,23 +106,40 @@ int eval(Node *node) {
 
 //////////
 // Code generate helper
-void StoreVar(Type *ty, _Bool eval) {
+void StoreVar(Type *ty, int offset, _Bool eval) {
   printf("  pop rdi\n");
   printf("  pop rax\n");
 
-  switch(GetSizeVar(ty)) {
-    case 1:
-      printf("  mov [rax], dil\n");
-      break;
-    case 2:
-      printf("  mov [rax], di\n");
-      break;
-    case 4:
-      printf("  mov [rax], edi\n");
-      break;
-    case 8:
-      printf("  mov [rax], rdi\n");
-      break;
+  if(offset>0) {
+    switch(GetSizeVar(ty)) {
+      case 1:
+        printf("  mov [rax+%d], dil\n", offset);
+        break;
+      case 2:
+        printf("  mov [rax+%d], di\n", offset);
+        break;
+      case 4:
+        printf("  mov [rax+%d], edi\n", offset);
+        break;
+      case 8:
+        printf("  mov [rax+%d], rdi\n", offset);
+        break;
+    }
+  } else {
+    switch(GetSizeVar(ty)) {
+      case 1:
+        printf("  mov [rax], dil\n");
+        break;
+      case 2:
+        printf("  mov [rax], di\n");
+        break;
+      case 4:
+        printf("  mov [rax], edi\n");
+        break;
+      case 8:
+        printf("  mov [rax], rdi\n");
+        break;
+    }
   }
 
   if (eval) {
@@ -175,26 +192,24 @@ void GenLval(Node *node) {
 
 //////////
 // Initializer
-void InitLvar(Node *node, _Bool eval);
+void InitLvar(Node *node, int offset, _Bool eval);
 
-void InitOrdinaryLvar(Node *node, _Bool eval) {
+void InitOrdinaryLvar(Node *node, int offset, _Bool eval) {
   // assume that the head address is stored in rax.
   printf("  push rax\n");
   Generate(node->children[0]);
   printf("  push rax\n");
-  StoreVar(node->ty, eval);
+  StoreVar(node->ty, offset, eval);
 }
 
-void InitArrayLvar(Node *node) {
+void InitArrayLvar(Node *node, int offset) {
   // assume that the head address is stored in rax.
   Node *node_cur = node;
   for(int i=0;i<node->ty->array_size;++i) {
     printf("  push rax\n");
-    printf("  add rax, %d\n", i*GetSizePtrTarget(node->ty));
-
-    InitLvar(node_cur->children[0], 0);
-
+    InitLvar(node_cur->children[0], i*GetSizePtrTarget(node->ty)+offset,0);
     printf("  pop rax\n");
+
     node_cur = node_cur->children[1];
     if(node_cur->num_args == 0) {
       break;
@@ -202,25 +217,25 @@ void InitArrayLvar(Node *node) {
   }
 }
 
-void InitCstrLvar(Node *node) {
+void InitCstrLvar(Node *node, int offset) {
   Const_Strings *cstr = FindCstrById(node->children[0]->id);
   for(int i=0;i<cstr->size;++i) {
-    printf("  mov byte ptr [rax+%d], %#x\n", i, (cstr->str)[i]);
+    printf("  mov byte ptr [rax+%d], %#x\n", i, (cstr->str)[i]+offset);
   }
 }
 
-void InitLvar(Node *node, _Bool eval) {
+void InitLvar(Node *node, int offset, _Bool eval) {
   // assume that the head address is stored in rax.
   if(node->ty->kind == TYPE_ARRAY) {
     if (node->ty->ptr_to->kind == TYPE_CHAR && node->num_args == 1) {
-      InitCstrLvar(node);
+      InitCstrLvar(node, offset);
     } else {
-      InitArrayLvar(node);
+      InitArrayLvar(node, offset);
     }
   } else if(node->ty->kind == TYPE_STRUCT) {
     Error("struct initialization is not supported.");
   } else {
-    InitOrdinaryLvar(node, eval);
+    InitOrdinaryLvar(node, offset, eval);
   }
 }
 
@@ -488,7 +503,7 @@ void Generate(Node *node) {
     LoadVar(node->children[0]->ty);
     printf("  add rax, %d\n", diff);
     printf("  push rax\n");
-    StoreVar(node->children[0]->ty, 1);
+    StoreVar(node->children[0]->ty, 0, 1);
     return;
 
     case ND_PREDEC:
@@ -501,7 +516,7 @@ void Generate(Node *node) {
     LoadVar(node->children[0]->ty);
     printf("  sub rax, %d\n", diff);
     printf("  push rax\n");
-    StoreVar(node->children[0]->ty, 1);
+    StoreVar(node->children[0]->ty, 0, 1);
     return;
 
     case ND_POSTINC:
@@ -515,7 +530,7 @@ void Generate(Node *node) {
     printf("  mov rsi, rax\n");
     printf("  add rax, %d\n", diff);
     printf("  push rax\n");
-    StoreVar(node->children[0]->ty, 0);
+    StoreVar(node->children[0]->ty, 0, 0);
     printf("  mov rax, rsi\n");
     return;
 
@@ -530,7 +545,7 @@ void Generate(Node *node) {
     printf("  mov rsi, rax\n");
     printf("  sub rax, %d\n", diff);
     printf("  push rax\n");
-    StoreVar(node->children[0]->ty, 0);
+    StoreVar(node->children[0]->ty, 0, 0);
     printf("  mov rax, rsi\n");
     return;
 
@@ -548,7 +563,7 @@ void Generate(Node *node) {
 
     case ND_INIT:
     GenLval(node);
-    InitLvar(node, 1);
+    InitLvar(node, 0, 1);
     return;
 
     case ND_ASSIGN:
@@ -556,7 +571,7 @@ void Generate(Node *node) {
     printf("  push rax\n");
     Generate(node->children[1]);
     printf("  push rax\n");
-    StoreVar(node->ty, 1);
+    StoreVar(node->ty, 0, 1);
     return;
 
     case ND_WHILE:
