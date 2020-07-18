@@ -105,7 +105,7 @@ int eval(Node *node) {
 }
 
 //////////
-// Code generator
+// Code generate helper
 void StoreVar(Type *ty, _Bool eval) {
   printf("  pop rdi\n");
   printf("  pop rax\n");
@@ -173,6 +173,98 @@ void GenLval(Node *node) {
   }
 }
 
+//////////
+// Initializer
+void InitLvar(Node *node, _Bool eval);
+
+void InitOrdinaryLvar(Node *node, _Bool eval) {
+  // assume that the head address is stored in rax.
+  printf("  push rax\n");
+  Generate(node->children[0]);
+  printf("  push rax\n");
+  StoreVar(node->ty, eval);
+}
+
+void InitArrayLvar(Node *node) {
+  // assume that the head address is stored in rax.
+  Node *node_cur = node;
+  for(int i=0;i<node->ty->array_size;++i) {
+    printf("  push rax\n");
+    printf("  add rax, %d\n", i*GetSizePtrTarget(node->ty));
+
+    InitLvar(node_cur->children[0], 0);
+
+    printf("  pop rax\n");
+    node_cur = node_cur->children[1];
+    if(node_cur->num_args == 0) {
+      break;
+    }
+  }
+}
+
+void InitCstrLvar(Node *node) {
+  Const_Strings *cstr = FindCstrById(node->children[0]->id);
+  for(int i=0;i<cstr->size;++i) {
+    printf("  mov byte ptr [rax+%d], %#x\n", i, (cstr->str)[i]);
+  }
+}
+
+void InitLvar(Node *node, _Bool eval) {
+  // assume that the head address is stored in rax.
+  if(node->ty->kind == TYPE_ARRAY) {
+    if (node->ty->ptr_to->kind == TYPE_CHAR && node->num_args == 1) {
+      InitCstrLvar(node);
+    } else {
+      InitArrayLvar(node);
+    }
+  } else if(node->ty->kind == TYPE_STRUCT) {
+    Error("struct initialization is not supported.");
+  } else {
+    InitOrdinaryLvar(node, eval);
+  }
+}
+
+void InitGvar(Node *node);
+
+void InitOrdinaryGvar(Node *node) {
+  printf("  .%dbyte %d\n", GetTypeSize(node->ty), eval(node->children[0]));
+}
+
+void InitArrayGvar(Node *node) {
+  Node *node_cur = node;
+  for(int i=0;i<node->ty->array_size;++i) {
+    InitGvar(node_cur->children[0]);
+    node_cur = node_cur->children[1];
+    if(node_cur->num_args == 0 && (node->ty->array_size - (i+1) > 0)) {
+      printf("  .zero %ld\n", GetTypeSize(node->ty->ptr_to) * (node->ty->array_size - (i+1)));
+      break;
+    }
+  }
+}
+
+void InitCstrGvar(Node *node) {
+  Const_Strings *cstr = FindCstrById(node->children[0]->id);
+  for(int i=0;i<cstr->size;++i) {
+    printf("  .byte %#x\n", (cstr->str)[i]);
+  }
+}
+
+void InitGvar(Node *node) {
+  if(node->ty->kind == TYPE_ARRAY) {
+    if (node->ty->ptr_to->kind == TYPE_CHAR && node->num_args == 1) {
+      InitCstrGvar(node);
+    } else {
+      InitArrayGvar(node);
+    }
+  } else if(node->ty->kind == TYPE_STRUCT) {
+    Error("struct initialization is not supported.");
+  } else {
+    InitOrdinaryGvar(node);
+  }
+}
+
+//////////
+// Code generator
 void InitProgram() {
   // calculate size and offsets of each structs
   Struct *s = structs;
@@ -218,21 +310,16 @@ void GenerateFooter() {
     }
     printf("  .global %.*s\n", g->len, g->name);
     printf("%.*s:\n", g->len, g->name);
-    if (g->ty->kind == TYPE_STRUCT) {
-      printf("  .zero %d\n", GetTypeSize(g->ty));
-    } else if(g->ty->kind == TYPE_ARRAY && g->ty->ptr_to->kind == TYPE_CHAR && g->initializer) {
-      Const_Strings *cstr = FindCstrById(g->initializer->children[0]->id);
-      for(int i=0;i<cstr->size;++i) {
-        printf("  .byte %#x\n", (cstr->str)[i]);
-      }
-    } else if (g->ty->kind == TYPE_ARRAY) {
-      for(int i=0;i<g->ty->array_size;++i) {
-        printf("  .zero %d\n", GetTypeSize(g->ty->ptr_to));
-      }
-    } else if(g->initializer) {
-      printf("  .%dbyte %d\n", GetTypeSize(g->ty), eval(g->initializer->children[0]));
+    if(g->initializer) {
+      InitGvar(g->initializer);
     } else {
-      printf("  .zero %d\n", GetTypeSize(g->ty));
+      if (g->ty->kind == TYPE_STRUCT) {
+        printf("  .zero %d\n", GetTypeSize(g->ty));
+      } else if (g->ty->kind == TYPE_ARRAY) {
+        printf("  .zero %ld\n", GetTypeSize(g->ty->ptr_to) * g->ty->array_size);
+      } else {
+        printf("  .zero %d\n", GetTypeSize(g->ty));
+      }
     }
   }
   for(c=cstrs;c->next!=NULL;c=c->next) {
@@ -461,10 +548,7 @@ void Generate(Node *node) {
 
     case ND_INIT:
     GenLval(node);
-    printf("  push rax\n");
-    Generate(node->children[0]);
-    printf("  push rax\n");
-    StoreVar(node->ty, 1);
+    InitLvar(node, 1);
     return;
 
     case ND_ASSIGN:

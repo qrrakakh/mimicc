@@ -29,7 +29,9 @@ pointer = "*" type-qualifier-list? pointer?
 init-declarator-list = (init-declarator-list ",")? init-declarator
 init-declarator = declarator ("=" initializer)?
 initializer = assignment-expression
-              | "{" initializer-list ","? "}"  ## not implemented
+              | "{" initializer-list ","? "}"
+initializer-list = designation? initializer
+                   | initializer-list "," designation? initializer
 
 func  =  declaration-specifiers declarator "(" ( paraneter-type-list ")" (compound_statement | ";")
 parameter-type-list = parameter-list
@@ -237,7 +239,9 @@ type-name = specifier-qualifier-list abstract-declarator?
 init-declarator-list = (init-declarator-list ",")? init-declarator
 init-declarator = declarator ("=" initializer)?
 initializer = assignment-expression
-              | "{" initializer-list ","? "}"  ## not implemented
+              | "{" initializer-list ","? "}"
+initializer-list = designation? initializer
+                   | initializer-list "," designation? initializer
 ```
 
 ### Struct / Union
@@ -394,8 +398,6 @@ s-char-sequence = s-char-sequence? c-char  ## currently resticted that c-char is
 ```
 type-qualifier = "const" | "restrict" | "volatile" ## not implemented
 function-specifier = "inline" ## not implemented
-initializer-list = designation? initializer
-                   | initializer-list "," designation? initializer
 abstract-declarator = pointer | pointer? direct-abstract-declarator
 direct-abstract-declarator = "(" abstract-declarator ")"
                              | direct-abstract-declarator? "(" parameter-type-list? ") "

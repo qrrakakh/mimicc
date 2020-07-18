@@ -41,6 +41,11 @@ char Test134() {
   return b;
 }
 
+char string_initializer_test() {
+  char a[6] = "abcdef";
+  return a[3];
+}
+
 int run_char_strings_tests() {
   int expected;
   int actual;
@@ -112,6 +117,13 @@ int run_char_strings_tests() {
   if (actual != expected)
   {
     printf("str_gvar_init test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=100;
+  actual=string_initializer_test();
+  if (actual != expected)
+  {
+    printf("string_initializer_test faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 }

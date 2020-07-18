@@ -1645,19 +1645,24 @@ Type *pointer(Type *orig_ty) {
 Token *declarator(Type **ty) {
   // declarator = pointer? direct-declarator
   // direct-declarator = identifier
-  //                     | identifier "[" integer-constant "]"
+  //                     | direct-declarator "[" integer-constant "]"
   //                     | "(" declarator ")"  ## not implementes
 
-  Token *tok, *ident_tok;
+  Token *tok, *len_tok, *ident_tok;
   int size;
   *ty = pointer(*ty);
   ident_tok = ConsumeIdent();
 
-  if (Consume("[")) {
+  while (Consume("[")) {
     tok = token;
-    size = ExpectNumber();
-    if(size<1) {
-      ErrorAt(tok->str, "Array whose length less than 1 is invalid.");
+    len_tok = ConsumeNumber();
+    if(len_tok) {
+      size = len_tok->val;
+      if(size<1) {
+        ErrorAt(tok->str, "Array whose length less than 1 is invalid.");
+      }
+    } else {
+      size = 0;
     }
     *ty = InitArrayType(*ty, size);
     Expect("]");
@@ -1665,12 +1670,14 @@ Token *declarator(Type **ty) {
 
   return ident_tok;
 }
-
 Node *initializer(Type *ty) {
   // initializer = assignment-expression
-  //               | "{" initializer-list ","? "}"  ## not implemented
+  //               | "{" initializer-list ","? "}"
 
-  Node *node = calloc(1, sizeof(Node));
+  Node *node = calloc(1, sizeof(Node)), *tail;
+  Token *tok;
+  int len = 0;
+
   node->kind = ND_INIT;
   node->ty = ty;
 
@@ -1679,17 +1686,39 @@ Node *initializer(Type *ty) {
     node->num_args = 1;
     node->children = calloc(1, sizeof(Node*));
     node->children[0] = assignment_expression();
-  } else if(ty->kind == TYPE_ARRAY && ty->ptr_to->kind == TYPE_CHAR) {
-    // case: ty = strings
-    node->num_args = 1;
-    node->children = calloc(1, sizeof(Node*));
-    node->children[0] = string_literal();
-    if(!node->children[0]) {
-      ErrorAt(token->str, "String literal expected.");
-    }
   } else if(ty->kind == TYPE_ARRAY) {
-    // case: ty = array (not implemented)
-    ErrorAt(token->str,"Array initializer is not supported.");
+    // case: ty = array
+    if (ty->ptr_to->kind == TYPE_CHAR && (tail=string_literal())) {
+      // case: ty = strings
+      node->num_args = 1;
+      node->children = calloc(1, sizeof(Node*));
+      node->children[0] = tail;
+      if(ty->array_size == 0) {
+        ty->array_size = node->children[0]->ty->array_size;
+      }
+    } else {
+      tail = node;
+      Expect("{");
+      while(!Consume("}")) {
+        tok = token;
+        tail->num_args = 2;
+        tail->children = calloc(1, sizeof(Node*));
+        tail->children[0] = initializer(ty->ptr_to);
+        tail->children[1] = calloc(1, sizeof(Node));
+        tail->children[1]->kind = ND_INIT;
+        tail->children[1]->ty = ty;
+        tail = tail->children[1];
+        ++len;
+        if(ty->array_size>0 && len > ty->array_size) {
+          WarnAt(tok->str, "excess elements in array initializer.");
+        }
+        Consume(",");
+      }
+      if(ty->array_size == 0) {
+        ty->array_size = len;
+      }
+      tail->num_args = 0;
+    }
   } else if(ty->kind == TYPE_STRUCT) {
     // case: ty = struct (not implemented)
     ErrorAt(token->str,"Struct initializer is not supported.");

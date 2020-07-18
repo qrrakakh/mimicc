@@ -5,6 +5,10 @@ extern void printf();
 int var_Test13[2];
 int var_Test137; int *TestHelperFunction137(int x) { var_Test137=x; return &var_Test137; }
 void TestHelperFunction148(int *a) { *a = 10; }
+int gvar_array_initializer1[3] = {1, 2, 4};
+int gvar_array_initializer2[2][2] = {{1,2},{4,8}};
+int gvar_array_initializer3[] = {1, 2, 4};
+int gvar_array_initializer4[3] = {1, 2};
 
 // Test functions
 int Test10() 
@@ -123,6 +127,27 @@ int Test148() {
   int a;
   TestHelperFunction148(&a);
   return a*2;
+}
+
+int array_initializer_test1() {
+  int a[3] = {1, 2, 4};
+  return a[0] + a[1] + a[2];
+}
+
+int array_initializer_test2() {
+  int a[2][2] = {{1,2},{4,8}};
+  return a[0][0] + a[0][1] + a[1][0] + a[1][1];
+}
+
+int array_initializer_test3() {
+  int a[] = {1, 2, 4};
+  return a[0] + a[1] + a[2];
+}
+
+int array_initializer_test4() {
+  int a[3] = {1, 2};
+  a[2] = 4;
+  return a[0] + a[1];
 }
 
 int run_pointers_tests() {
@@ -330,6 +355,70 @@ int run_pointers_tests() {
   if (actual != expected)
   {
     printf("Test148 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=7;
+  actual=array_initializer_test1();
+  if (actual != expected)
+  {
+    printf("array_initializer_test1 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=15;
+  actual=array_initializer_test2();
+  if (actual != expected)
+  {
+    printf("array_initializer_test2 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=7;
+  actual=array_initializer_test3();
+  if (actual != expected)
+  {
+    printf("array_initializer_test3 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=3;
+  actual=array_initializer_test4();
+  if (actual != expected)
+  {
+    printf("array_initializer_test3 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=4;
+  actual=gvar_array_initializer1[2];
+  if (actual != expected)
+  {
+    printf("gvar_array_initializer_test1 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=8;
+  actual=gvar_array_initializer2[1][1];
+  if (actual != expected)
+  {
+    printf("gvar_array_initializer_test2 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=2;
+  actual=gvar_array_initializer3[1];
+  if (actual != expected)
+  {
+    printf("gvar_array_initializer_test3 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=2;
+  actual=gvar_array_initializer4[1];
+  if (actual != expected)
+  {
+    printf("gvar_array_initializer_test3 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 
