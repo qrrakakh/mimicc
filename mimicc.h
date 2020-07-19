@@ -144,6 +144,7 @@ typedef enum {  // ABS Node kinds
   ND_CASE,      // case
   ND_SWLABEL,   // label for switch
   ND_IF,        // if
+  ND_CONDEXPR,  // conditional statement
   ND_BLOCK,     // {} block
   ND_CALL,      // function call
   ND_FUNC,      // function

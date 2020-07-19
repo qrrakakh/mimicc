@@ -19,6 +19,44 @@ _Bool IsArithmeticType(Type *ty) {
   return ty->kind < TYPE_ARITHMETIC_LIMIT;
 }
 
+Type *IsCompatibleType(Type *ty1, Type *ty2) {
+  if(IsArithmeticType(ty1)) {
+    if(!IsArithmeticType(ty2)) {
+      return NULL;
+    }
+    Type *ty = (ty2->kind > ty1->kind) ? ty2: ty1;
+    if (ty->kind == TYPE_ENUM) {
+      ty = int_type;
+    }
+    return ty;
+  } else if(ty1->kind != ty2->kind) {
+    return NULL;
+  } else if(ty1->kind == TYPE_STRUCT) {
+    if(ty1->id == ty2->id) {
+      return ty1;
+    } else {
+      return NULL;
+    }
+  } else if(ty1->kind == TYPE_ARRAY) {
+    if(IsCompatibleType(ty1->ptr_to, ty2->ptr_to) && ty1->array_size == ty2->array_size) {
+      return ty1;
+    } else {
+      return NULL;
+    }
+  } else if(ty1->kind == TYPE_PTR) {
+    if(IsCompatibleType(ty1->ptr_to, ty2->ptr_to)) {
+      return ty1;
+    } else {
+      return NULL;
+    }
+  } else if(ty1->kind == TYPE_VOID) {
+    return void_type;
+  } else {
+    // unexpected
+    return NULL;
+  }
+}
+
 //////////
 // scope related functions
 
@@ -816,6 +854,16 @@ Node *NewNodeIf(Node *cond, Node *stmt1, Node *stmt2) {
   node->children[1] = stmt1;
   node->children[2] = stmt2;
   node->ty = NULL;
+  return node;
+}
+
+Node *NewNodeCondExpr(Node *cond, Node *stmt1, Node *stmt2) {
+  Node *node = NewNodeIf(cond, stmt1, stmt2);
+  node->kind = ND_CONDEXPR;
+  node->ty = IsCompatibleType(stmt1->ty, stmt2->ty);
+  if(!(node->ty)) {
+    ErrorAt(cond->tok->str, "incompatible type in conditional statment.");
+  }
   return node;
 }
 
@@ -1934,8 +1982,17 @@ Node *logical_or_expression() {
 
 Node * conditional_expression() {
   // conditional-expression = logical-OR-expression
-  //                          | logical-OR-expression "?" expression ":" conditional-expression ## not implemented  
-  return logical_or_expression();
+  //                          | logical-OR-expression "?" expression ":" conditional-expression
+
+  Node *node = logical_or_expression(), *cond, *stmt1, *stmt2;
+  if(Consume("?")) {
+    cond = node;
+    stmt1 = expression();
+    Expect(":");
+    stmt2 = conditional_expression();
+    node = NewNodeCondExpr(cond, stmt1, stmt2);
+  }
+  return node;
 }
 
 Node * constant_expression() {

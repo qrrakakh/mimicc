@@ -644,6 +644,7 @@ void Generate(Node *node) {
       return;
 
     case ND_IF:
+    case ND_CONDEXPR:
       label = label_index++;
       Generate(node->children[0]);
       printf("  cmp rax, 0\n"); // 0 if cond is not satisfied

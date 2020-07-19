@@ -39,9 +39,23 @@ int Test79()
 {
   int a; int b; a=0;b=1;if(a>1) b=2;return b;
 }
-int Test80() 
+int if_else_test1() 
 {
   int a; int b; a=2;b=1;if(a>1) b=2;else b=3;return b;
+}
+int if_else_test2() 
+{
+  int a; int b; a=0;b=1;if(a>1) b=2;else b=3;return b;
+}
+int conditional_expression_test1() 
+{
+  int a=2;
+  return (a>1) ? 2: 3;
+}
+int conditional_expression_test2() 
+{
+  int a=0;
+  return (a>1) ? 2: 3;
 }
 int Test81() 
 {
@@ -140,10 +154,31 @@ int run_control_tests() {
     return 1;
   }
   expected=2;
-  actual=Test80();
+  actual=if_else_test1();
   if (actual != expected)
   {
-    printf("Test80 faild, %d expected, but got %d\n", expected, actual);
+    printf("if_else_test1 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=3;
+  actual=if_else_test2();
+  if (actual != expected)
+  {
+    printf("if_else_test2 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=2;
+  actual=conditional_expression_test1();
+  if (actual != expected)
+  {
+    printf("conditional_expression_test1 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=3;
+  actual=conditional_expression_test2();
+  if (actual != expected)
+  {
+    printf("conditional_expression_test2 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
   expected=2;
