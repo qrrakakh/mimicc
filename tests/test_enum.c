@@ -10,6 +10,10 @@ enum enum2 {
   a2, b2=0, c2
 } enum2_inst;
 
+typedef enum {
+  x, y, z
+} enum4;
+
 int enumtest_01_1() {
   return a1;
 }
@@ -81,6 +85,19 @@ int enumtest_03_4() {
   enum enum3 z;
   z=a3;
   return z;
+}
+
+int enumtest_04_1() {
+  enum4 v = x;
+  return v;
+}
+
+int enumtest_04_2() {
+  typedef enum {
+    x,y,z
+  } enum4l;
+  enum4l v = x;
+  return v;
 }
 
 int run_enum_tests() {
@@ -188,6 +205,22 @@ int run_enum_tests() {
   if (actual != expected)
   {
     printf("enumtest_03_4 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=0;
+  actual=enumtest_04_1();
+  if (actual != expected)
+  {
+    printf("enumtest_04_1 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=0;
+  actual=enumtest_04_2();
+  if (actual != expected)
+  {
+    printf("enumtest_04_2 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 

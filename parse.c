@@ -194,6 +194,45 @@ _Bool IsParentOfScopeId(int id, Scope *scope) {
   }
 }
 
+int GetScopeDepth(int id, Scope *scope, int depth) {
+  if(scope->id==id) {
+    return depth;
+  } else if(scope->parent==NULL || scope->parent->id == 0) {
+    return -1;
+  } else {
+    return GetScopeDepth(id, scope->parent, depth+1);
+  }
+}
+
+Symbol *FindSymbol(Token *tok) {
+  if(tok==NULL)
+    return NULL;
+  Symbol *symbol=NULL, *_symbol;
+
+  // Translation limit defined in ISO/IEC 9899:1999->127 nesting levels of blocks
+  int depth=128, _depth;
+  for(_symbol=locals;_symbol;_symbol=_symbol->next) {
+    if(_symbol->len == tok->len && !memcmp(_symbol->name, tok->str, _symbol->len)) {
+      _depth = GetScopeDepth(_symbol->scope_id, current_scope, 0);
+      if(_depth<depth) {
+        symbol = _symbol;
+        depth = _depth;
+      }
+    }
+  }
+  if(symbol) {
+    return symbol;
+  }
+
+  for(_symbol=globals;_symbol;_symbol=_symbol->next) {
+    if(_symbol->len == tok->len && !memcmp(_symbol->name, tok->str, _symbol->len)) {
+      symbol = _symbol;
+      break;
+    }
+  }
+  return symbol;
+}
+
 Symbol *FindLvar(Token *tok) {
   Symbol *symbol;
   for(symbol=locals;symbol;symbol=symbol->next) {
@@ -440,13 +479,12 @@ Enum *AddEnum(Token *tok) {
   e->id = ty->id;
   e->ty = ty;
   e->scope_id = current_scope->id;
+  e->is_defined = 0;
   
   if(tok) {
-    e->name = tok->str;
-    e->len = tok->len;
+    e->tok = tok;
   } else {
-    e->name = NULL;
-    e->len = 0;
+    e->tok = NULL;
   }
 
   return e;
@@ -496,13 +534,19 @@ Symbol *FindStructMember(int struct_id, Token *member_token) {
 
 Enum *FindEnum(Token *tok, _Bool is_recursive_search) {
   Enum *e = enums;
+
+  if(!tok) {
+    return NULL;
+  }
   while(e->next) {
-    if (tok->len == e->len
-        && strncmp(e->name, tok->str, e->len)==0) {
-      if(is_recursive_search && (IsParentOfScopeId(e->scope_id, current_scope) || e->scope_id==0)) {
-        return e;
-      } else if((!is_recursive_search) && e->scope_id==current_scope->id) {
-        return e;
+    if(e->tok) {
+      if (tok->len == e->tok->len
+          && strncmp(e->tok->str, tok->str, e->tok->len)==0) {
+        if(is_recursive_search && (IsParentOfScopeId(e->scope_id, current_scope) || e->scope_id==0)) {
+          return e;
+        } else if((!is_recursive_search) && e->scope_id==current_scope->id) {
+          return e;
+        }
       }
     }
     e = e->next;
@@ -1693,9 +1737,18 @@ Type *enum_specifier() {
 
   ident_tok = ConsumeIdent();
 
+  if (!(e=FindEnum(ident_tok, 1))) {
+    e = AddEnum(ident_tok);
+  }
+
   if(Consume("{")) { // "enum" identifier? "{" enumerator-list ","? "}"
-    if(!(ident_tok && (e=FindEnum(ident_tok, 0))))  {
-      e = AddEnum(ident_tok);
+    if(e->is_defined && e->tok != ident_tok) {
+      if(!FindEnum(ident_tok, 0)) {
+        e = AddEnum(ident_tok);
+      }
+      if(e->is_defined && e->tok != ident_tok) {
+        ErrorAt(ident_tok->str, "multiple definition of enum.");
+      }
     }
     ty = e->ty;
 
@@ -1703,11 +1756,11 @@ Type *enum_specifier() {
     Consume(",");
     Expect("}");
 
+    e->is_defined = 1;
+
     return ty;
   } else if(!ident_tok) { // "enum" identifier
     ErrorAt(token->str, "identifier expected.");
-  } else if (!(e = FindEnum(ident_tok, 1))) {
-    ErrorAt(ident_tok->str, "enum is not declared.");
   }
   return e->ty;
 }
@@ -2265,13 +2318,19 @@ Node *primary_expression() {
     node = expression();
     Expect(")");
     return node;
-  } else if((node=constant())) { // constant
-  // evaluate earlier than identifier so that enum const must be parsed as a constant.
-    return node;
   } else if((node=string_literal())) { // string-literal
     return node;
-  } else {  // identifier
-    return identifier();
+  } else {
+    Token *tok, *ident_tok;
+    tok = token;
+    ident_tok = ConsumeIdent();
+    Symbol *s = FindSymbol(ident_tok);
+    token = tok;
+    if (s && s->kind != SY_ENUMCONST) {
+      return identifier();
+    } else {
+      return constant();
+    }
   }
 }
 

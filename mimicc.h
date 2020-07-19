@@ -189,13 +189,13 @@ struct Struct {
 };
 
 struct Enum {
-  char *name;
-  int len;
+  Token *tok;
   int id;
   int scope_id;
   Node *constants;
   Type *ty;
   Enum *next;
+  _Bool is_defined;
 };
 
 //////////
