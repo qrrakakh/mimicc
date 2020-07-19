@@ -20,6 +20,10 @@ int bit_gvar_init = (1&1) + (2&0) + (4|4) + (8|0) + (16^16) + (32^0);
 int compare_gvar_init = ((1<2)<<0) + ((2<1)<<1) + ((1<=2)<<2) + ((2<=1)<<3)
                         + ((2<=2)<<4) + ((1==1)<<5) + ((1==2)<<6) + ((1!=1)<<7) + ((1!=2)<<8);
 
+const int const_gvar1 = 1;
+int const const_gvar2 = 2;
+const int *const_gvar3;
+
 // Test functions
 int Test1() 
 {
@@ -56,6 +60,44 @@ int Test18()
 int Test19() 
 {
   var_Test19=1; int var_Test19; var_Test19=2;TestHelperFunction19();return var_Test19;
+}
+
+int const_lvar_test1() {
+  int const a = 1;
+  return a;
+}
+
+int const_lvar_test2() {
+  const int a = 2;
+  return a;
+}
+
+int const_lvar_test3() {
+  const int *p;
+  int a = 1;
+  p = &a;
+  return *p;
+}
+
+int const_lvar_test4() {
+  int a = 1;
+  int * const p = &a;
+  a = 2;
+  return *p;
+}
+
+int const_gvar_test1() {
+  return const_gvar1;
+}
+
+int const_gvar_test2() {
+  return const_gvar2;
+}
+
+int const_gvar_test3() {
+  int a = 1;
+  const_gvar3 = &a;
+  return *const_gvar3;
 }
 
 int run_basic_variables_tests() {
@@ -152,6 +194,57 @@ int run_basic_variables_tests() {
   if (actual != expected)
   {
     printf("compare_gvar_init_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=1;
+  actual=const_lvar_test1();
+  if (actual != expected)
+  {
+    printf("const_lvar_test1_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=2;
+  actual=const_lvar_test2();
+  if (actual != expected)
+  {
+    printf("const_lvar_test2_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=1;
+  actual=const_lvar_test3();
+  if (actual != expected)
+  {
+    printf("const_lvar_test3_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=2;
+  actual=const_lvar_test4();
+  if (actual != expected)
+  {
+    printf("const_lvar_test4_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=1;
+  actual=const_gvar_test1();
+  if (actual != expected)
+  {
+    printf("const_gvar_test1_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=2;
+  actual=const_gvar_test2();
+  if (actual != expected)
+  {
+    printf("const_gvar_test2_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=1;
+  actual=const_gvar_test3();
+  if (actual != expected)
+  {
+    printf("const_gvar_test3_test faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 

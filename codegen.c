@@ -326,6 +326,9 @@ void GenerateFooter() {
     if(g->kind!=SY_VAR) { // not a variable
       continue;
     }
+    if(g->ty->tq & TQ_CONST) { // const
+      continue;
+    }
     printf("  .global %.*s\n", g->len, g->name);
     printf("%.*s:\n", g->len, g->name);
     if(g->initializer) {
@@ -343,6 +346,33 @@ void GenerateFooter() {
 
   // read-only data
   printf("  .section .rodata\n");
+  //// const gloval variable
+  for(g=globals;g->next!=NULL;g=g->next) {
+    if(g->scope_id==-1) { // extern
+      continue;
+    }
+    if(g->kind!=SY_VAR) { // not a variable
+      continue;
+    }
+    if(!(g->ty->tq & TQ_CONST)) { // not const
+      continue;
+    }
+    printf("  .global %.*s\n", g->len, g->name);
+    printf("%.*s:\n", g->len, g->name);
+    if(g->initializer) {
+      InitGvar(g->initializer);
+    } else {
+      if (g->ty->kind == TYPE_STRUCT) {
+        printf("  .zero %d\n", GetTypeSize(g->ty));
+      } else if (g->ty->kind == TYPE_ARRAY) {
+        printf("  .zero %ld\n", GetTypeSize(g->ty->ptr_to) * g->ty->array_size);
+      } else {
+        printf("  .zero %d\n", GetTypeSize(g->ty));
+      }
+    }
+  }
+
+  //// String literal
   for(c=cstrs;c->next!=NULL;c=c->next) {
     printf(".LC%06d:\n", c->id);
     printf("  .string \"%.*s\"\n", c->size, c->str);
@@ -579,6 +609,9 @@ void Generate(Node *node) {
       return;
 
     case ND_ASSIGN:
+      if(node->children[0]->ty->tq & TQ_CONST) {
+        ErrorAt(node->children[0]->tok->str, "assignment of read-only location.");
+      }
       GenLval(node->children[0]);
       printf("  push rax\n");
       Generate(node->children[1]);

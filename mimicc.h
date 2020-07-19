@@ -50,6 +50,11 @@ typedef enum {  // Token definition
   TK_STRINGS,   // strings
   TK_EOF,       // end of input
 } TokenKind;
+typedef enum {
+  TQ_CONST    = 1,      // const
+  TQ_RESTRICT = 1<<1,   // restrict
+  TQ_VOLATILE = 1<<2,   // volatile
+} TypeQual;
 
 struct Const_Strings {
   int id;
@@ -64,6 +69,7 @@ struct Type {
   size_t array_size;
   _Bool is_variable_length;
   int id;
+  TypeQual tq;
 };
 
 struct DeclSpec {
@@ -217,11 +223,6 @@ Scope *current_scope;
 extern char *builtin_type_names[];
 extern int num_builtin_types;
 extern TypeKind builtin_type_enum[];
-Type **builtin_type_obj;
-Type *int_type;
-Type *char_type;
-Type *void_type;
-Type *bool_type;
 
 //////////
 // utility functions

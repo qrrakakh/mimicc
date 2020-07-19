@@ -16,12 +16,15 @@ external-declaration = func | declaration
 declaration = declaration_specifier init_declarator_list? ";"
 declaration-specifiers = storage-class-specifier declaration-specifiers*
                         | type-specifier declaration-specifiers*
-                        | type-qualifier declaration-specifiers*  ### not implemented
+                        | type-qualifier declaration-specifiers*
                         | function-specifier declaration-specifiers*  ### not implemented
 storage-class-specifier = "extern" | "typedef"
                           | "static" | "auto" | "register" ## not implemented
 type-specifier  =  "int" | "char" | "void" | "_Bool"
                    | struct-or-union-specifier | enum-specifier
+type-qualifier = "const"
+               | "restrict" | "volatile" ## not implemented
+type-qualifier-list = type-qualifier-list? type-qualifier
 declarator = pointer? direct-declarator
 direct-declarator = identifier
                     | identifier array-declarator
@@ -197,7 +200,6 @@ s-char-sequence = s-char-sequence? c-char  ## currently resticted that c-char is
 
 ### Not implemented
 ```
-type-qualifier = "const" | "restrict" | "volatile" ## not implemented
 function-specifier = "inline" ## not implemented
 abstract-declarator = pointer | pointer? direct-abstract-declarator
 direct-abstract-declarator = "(" abstract-declarator ")"

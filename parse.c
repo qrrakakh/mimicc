@@ -7,11 +7,36 @@ Type *InitArrayType(Type *_ty, size_t size) {
   ty->kind = TYPE_ARRAY;
   ty->ptr_to = _ty;
   ty->array_size = size;
+  ty->tq = 0;
   if(size==0) {
     ty->is_variable_length = 1;
   } else {
     ty->is_variable_length = 0;
   }
+  return ty;
+}
+
+Type *InitIntType() {
+  Type *ty = calloc(1, sizeof(Type));
+  ty->kind = TYPE_INT;
+  ty->ptr_to = NULL;
+  ty->tq = 0;
+  return ty;
+}
+
+Type *InitCharType() {
+  Type *ty = calloc(1, sizeof(Type));
+  ty->kind = TYPE_CHAR;
+  ty->ptr_to = NULL;
+  ty->tq = 0;
+  return ty;
+}
+
+Type *InitVoidType() {
+  Type *ty = calloc(1, sizeof(Type));
+  ty->kind = TYPE_VOID;
+  ty->ptr_to = NULL;
+  ty->tq = 0;
   return ty;
 }
 
@@ -26,8 +51,8 @@ Type *IsCompatibleType(Type *ty1, Type *ty2) {
     }
     Type *ty = (ty2->kind > ty1->kind) ? ty2: ty1;
     if (ty->kind == TYPE_ENUM) {
-      ty = int_type;
-    }
+      ty = InitIntType();
+  }
     return ty;
   } else if(ty1->kind != ty2->kind) {
     return NULL;
@@ -50,7 +75,7 @@ Type *IsCompatibleType(Type *ty1, Type *ty2) {
       return NULL;
     }
   } else if(ty1->kind == TYPE_VOID) {
-    return void_type;
+    return InitVoidType();
   } else {
     // unexpected
     return NULL;
@@ -549,7 +574,7 @@ Node *NewNodeUnaryOp(NodeKind kind, Node *valnode) {
       node->ty = valnode->ty;
     break;
     case ND_SIZEOF:
-      node->ty = int_type;
+      node->ty = InitIntType();
       break;
     case ND_ADDR:
       node->ty = calloc(1, sizeof(Type));
@@ -619,7 +644,7 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
           "both types should be arithmetic or different type cannot be compared; lhs type: %d, rhs type: %d, current scope id: %d",
           lhs->ty->kind, rhs->ty->kind, current_scope->id);
       }
-      node->ty = int_type;
+      node->ty = InitIntType();
       break;
     case ND_ASSIGN:
       if (IsArithmeticType(lhs->ty) && IsArithmeticType(rhs->ty)) {
@@ -712,7 +737,7 @@ Node *NewNodeChar(Token *tok) {
   node->kind = ND_CHAR;
   node->val = *(tok->str);
   node->tok = tok;
-  node->ty = char_type;
+  node->ty = InitCharType();
   return node;
 }
 
@@ -722,7 +747,7 @@ Node *NewNodeStrings(Token *tok) {
   node->kind = ND_STRINGS;
   node->id = AddCstr(tok->str, tok->len)->id;
   node->tok = tok;
-  node->ty = InitArrayType(char_type, tok->len+1);
+  node->ty = InitArrayType(InitCharType(), tok->len+1);
   return node;
 }
 
@@ -731,7 +756,7 @@ Node *NewNodeNum(Token *tok, int val) {
   node->children = NULL;
   node->kind = ND_NUM;
   node->val = val;
-  node->ty = int_type;
+  node->ty = InitIntType();
   return node;
 }
 
@@ -757,7 +782,7 @@ Node *NewNodeLvar(Token *tok) {
   node->id = symbol->id;
   node->tok = tok;
   if (symbol->ty->kind == TYPE_ENUM)
-    node->ty = int_type;
+    node->ty = InitIntType();
   else 
     node->ty = symbol->ty;
   return node;
@@ -776,7 +801,7 @@ Node *NewNodeGvar(Token *tok) {
   node->id = symbol->id;
   node->tok = tok;
   if (symbol->ty->kind == TYPE_ENUM)
-    node->ty = int_type;
+    node->ty = InitIntType();
   else 
     node->ty = symbol->ty;
   return node;
@@ -796,7 +821,7 @@ Node *NewNodeConstInt(Token *tok) {
   node->tok = tok;
   node->val = symbol->val;
   if (symbol->ty->kind == TYPE_ENUM)
-    node->ty = int_type;
+    node->ty = InitIntType();
   else 
     node->ty = symbol->ty;
 
@@ -901,7 +926,7 @@ Node *NewNodeFuncCall(Token *tok, int num_args, Node *arg[]) {
   Func *f;
   if(!(f = FindFunc(tok))) {
     WarnAt(tok->str, "Implicitly declared function.");
-    f = AddFunc(tok, int_type, 0, current_scope->id);
+    f = AddFunc(tok, InitIntType(), 0, current_scope->id);
   }
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_CALL;
@@ -928,6 +953,8 @@ DeclSpec *declaration_specifiers();
 Type *_typedef_name();
 StorageSpec storage_class_specifier();
 Type *type_specifier();
+TypeQual type_qualifier();
+TypeQual type_qualifier_list();
 Token *declarator(Type **ty);
 Type *pointer(Type *orig_ty);
 Node *init_declarator_list(DeclSpec *dspec);
@@ -1365,10 +1392,11 @@ Node *jump_statement() {
 
 Type *specifier_qualifier_list() {
   // specifier-qualifier-list = type-specifier specifier-qualifier-list*
-  //                           | type-qualifier specifier-qualifier-list*  ## not implemented
+  //                           | type-qualifier specifier-qualifier-list*
 
   Token *tok;
   Type *ty=NULL, *_ty;
+  TypeQual tq;
 
   while(1) {
     tok = token;
@@ -1382,6 +1410,12 @@ Type *specifier_qualifier_list() {
       ty = _ty;
       continue;
     }
+
+    tq = type_qualifier();
+    if(tq>0) {
+      ty->tq |= tq;
+    }
+
     break;
   }
 
@@ -1512,13 +1546,14 @@ StorageSpec storage_class_specifier() {
 DeclSpec *declaration_specifiers() {
   // declaration-specifiers = storage-class-specifier declaration-specifiers*
   //                         | type-specifier declaration-specifiers*
-  //                         | type-qualifier declaration-specifiers*  ### not implemented
+  //                         | type-qualifier declaration-specifiers*
   //                         | function-specifier declaration-specifiers*  ### not implemented
 
   Token *tok;
   DeclSpec *dspec = calloc(1, sizeof(DeclSpec));
   StorageSpec sspec;
   Type *ty;
+  TypeQual tq = 0, _tq;
 
   while(1) {
     tok = token;
@@ -1541,12 +1576,21 @@ DeclSpec *declaration_specifiers() {
       dspec->ty = ty;
       continue;
     }
+
+    _tq = type_qualifier();
+    if (_tq>0) {
+      tq |= _tq;
+      continue;
+    }
+    
+
     break;
   }
 
   if (!(dspec->ty)) {
     return NULL;
   }
+  dspec->ty->tq = tq;
 
   return dspec;
 
@@ -1601,11 +1645,39 @@ Type *type_specifier() {
   ty=NULL;
   for(int i=0;i<num_builtin_types;++i) {
     if(strncmp(tok->str, builtin_type_names[i], tok->len)==0) {
-      ty = builtin_type_obj[i];
+      ty = calloc(1, sizeof(Type));
+      ty->kind = builtin_type_enum[i];
+      ty->ptr_to = NULL;
+      ty->tq = 0;
       break;
     }
   }
   return ty;
+}
+
+TypeQual type_qualifier() {
+  // type-qualifier = "const"
+  //                | "restrict" | "volatile" ## not implemented
+
+  TypeQual tq = 0;
+  if (Consume("const")) {
+    tq |= TQ_CONST;
+  }
+  return tq;
+}
+
+TypeQual type_qualifier_list() {
+  // type-qualifier-list = type-qualifier-list? type-qualifier
+
+  TypeQual tq = 0, _tq;
+  while(1) {
+    _tq = type_qualifier();
+    if(_tq==0) {
+      break;
+    }
+    tq |= _tq;
+  }
+  return tq;
 }
 
 Type *enum_specifier() {
@@ -1692,6 +1764,7 @@ Type *pointer(Type *orig_ty) {
     ty = calloc(1, sizeof(Type));
     ty->kind = TYPE_PTR;
     ty->ptr_to = tgt_ty;
+    ty->ptr_to->tq = type_qualifier_list();
   }
 
   return ty;
