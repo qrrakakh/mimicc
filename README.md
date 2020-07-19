@@ -24,7 +24,9 @@ type-specifier  =  "int" | "char" | "void" | "_Bool"
                    | struct-or-union-specifier | enum-specifier
 declarator = pointer? direct-declarator
 direct-declarator = identifier
-                    | identifier "[" integer-constant "]"
+                    | identifier array-declarator
+                    | "(" declarator ")"  ## not implemented
+array-declarator = "[" integer-constant "]"
 pointer = "*" type-qualifier-list? pointer?
 init-declarator-list = (init-declarator-list ",")? init-declarator
 init-declarator = declarator ("=" initializer)?

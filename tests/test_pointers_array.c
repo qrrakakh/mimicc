@@ -6,7 +6,10 @@ int var_Test13[2];
 int var_Test137; int *TestHelperFunction137(int x) { var_Test137=x; return &var_Test137; }
 void TestHelperFunction148(int *a) { *a = 10; }
 int gvar_array_initializer1[3] = {1, 2, 4};
-int gvar_array_initializer2[2][2] = {{1,2},{4,8}};
+int gvar_array_initializer2[4][3][2] = {{{1,2}, {4,8}, {16,32}},
+                                        {{4,8}, {16,32}, {64,128}},
+                                        {{16,32}, {64,128}, {256,512}},
+                                        {{64,128}, {256,512}, {1024,2048}}};
 int gvar_array_initializer3[] = {1, 2, 4};
 int gvar_array_initializer4[3] = {1, 2};
 
@@ -135,8 +138,11 @@ int array_initializer_test1() {
 }
 
 int array_initializer_test2() {
-  int a[2][2] = {{1,2},{4,8}};
-  return a[0][0] + a[0][1] + a[1][0] + a[1][1];
+  int a[4][3][2] = {{{1,2}, {4,8}, {16,32}},
+                    {{4,8}, {16,32}, {64,128}},
+                    {{16,32}, {64,128}, {256,512}},
+                    {{64,128}, {256,512}, {1024,2048}}};
+  return a[0][0][0] + a[1][1][1] + a[2][2][1] + a[3][2][1];
 }
 
 int array_initializer_test3() {
@@ -366,7 +372,7 @@ int run_pointers_tests() {
     return 1;
   }
 
-  expected=15;
+  expected=1 + 32 + 512 + 2048;
   actual=array_initializer_test2();
   if (actual != expected)
   {
@@ -398,8 +404,12 @@ int run_pointers_tests() {
     return 1;
   }
 
-  expected=8;
-  actual=gvar_array_initializer2[1][1];
+  // int gvar_array_initializer2[4][3][2] = {{{1,2}, {4,8}, {16,32}},
+  //                                         {{4,8}, {16,32}, {64,128}},
+  //                                         {{16,32}, {64,128}, {256,512}},
+  //                                         {{64,128}, {256,512}, {1024,2048}}};
+  expected= 1 + 32 + 512 + 2048;
+  actual=gvar_array_initializer2[0][0][0] + gvar_array_initializer2[1][1][1] + gvar_array_initializer2[2][2][1] + gvar_array_initializer2[3][2][1];
   if (actual != expected)
   {
     printf("gvar_array_initializer_test2 faild, %d expected, but got %d\n", expected, actual);

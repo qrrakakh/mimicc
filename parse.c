@@ -1646,41 +1646,44 @@ Type *pointer(Type *orig_ty) {
   return ty;
 }
 
+Type *array_declarator(Type *root_ty) {
+  // array-declarator = "[" integer-constant "]"
+
+  Token *tok, *len_tok;
+  int size;
+
+  if(!Consume("[")) {
+    return root_ty;
+  }
+  tok = token;
+  len_tok = ConsumeNumber();
+  if(len_tok) {
+    size = len_tok->val;
+    if(size<1) {
+      ErrorAt(tok->str, "Array whose length less than 1 is invalid.");
+    }
+  } else {
+    size = 0;
+  }
+  Expect("]");
+  return InitArrayType(array_declarator(root_ty), size);
+}
+
 Token *declarator(Type **ty) {
   // declarator = pointer? direct-declarator
   // direct-declarator = identifier
-  //                     | direct-declarator "[" integer-constant "]"
-  //                     | "(" declarator ")"  ## not implementes
+  //                     | direct-declarator array-declarator
+  //                     | "(" declarator ")"  ## not implemented
 
-  Token *tok, *len_tok, *ident_tok;
-  Type *_ty;
-  int size, _size;
+  Token *ident_tok;
   *ty = pointer(*ty);
   ident_tok = ConsumeIdent();
 
-  while (Consume("[")) {
-    tok = token;
-    len_tok = ConsumeNumber();
-    if(len_tok) {
-      size = len_tok->val;
-      if(size<1) {
-        ErrorAt(tok->str, "Array whose length less than 1 is invalid.");
-      }
-    } else {
-      size = 0;
-    }
-    Expect("]");
-    if((*ty)->kind == TYPE_ARRAY) {
-      _size = (*ty)->array_size;
-      _ty = InitArrayType((*ty)->ptr_to, size);
-      *ty = InitArrayType(_ty, _size);
-    } else {
-      *ty = InitArrayType(*ty, size);
-    }
-  }
+  *ty = array_declarator(*ty);
 
   return ident_tok;
 }
+
 Node *initializer(Type *ty) {
   // initializer = assignment-expression
   //               | "{" initializer-list ","? "}"
@@ -1725,7 +1728,7 @@ Node *initializer(Type *ty) {
         tail = tail->children[1];
         ++len;
         if(ty->array_size>0 && len > ty->array_size) {
-          WarnAt(tok->str, "excess elements in array initializer.");
+          WarnAt(tok->str, "excess elements in array initializer (%d > %d).", len, ty->array_size);
         }
         Consume(",");
       }
