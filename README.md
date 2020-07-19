@@ -118,8 +118,7 @@ unary-expression = postfix-expression
                    | sizeof "(" type-name ")"  ## not implemented
 
 unary-operator = "&" | "*" | "+" | "-"
-                 | "~"
-                 | "!" ## not implemented
+                 | "~" | "!"
 
 cast-expression = unary-expression
                    | "(" type-name ")" cast-expression ## not implemented
@@ -165,9 +164,9 @@ OR-expression = XOR-expression
                 | OR-expression "|" XOR-expression
 
 logical-AND-expression = OR-expression
-                         | logical-AND-expression "&&" XOR-expression ## not implemented
+                         | logical-AND-expression "&&" XOR-expression
 logical-OR-expression = logical-AND-expression
-                        | logical-OR-expression "||" logical-AND-expression ## not implemented
+                        | logical-OR-expression "||" logical-AND-expression
 
 conditional-expression = logical-OR-expression
                          | logical-OR-expression "?" expression ":" conditional-expression ## not implemented

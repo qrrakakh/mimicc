@@ -498,6 +498,13 @@ void Generate(Node *node) {
       printf("  not eax\n");
       return;
 
+    case ND_LNOT:
+      Generate(node->children[0]);
+      printf("  cmp rax, 0\n");
+      printf("  sete al\n");
+      printf("  movzb rax, al\n");
+      return;
+
     case ND_PREINC:
       diff = 1;
       if(node->children[0]->ty->kind == TYPE_PTR) {
@@ -684,6 +691,37 @@ void Generate(Node *node) {
       printf("  mov r10, qword ptr %.*s@GOTPCREL[rip]\n", node->val, node->name);
       printf("  call r10\n");
       printf("  add rsp, 8\n");
+      printf(".L.end%06d:\n", label);
+      return;
+  }
+
+  switch(node->kind) {
+    case ND_LAND:
+      label = label_index++;
+      Generate(node->children[0]);
+      printf("  cmp rax, 0\n");
+      printf("  je .L.false%06d\n", label);
+      Generate(node->children[1]);
+      printf("  cmp rax, 0\n");
+      printf("  je .L.false%06d\n", label);
+      printf("  mov rax, 1\n");
+      printf("  jmp .L.end%06d\n", label);
+      printf(".L.false%06d:\n", label);
+      printf("  mov rax, 0\n");
+      printf(".L.end%06d:\n", label);
+      return;
+    case ND_LOR:
+      label = label_index++;
+      Generate(node->children[0]);
+      printf("  cmp rax, 0\n");
+      printf("  jnz .L.true%06d\n", label);
+      Generate(node->children[1]);
+      printf("  cmp rax, 0\n");
+      printf("  jnz .L.true%06d\n", label);
+      printf("  mov rax, 0\n");
+      printf("  jmp .L.end%06d\n", label);
+      printf(".L.true%06d:\n", label);
+      printf("  mov rax, 1\n");
       printf(".L.end%06d:\n", label);
       return;
   }

@@ -126,6 +126,9 @@ typedef enum {  // ABS Node kinds
   ND_LE,        // <=
   ND_LSHIFT,    // <<
   ND_RSHIFT,    // >>
+  ND_LNOT,      // !
+  ND_LAND,      // &&
+  ND_LOR,       // ||
   ND_DUMMY,     // Dummy node, nothing to be compiled.
   ND_LIST,      // List node
   ND_IDENT,     // identifier

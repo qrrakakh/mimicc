@@ -531,6 +531,7 @@ Node *NewNodeUnaryOp(NodeKind kind, Node *valnode) {
       node->ty = NULL;
       break;
     case ND_NOT:
+    case ND_LNOT:
       node->ty = node->children[0]->ty;
       break;
   }
@@ -569,6 +570,8 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
     case ND_AND:
     case ND_XOR:
     case ND_OR:
+    case ND_LAND:
+    case ND_LOR:
     case ND_LSHIFT:
     case ND_RSHIFT:
       if ((!IsArithmeticType(lhs->ty)) ||
@@ -1903,14 +1906,24 @@ Node *or_expression() {
 
 Node *logical_and_expression() {
   // logical-AND-expression = OR-expression
-  //                          | logical-AND-expression "&&" XOR-expression ## not implemented
-  return or_expression();
+  //                          | logical-AND-expression "&&" XOR-expression
+
+  Node *node = or_expression();
+  if(Consume("&&")) {
+    node = NewNodeBinOp(ND_LAND, node, or_expression());
+  }
+  return node;
 }
 
 Node *logical_or_expression() {
   // logical-OR-expression = logical-AND-expression
-  //                         | logical-OR-expression "||" logical-AND-expression ## not implemented
-  return logical_and_expression();
+  //                         | logical-OR-expression "||" logical-AND-expression
+
+  Node *node = logical_and_expression();
+  if(Consume("||")) {
+    node = NewNodeBinOp(ND_LOR, node, logical_and_expression());
+  }
+  return node;
 }
 
 Node * conditional_expression() {
@@ -2030,7 +2043,9 @@ Node *unary_expression() {
   else if(Consume("+"))
     return cast_expression();
   else if(Consume("-"))
-     return NewNodeBinOp(ND_SUB, NewNodeNum(NULL, 0), cast_expression());
+    return NewNodeBinOp(ND_SUB, NewNodeNum(NULL, 0), cast_expression());
+  else if(Consume("!"))
+    return NewNodeUnaryOp(ND_LNOT, cast_expression());
   // ++ / --
   else if (Consume("++"))
     return NewNodeUnaryOp(ND_PREINC, unary_expression());
