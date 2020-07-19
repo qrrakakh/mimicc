@@ -282,14 +282,26 @@ int not_test() { // ((1<<31)-1) - 1 - 4 - (1<<31) = -6
   return ~x;
 }
 
-int lshift_test() { // 12
+int lshift_test1() { // 12
   int x = 3;
   return x << 2;
 }
 
-int rshift_test() { // 3
+int lshift_test2() { // 12
+  int x = 3;
+  x <<= 2;
+  return x;
+}
+
+int rshift_test1() { // 3
   int x = 12;
   return x >> 2;
+}
+
+int rshift_test2() { // 3
+  int x = 12;
+  x >>= 2;
+  return x;
 }
 
 int run_basic_tests() {
@@ -733,18 +745,34 @@ int run_basic_tests() {
   }
 
   expected=12;
-  actual=lshift_test();
+  actual=lshift_test1();
   if (actual != expected)
   {
-    printf("lshift_test faild, %d expected, but got %d\n", expected, actual);
+    printf("lshift_test1 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=12;
+  actual=lshift_test2();
+  if (actual != expected)
+  {
+    printf("lshift_test2 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 
   expected=3;
-  actual=rshift_test();
+  actual=rshift_test1();
   if (actual != expected)
   {
-    printf("rshift_test faild, %d expected, but got %d\n", expected, actual);
+    printf("rshift_test1 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=3;
+  actual=rshift_test2();
+  if (actual != expected)
+  {
+    printf("rshift_test2 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 

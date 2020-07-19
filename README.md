@@ -108,7 +108,7 @@ assignment-expression = conditional-expression
                         | unary-expression assignment-operator assignment-expression
 assignment-operator = "=" | "*=" | "/=" | "%=" | "+=" | "-="
                       | "&=" | "^=" | "|="
-                      | "<<=" | ">>=" ## not implemented
+                      | "<<=" | ">>="
 
 unary-expression = postfix-expression
                    | ++ unary-expression

@@ -1828,7 +1828,7 @@ Node *assignment_expression() {
   //                       | unary-expression assignment-operator assignment-expression
   // assignment-operator = "=" | "*=" | "/=" | "%=" | "+=" | "-="
   //                     | "&=" | "^=" | "|="
-  //                     | "<<=" | ">>="  ## not implemented
+  //                     | "<<=" | ">>="
   Token *tok = token;
   Node *node;
   
@@ -1865,6 +1865,12 @@ Node *assignment_expression() {
     } else if(Consume("^=")) {
       RequiresLval(node, tok->str);
       node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_XOR, node, assignment_expression()));
+    } else if(Consume("<<=")) {
+      RequiresLval(node, tok->str);
+      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_LSHIFT, node, assignment_expression()));
+    } else if(Consume(">>=")) {
+      RequiresLval(node, tok->str);
+      node = NewNodeBinOp(ND_ASSIGN, node, NewNodeBinOp(ND_RSHIFT, node, assignment_expression()));
     } else {  // conditional-expression (including unary-expression without assignment)
       return node;
     }
