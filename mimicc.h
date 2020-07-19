@@ -9,15 +9,14 @@
 
 typedef struct Const_Strings Const_Strings;
 typedef struct Node Node;
-
-
-struct Const_Strings {
-  int id;
-  int size;
-  Const_Strings *next;
-  char *str;
-};
-
+typedef struct Type Type;
+typedef struct DeclSpec DeclSpec;
+typedef struct Symbol Symbol;
+typedef struct Func Func;
+typedef struct Token Token;
+typedef struct Scope Scope;
+typedef struct Struct Struct;
+typedef struct Enum Enum;
 typedef enum {
   NOSTORAGESPEC,
   EXTERN,
@@ -26,9 +25,6 @@ typedef enum {
   AUTO,
   REGISTER,
 } StorageSpec;
-
-typedef struct Type Type;
-
 typedef enum {
   TYPE_BOOL,
   TYPE_CHAR,
@@ -40,6 +36,27 @@ typedef enum {
   TYPE_ARRAY,
   TYPE_STRUCT,
 } TypeKind;
+typedef enum {
+  SY_VAR,       // variable
+  SY_FUNC,      // function
+  SY_ENUMCONST, // enum const
+  SY_TYPEDEF,   // typedef
+} SymbolKind;
+typedef enum {  // Token definition
+  TK_RESERVED,  // reserved keywords / punctuators
+  TK_IDENT,     // identifier
+  TK_NUM,       // number token
+  TK_CHAR,      // single char
+  TK_STRINGS,   // strings
+  TK_EOF,       // end of input
+} TokenKind;
+
+struct Const_Strings {
+  int id;
+  int size;
+  Const_Strings *next;
+  char *str;
+};
 
 struct Type {
   TypeKind kind;
@@ -49,21 +66,10 @@ struct Type {
   int id;
 };
 
-typedef struct DeclSpec DeclSpec;
-
 struct DeclSpec {
   Type *ty;
   StorageSpec sspec;
 };
-
-typedef enum {
-  SY_VAR,       // variable
-  SY_FUNC,      // function
-  SY_ENUMCONST, // enum const
-  SY_TYPEDEF,   // typedef
-} SymbolKind;
-
-typedef struct Symbol Symbol;
 
 struct Symbol {  // defined variables
   Symbol *next;
@@ -79,25 +85,12 @@ struct Symbol {  // defined variables
   Node *initializer;
 };
 
-typedef struct Func Func;
-
 struct Func {  // defined variables
   Func *next;
   Symbol *symbol;
   int num_args;
   _Bool is_defined;
 };
-
-typedef enum {  // Token definition
-  TK_RESERVED,  // reserved keywords / punctuators
-  TK_IDENT,     // identifier
-  TK_NUM,       // number token
-  TK_CHAR,      // single char
-  TK_STRINGS,   // strings
-  TK_EOF,       // end of input
-} TokenKind;
-
-typedef struct Token Token;
 
 struct Token {  // Token type
   TokenKind kind;
@@ -173,14 +166,10 @@ struct Node { // ABS Node struct
   Type *ty;
 };
 
-typedef struct Scope Scope;
-
 struct Scope {
   int id;
   Scope *parent;
 };
-
-typedef struct Struct Struct;
 
 struct Struct {
   Token *tok;
@@ -192,8 +181,6 @@ struct Struct {
   Struct *next;
   _Bool is_defined;
 };
-
-typedef struct Enum Enum;
 
 struct Enum {
   char *name;
