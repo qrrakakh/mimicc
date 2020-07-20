@@ -403,13 +403,12 @@ Func *AddFunc(Token *tok, Type *ty, int num_args, int scope_id) {
   return f;
 }
 
-Const_Strings *AddCstr(char *s, int l) {
+Const_Strings *AddCstr(Token *tok) {
   Const_Strings *cs;
   cs = calloc(1, sizeof(Const_Strings));
   cs->next = cstrs; cstrs = cs;
   cs->id = cs->next->id + 1;
-  cs->size = l;
-  cs->str = s;
+  cs->tok = tok;
   return cs;
 }
 
@@ -789,7 +788,7 @@ Node *NewNodeStrings(Token *tok) {
   Node *node = calloc(1, sizeof(Node));
   node->children = NULL;
   node->kind = ND_STRINGS;
-  node->id = AddCstr(tok->str, tok->len)->id;
+  node->id = AddCstr(tok)->id;
   node->tok = tok;
   node->ty = InitArrayType(InitCharType(), tok->len+1);
   return node;

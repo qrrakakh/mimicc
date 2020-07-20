@@ -57,10 +57,9 @@ typedef enum {
 } TypeQual;
 
 struct Const_Strings {
+  Token *tok;
   int id;
-  int size;
   Const_Strings *next;
-  char *str;
 };
 
 struct Type {

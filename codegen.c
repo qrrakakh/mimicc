@@ -219,10 +219,10 @@ void InitArrayLvar(Node *node, int offset) {
 
 void InitCstrLvar(Node *node, int offset) {
   Const_Strings *cstr = FindCstrById(node->children[0]->id);
-  for(int i=0;i<cstr->size;++i) {
-    printf("  mov byte ptr [rax+%d], %#x\n", i+offset, (cstr->str)[i]);
+  for(int i=0;i<cstr->tok->len;++i) {
+    printf("  mov byte ptr [rax+%d], %#x\n", i+offset, (cstr->tok->str)[i]);
   }
-  printf("  mov byte ptr [rax+%d], 0x0\n", cstr->size+offset);
+  printf("  mov byte ptr [rax+%d], 0x0\n", cstr->tok->len+offset);
 }
 
 void InitLvar(Node *node, int offset, _Bool eval) {
@@ -260,9 +260,9 @@ void InitArrayGvar(Node *node) {
 
 void InitCstrGvar(Node *node) {
   Const_Strings *cstr = FindCstrById(node->children[0]->id);
-  int num_zeros = node->ty->array_size - cstr->size;
-  for(int i=0;i<cstr->size;++i) {
-    printf("  .byte %#x\n", (cstr->str)[i]);
+  int num_zeros = node->ty->array_size - cstr->tok->len;
+  for(int i=0;i<cstr->tok->len;++i) {
+    printf("  .byte %#x\n", (cstr->tok->str)[i]);
   }
   printf("  .zero %d\n", num_zeros);
 }
@@ -375,7 +375,7 @@ void GenerateFooter() {
   //// String literal
   for(c=cstrs;c->next!=NULL;c=c->next) {
     printf(".LC%06d:\n", c->id);
-    printf("  .string \"%.*s\"\n", c->size, c->str);
+    printf("  .string \"%.*s\"\n", c->tok->len, c->tok->str);
   }
 }
 
