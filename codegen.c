@@ -295,6 +295,10 @@ void InitCstrGvar(Node *node) {
   }
 }
 
+void InitCstrPtrGvar(int id) {
+  printf("  .quad .LC%06d\n", id);
+}
+
 void InitGvar(Node *node) {
   if(node->ty->kind == TYPE_ARRAY) {
     if (node->ty->ptr_to->kind == TYPE_CHAR && node->num_args == 1) {
@@ -302,6 +306,8 @@ void InitGvar(Node *node) {
     } else {
       InitArrayGvar(node);
     }
+  } else if(node->children[0]->kind == ND_STRINGS) {
+    InitCstrPtrGvar(node->children[0]->id);
   } else if(node->ty->kind == TYPE_STRUCT) {
     Error("struct initialization is not supported.");
   } else {

@@ -142,11 +142,11 @@ char esga3[] = "\4\5\6\7";
 char esga4[] = "\a\b\e\f";
 char esga5[] = "\n\r\t\v";
 
-// char *esgb1 = "\\\"\E";
-// char *esgb2 = "\0\1\2\3";
-// char *esgb3 = "\4\5\6\7";
-// char *esgb4 = "\a\b\e\f";
-// char *esgb5 = "\n\r\t\v";
+char *esgb1 = "\\\"\E";
+char *esgb2 = "\0\1\2\3";
+char *esgb3 = "\4\5\6\7";
+char *esgb4 = "\a\b\e\f";
+char *esgb5 = "\n\r\t\v";
 
 int escape_string_gvar_a_test1() {
   return (((esga1[0] << 8) + esga1[1]) << 8) + esga1[2];
@@ -168,25 +168,25 @@ int escape_string_gvar_a_test5() {
   return (((((esga5[0] << 8) + esga5[1]) << 8) + esga5[2]) << 8) + esga5[3];
 }
 
-// int escape_string_gvar_b_test1() {
-//   return (((esgb1[0] << 8) + esgb1[1]) << 8) + esgb1[2];
-// }
+int escape_string_gvar_b_test1() {
+  return (((esgb1[0] << 8) + esgb1[1]) << 8) + esgb1[2];
+}
 
-// int escape_string_gvar_b_test2() {
-//   return (((((esgb2[0] << 8) + esgb2[1]) << 8) + esgb2[2]) << 8) + esgb2[3];
-// }
+int escape_string_gvar_b_test2() {
+  return (((((esgb2[0] << 8) + esgb2[1]) << 8) + esgb2[2]) << 8) + esgb2[3];
+}
 
-// int escape_string_gvar_b_test3() {
-//   return (((((esgb3[0] << 8) + esgb3[1]) << 8) + esgb3[2]) << 8) + esgb3[3];
-// }
+int escape_string_gvar_b_test3() {
+  return (((((esgb3[0] << 8) + esgb3[1]) << 8) + esgb3[2]) << 8) + esgb3[3];
+}
 
-// int escape_string_gvar_b_test4() {
-//   return (((((esgb4[0] << 8) + esgb4[1]) << 8) + esgb4[2]) << 8) + esgb4[3];
-// }
+int escape_string_gvar_b_test4() {
+  return (((((esgb4[0] << 8) + esgb4[1]) << 8) + esgb4[2]) << 8) + esgb4[3];
+}
 
-// int escape_string_gvar_b_test5() {
-//   return (((((esgb5[0] << 8) + esgb5[1]) << 8) + esgb5[2]) << 8) + esgb5[3];
-// }
+int escape_string_gvar_b_test5() {
+  return (((((esgb5[0] << 8) + esgb5[1]) << 8) + esgb5[2]) << 8) + esgb5[3];
+}
 
 char string_initializer_test() {
   char a[7] = "abcdef";
@@ -454,44 +454,44 @@ int run_char_strings_tests() {
     return 1;
   }
 
-//  expected=(((92 << 8) + 34)<< 8) + 27;
-//   actual=escape_string_gvar_b_test1();
-//   if (actual != expected)
-//   {
-//     printf("escape_string_gvar_b_test1 faild, %d expected, but got %d\n", expected, actual);
-//     return 1;
-//   }
+ expected=(((92 << 8) + 34)<< 8) + 27;
+  actual=escape_string_gvar_b_test1();
+  if (actual != expected)
+  {
+    printf("escape_string_gvar_b_test1 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
 
-//   expected=(((((0 << 8) + 1)<< 8) + 2)<<8) + 3;
-//   actual=escape_string_gvar_b_test2();
-//   if (actual != expected)
-//   {
-//     printf("escape_string_gvar_b_test2 faild, %d expected, but got %d\n", expected, actual);
-//     return 1;
-//   }
+  expected=(((((0 << 8) + 1)<< 8) + 2)<<8) + 3;
+  actual=escape_string_gvar_b_test2();
+  if (actual != expected)
+  {
+    printf("escape_string_gvar_b_test2 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
 
-//   expected=(((((4 << 8) + 5)<< 8) + 6)<<8) + 7;
-//   actual=escape_string_gvar_b_test3();
-//   if (actual != expected)
-//   {
-//     printf("escape_string_gvar_b_test3 faild, %d expected, but got %d\n", expected, actual);
-//     return 1;
-//   }
+  expected=(((((4 << 8) + 5)<< 8) + 6)<<8) + 7;
+  actual=escape_string_gvar_b_test3();
+  if (actual != expected)
+  {
+    printf("escape_string_gvar_b_test3 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
 
-//   expected=(((((7 << 8) + 8)<< 8) + 27)<<8) + 12;
-//   actual=escape_string_gvar_b_test4();
-//   if (actual != expected)
-//   {
-//     printf("escape_string_gvar_b_test4 faild, %d expected, but got %d\n", expected, actual);
-//     return 1;
-//   }
+  expected=(((((7 << 8) + 8)<< 8) + 27)<<8) + 12;
+  actual=escape_string_gvar_b_test4();
+  if (actual != expected)
+  {
+    printf("escape_string_gvar_b_test4 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
 
-//   expected=(((((10 << 8) + 13)<< 8) + 9)<<8) + 11;
-//   actual=escape_string_gvar_b_test5();
-//   if (actual != expected)
-//   {
-//     printf("escape_string_gvar_b_test5 faild, %d expected, but got %d\n", expected, actual);
-//     return 1;
-//   }
+  expected=(((((10 << 8) + 13)<< 8) + 9)<<8) + 11;
+  actual=escape_string_gvar_b_test5();
+  if (actual != expected)
+  {
+    printf("escape_string_gvar_b_test5 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
 
 }

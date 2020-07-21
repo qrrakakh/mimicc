@@ -1879,43 +1879,41 @@ Node *initializer(Type *ty) {
     node->num_args = 1;
     node->children = calloc(1, sizeof(Node*));
     node->children[0] = assignment_expression();
-  } else if(ty->kind == TYPE_ARRAY) {
-    // case: ty = array
-    if (ty->ptr_to->kind == TYPE_CHAR && (tail=string_literal())) {
-      // case: ty = strings
-      if(!(ty->is_variable_length) && ty->array_size < tail->ty->array_size) {
-        ErrorAt(tok->str, "too long string literal to initialize.");
-      }
-
-      node->num_args = 1;
-      node->children = calloc(1, sizeof(Node*));
-      node->children[0] = tail;
-      if(ty->is_variable_length && ty->array_size < node->children[0]->ty->array_size) {
-        ty->array_size = node->children[0]->ty->array_size;
-      }
-    } else {
-      tail = node;
-      Expect("{");
-      while(!Consume("}")) {
-        tok = token;
-        tail->num_args = 2;
-        tail->children = calloc(1, sizeof(Node*));
-        tail->children[0] = initializer(ty->ptr_to);
-        tail->children[1] = calloc(1, sizeof(Node));
-        tail->children[1]->kind = ND_INIT;
-        tail->children[1]->ty = ty;
-        tail = tail->children[1];
-        ++len;
-        if(ty->array_size>0 && len > ty->array_size) {
-          WarnAt(tok->str, "excess elements in array initializer (%d > %d).", len, ty->array_size);
-        }
-        Consume(",");
-      }
-      if(ty->is_variable_length) {
-        ty->array_size = len;
-      }
-      tail->num_args = 0;
+  } else if ((ty->kind == TYPE_ARRAY || ty->kind == TYPE_PTR) &&
+              ty->ptr_to->kind == TYPE_CHAR && (tail=string_literal())) {
+    // case: ty = strings
+    if(!(ty->is_variable_length) && ty->array_size < tail->ty->array_size) {
+      ErrorAt(tok->str, "too long string literal to initialize.");
     }
+
+    node->num_args = 1;
+    node->children = calloc(1, sizeof(Node*));
+    node->children[0] = tail;
+    if(ty->is_variable_length && ty->array_size < node->children[0]->ty->array_size) {
+      ty->array_size = node->children[0]->ty->array_size;
+    }
+  } else if(ty->kind == TYPE_ARRAY) {  // case: ty = array
+    tail = node;
+    Expect("{");
+    while(!Consume("}")) {
+      tok = token;
+      tail->num_args = 2;
+      tail->children = calloc(1, sizeof(Node*));
+      tail->children[0] = initializer(ty->ptr_to);
+      tail->children[1] = calloc(1, sizeof(Node));
+      tail->children[1]->kind = ND_INIT;
+      tail->children[1]->ty = ty;
+      tail = tail->children[1];
+      ++len;
+      if(ty->array_size>0 && len > ty->array_size) {
+        WarnAt(tok->str, "excess elements in array initializer (%d > %d).", len, ty->array_size);
+      }
+      Consume(",");
+    }
+    if(ty->is_variable_length) {
+      ty->array_size = len;
+    }
+    tail->num_args = 0;
   } else if(ty->kind == TYPE_STRUCT) {
     // case: ty = struct (not implemented)
     ErrorAt(token->str,"Struct initializer is not supported.");
