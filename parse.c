@@ -793,7 +793,7 @@ Node *NewNodeStrings(Token *tok) {
   node->kind = ND_STRINGS;
   node->id = AddCstr(tok)->id;
   node->tok = tok;
-  node->ty = InitArrayType(InitCharType(), tok->len+1);
+  node->ty = InitArrayType(InitCharType(), tok->len - tok->val +1);
   return node;
 }
 

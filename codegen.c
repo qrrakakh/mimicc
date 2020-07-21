@@ -192,6 +192,23 @@ void GenLval(Node *node) {
 
 //////////
 // Initializer
+void CstrData(Const_Strings *cstr) {
+  _Bool is_escaped = 0;
+  char c;
+  for(int i=0;i<cstr->tok->len;++i) {
+    c = (cstr->tok->str)[i];
+    if (is_escaped) {
+      printf("  .byte %#x\n", GetEscapedChar(c));
+      is_escaped = 0;
+    } else if(c == '\\') {
+      is_escaped = 1;
+    } else {
+      printf("  .byte %#x\n", c);
+    }
+  }
+  printf("  .byte 0\n");
+}
+
 void InitLvar(Node *node, int offset, _Bool eval);
 
 void InitOrdinaryLvar(Node *node, int offset, _Bool eval) {
@@ -219,10 +236,21 @@ void InitArrayLvar(Node *node, int offset) {
 
 void InitCstrLvar(Node *node, int offset) {
   Const_Strings *cstr = FindCstrById(node->children[0]->id);
+  _Bool is_escaped = 0;
+  char c;
+  int j=0;
   for(int i=0;i<cstr->tok->len;++i) {
-    printf("  mov byte ptr [rax+%d], %#x\n", i+offset, (cstr->tok->str)[i]);
+    c = (cstr->tok->str)[i];
+    if (is_escaped) {
+      printf("  mov byte ptr [rax+%d], %#x\n", (j++)+offset, GetEscapedChar(c));
+      is_escaped = 0;
+    } else if(c == '\\') {
+      is_escaped = 1;
+    } else {
+      printf("  mov byte ptr [rax+%d], %#x\n", (j++)+offset, c);
+    }
   }
-  printf("  mov byte ptr [rax+%d], 0x0\n", cstr->tok->len+offset);
+  printf("  mov byte ptr [rax+%d], 0\n", j+offset);
 }
 
 void InitLvar(Node *node, int offset, _Bool eval) {
@@ -260,11 +288,11 @@ void InitArrayGvar(Node *node) {
 
 void InitCstrGvar(Node *node) {
   Const_Strings *cstr = FindCstrById(node->children[0]->id);
-  int num_zeros = node->ty->array_size - cstr->tok->len;
-  for(int i=0;i<cstr->tok->len;++i) {
-    printf("  .byte %#x\n", (cstr->tok->str)[i]);
+  CstrData(cstr);
+  int num_zeros = node->ty->array_size - cstr->tok->len-1;
+  if(num_zeros>0) {
+    printf("  .zero %d\n", num_zeros);
   }
-  printf("  .zero %d\n", num_zeros);
 }
 
 void InitGvar(Node *node) {
@@ -375,8 +403,9 @@ void GenerateFooter() {
   //// String literal
   for(c=cstrs;c->next!=NULL;c=c->next) {
     printf(".LC%06d:\n", c->id);
-    printf("  .string \"%.*s\"\n", c->tok->len, c->tok->str);
+    CstrData(c);
   }
+  printf("\n");
 }
 
 

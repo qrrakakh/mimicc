@@ -245,13 +245,19 @@ Token *Tokenize(char *p) {
 
     // strings
     if (*p=='"') {
-      int len = 0;
+      int len = 0, escape_count=0;
+      _Bool is_escape=0;
       ++p;
       while(p) {
-        if (*p != '"') {
+        if(is_escape) {
+          ++len; ++p; is_escape = 0;
+        } else if(*p == '\\') {
+          ++len; ++p; ++escape_count; is_escape = 1;
+        } else if (*p != '"') {
           ++len; ++p;
         } else {
           cur = NewToken(TK_STRINGS, cur, p-len, len);
+          cur->val = escape_count;
           ++p; len=-1;
           break;
         }
