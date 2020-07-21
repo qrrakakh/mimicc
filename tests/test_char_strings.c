@@ -42,6 +42,45 @@ char Test134() {
   return b;
 }
 
+int escape_char_test1() {
+  char e0 = '\\';
+  char e1 = '\'';
+  char e2 = '\E';
+  return (((e0 << 8) + e1) << 8) + e2;
+}
+
+int escape_char_test2() {
+  char e0 = '\0';
+  char e1 = '\1';
+  char e2 = '\2';
+  char e3 = '\3';
+  return (((((e0 << 8) + e1) << 8) + e2) << 8) + e3;
+}
+
+int escape_char_test3() {
+  char e0 = '\4';
+  char e1 = '\5';
+  char e2 = '\6';
+  char e3 = '\7';
+  return (((((e0 << 8) + e1) << 8) + e2) << 8) + e3;
+}
+
+int escape_char_test4() {
+  char e0 = '\a';
+  char e1 = '\b';
+  char e2 = '\e';
+  char e3 = '\f';
+  return (((((e0 << 8) + e1) << 8) + e2) << 8) + e3;
+}
+
+int escape_char_test5() {
+  char e0 = '\n';
+  char e1 = '\r';
+  char e2 = '\t';
+  char e3 = '\v';
+  return (((((e0 << 8) + e1) << 8) + e2) << 8) + e3;
+}
+
 char string_initializer_test() {
   char a[7] = "abcdef";
   return a[3];
@@ -147,4 +186,45 @@ int run_char_strings_tests() {
     printf("string_array_variable_length_test faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
+
+  expected=(((92 << 8) + 39)<< 8) + 27;
+  actual=escape_char_test1();
+  if (actual != expected)
+  {
+    printf("escape_char_test1 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=(((((0 << 8) + 1)<< 8) + 2)<<8) + 3;
+  actual=escape_char_test2();
+  if (actual != expected)
+  {
+    printf("escape_char_test2 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=(((((4 << 8) + 5)<< 8) + 6)<<8) + 7;
+  actual=escape_char_test3();
+  if (actual != expected)
+  {
+    printf("escape_char_test3 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=(((((7 << 8) + 8)<< 8) + 27)<<8) + 12;
+  actual=escape_char_test4();
+  if (actual != expected)
+  {
+    printf("escape_char_test4 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=(((((10 << 8) + 13)<< 8) + 9)<<8) + 11;
+  actual=escape_char_test5();
+  if (actual != expected)
+  {
+    printf("escape_char_test5 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
 }

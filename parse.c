@@ -680,8 +680,7 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
     case ND_LOR:
     case ND_LSHIFT:
     case ND_RSHIFT:
-      if ((!IsArithmeticType(lhs->ty)) ||
-          (!IsArithmeticType(rhs->ty)) ||
+      if (((!IsArithmeticType(lhs->ty)) || (!IsArithmeticType(rhs->ty))) &&
           (lhs->ty->kind != rhs->ty->kind)) {
         ErrorAt(token->str, 
           "both types should be arithmetic or different type cannot be compared; lhs type: %d, rhs type: %d, current scope id: %d",
@@ -778,7 +777,11 @@ Node *NewNodeChar(Token *tok) {
   Node *node = calloc(1, sizeof(Node));
   node->children = NULL;
   node->kind = ND_CHAR;
-  node->val = *(tok->str);
+  if(tok->val==1) {
+    node->val = GetEscapedChar(*(tok->str));
+  } else {
+    node->val = *(tok->str);
+  }
   node->tok = tok;
   node->ty = InitCharType();
   return node;

@@ -139,3 +139,36 @@ void PrintLvar() {
     l=l->next;
   }
 }
+
+char GetEscapedChar(char x) {
+  switch(x) {
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+      return x-'0';
+    case 'a':
+      return 7;
+    case 'b':
+      return 8;
+    case 'e':
+    case 'E':
+      return 27;
+    case 'f':
+      return 12;
+    case 'n':
+      return 10;
+    case 'r':
+      return 13;
+    case 't':
+      return 9;
+    case 'v':
+      return 11;
+    default: // including ', ", ?, backslash
+      return x;
+  }
+}

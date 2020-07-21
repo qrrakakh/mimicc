@@ -257,6 +257,10 @@ void InitProgram();
 void GenerateFooter();
 
 //////////
+// ascii function
+char GetEscapedChar(char c);
+
+//////////
 // debug function
 void PrintNodeTree();
 void PrintLvar();

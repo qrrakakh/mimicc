@@ -228,12 +228,20 @@ Token *Tokenize(char *p) {
       continue;
     }
 
-    // char
-    if (p+2 && *p == '\'' && *(p+2) =='\'') {
-      cur = NewToken(TK_CHAR, cur, p+1, 1);
-      p+=3;
-      continue;
-    }
+     // char
+    if (p+2 && *p == '\'' && *(p+1) !='\\' && *(p+2) =='\'') {
+       cur = NewToken(TK_CHAR, cur, p+1, 1);
+       cur->val = 0;
+       p+=3;
+       continue;
+     }
+ 
+     if (p+3 && *p == '\'' && *(p+1) =='\\' && *(p+3) =='\'') {
+       cur = NewToken(TK_CHAR, cur, p+2, 1);
+       cur->val = 1; // escaped character
+       p+=4;
+       continue;
+     }
 
     // strings
     if (*p=='"') {
