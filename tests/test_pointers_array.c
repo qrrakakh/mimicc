@@ -13,6 +13,11 @@ int gvar_array_initializer2[4][3][2] = {{{1,2}, {4,8}, {16,32}},
 int gvar_array_initializer3[] = {1, 2, 4};
 int gvar_array_initializer4[3] = {1, 2};
 
+int ptr_gvar_init_helper = 10;
+int *ptr_gvar_init1 = &ptr_gvar_init_helper;
+int *ptr_gvar_init2 = gvar_array_initializer1;
+int *ptr_gvar_init3 = gvar_array_initializer1+1;
+
 // Test functions
 int Test10() 
 {
@@ -154,6 +159,16 @@ int array_initializer_test4() {
   int a[3] = {1, 2};
   a[2] = 4;
   return a[0] + a[1];
+}
+
+int ptr_gvar_init1_test() {
+  return *ptr_gvar_init1;
+}
+int ptr_gvar_init2_test() {
+  return *ptr_gvar_init2;
+}
+int ptr_gvar_init3_test() {
+  return *ptr_gvar_init3;
 }
 
 int run_pointers_tests() {
@@ -429,6 +444,30 @@ int run_pointers_tests() {
   if (actual != expected)
   {
     printf("gvar_array_initializer_test3 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=10;
+  actual=ptr_gvar_init1_test();
+  if (actual != expected)
+  {
+    printf("ptr_gvar_init1_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=1;
+  actual=ptr_gvar_init2_test();
+  if (actual != expected)
+  {
+    printf("ptr_gvar_init2_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=2;
+  actual=ptr_gvar_init3_test();
+  if (actual != expected)
+  {
+    printf("ptr_gvar_init3_test faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 

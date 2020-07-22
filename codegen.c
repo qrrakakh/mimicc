@@ -62,38 +62,38 @@ int GetStructMemberOffset(int struct_id, int member_id) {
 //////////
 // evaluator for constant
 
-int eval(Node *node) {
+int Eval(Node *node) {
   switch(node->kind) {
     case ND_ASSIGN:
       ErrorAt(node->tok->str, "Assignment is not a constant.");
     case ND_OR:
-      return eval(node->children[0]) | eval(node->children[1]);
+      return Eval(node->children[0]) | Eval(node->children[1]);
     case ND_XOR:
-      return eval(node->children[0]) ^ eval(node->children[1]);
+      return Eval(node->children[0]) ^ Eval(node->children[1]);
     case ND_AND:
-      return eval(node->children[0]) & eval(node->children[1]);
+      return Eval(node->children[0]) & Eval(node->children[1]);
     case ND_EQUIV:
-      return eval(node->children[0]) == eval(node->children[1]);
+      return Eval(node->children[0]) == Eval(node->children[1]);
     case ND_INEQUIV:
-      return eval(node->children[0]) != eval(node->children[1]);
+      return Eval(node->children[0]) != Eval(node->children[1]);
     case ND_LT:
-      return eval(node->children[0]) < eval(node->children[1]);
+      return Eval(node->children[0]) < Eval(node->children[1]);
     case ND_LE:
-      return eval(node->children[0]) <= eval(node->children[1]);
+      return Eval(node->children[0]) <= Eval(node->children[1]);
     case ND_LSHIFT:
-      return eval(node->children[0]) << eval(node->children[1]);
+      return Eval(node->children[0]) << Eval(node->children[1]);
     case ND_RSHIFT:
-      return eval(node->children[0]) >> eval(node->children[1]);
+      return Eval(node->children[0]) >> Eval(node->children[1]);
     case ND_MUL:
-      return eval(node->children[0]) * eval(node->children[1]);
+      return Eval(node->children[0]) * Eval(node->children[1]);
     case ND_DIV:
-      return eval(node->children[0]) / eval(node->children[1]);
+      return Eval(node->children[0]) / Eval(node->children[1]);
     case ND_MOD:
-      return eval(node->children[0]) % eval(node->children[1]);
+      return Eval(node->children[0]) % Eval(node->children[1]);
     case ND_ADD:
-      return eval(node->children[0]) + eval(node->children[1]);
+      return Eval(node->children[0]) + Eval(node->children[1]);
     case ND_SUB:
-      return eval(node->children[0]) - eval(node->children[1]);
+      return Eval(node->children[0]) - Eval(node->children[1]);
     case ND_NUM:
     case ND_CHAR:
       return node->val;
@@ -271,7 +271,7 @@ void InitLvar(Node *node, int offset, _Bool eval) {
 void InitGvar(Node *node);
 
 void InitOrdinaryGvar(Node *node) {
-  printf("  .%dbyte %d\n", GetTypeSize(node->ty), eval(node->children[0]));
+  printf("  .%dbyte %d\n", GetTypeSize(node->ty), Eval(node->children[0]));
 }
 
 void InitArrayGvar(Node *node) {
@@ -295,8 +295,44 @@ void InitCstrGvar(Node *node) {
   }
 }
 
-void InitCstrPtrGvar(int id) {
-  printf("  .quad .LC%06d\n", id);
+Token *GetTargetGVarName(Node *node) {
+  if(node->kind == ND_ADDR) {
+      if(node->children[0]->kind != ND_GVAR) {
+        ErrorAt(node->children[0]->tok->str, "global variable is expected.");
+      }
+      return node->children[0]->tok;
+  } else if(node->kind == ND_GVAR) {
+    if(node->ty->kind != TYPE_ARRAY) {
+      ErrorAt(node->tok->str, "array global variable is expected.");
+    }
+    return node->tok;
+  } else {
+    ErrorAt(node->tok->str, "invalid initializer for global variable.");
+    return NULL;
+  }
+}
+
+void InitPtrGvar(Node *node) {
+  Token *var_token;
+  int val;
+  switch(node->children[0]->kind) {
+    case ND_STRINGS:
+      printf("  .quad .LC%06d\n", node->children[0]->id);
+      return;
+    case ND_ADD:
+      var_token = GetTargetGVarName(node->children[0]->children[0]);
+      val = Eval(node->children[0]->children[1]);
+      printf("  .quad %.*s+%d\n", var_token->len, var_token->str , val*GetTargetPtrSize(node->ty));
+      return;
+    case ND_SUB:
+      var_token = GetTargetGVarName(node->children[0]->children[0]);
+      val = Eval(node->children[0]->children[1]);
+      printf("  .quad %.*s-%d\n", var_token->len, var_token->str , val*GetTargetPtrSize(node->ty));
+      return;
+    default:
+      var_token = GetTargetGVarName(node->children[0]);
+      printf("  .quad %.*s\n", var_token->len, var_token->str);
+  }
 }
 
 void InitGvar(Node *node) {
@@ -306,8 +342,8 @@ void InitGvar(Node *node) {
     } else {
       InitArrayGvar(node);
     }
-  } else if(node->children[0]->kind == ND_STRINGS) {
-    InitCstrPtrGvar(node->children[0]->id);
+  } else if(node->ty->kind == TYPE_PTR) {
+    InitPtrGvar(node);
   } else if(node->ty->kind == TYPE_STRUCT) {
     Error("struct initialization is not supported.");
   } else {
