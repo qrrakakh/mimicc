@@ -1755,7 +1755,6 @@ Type *enum_specifier() {
     ty = e->ty;
 
     enumerator_list(e->id);
-    Consume(",");
     Expect("}");
 
     e->is_defined = 1;
@@ -1784,6 +1783,9 @@ int enumerator(int id, int my_val) {
   //            | enumeration-constant "=" constant-expression
   
   Node *node = enumeration_constant(1);
+  if(!node) {
+    return 0;
+  }
 
   if(Consume("=")) { // enumeration-constant "=" constant-expression
     my_val = ExpectNumber();  // will be replaced to eval(constant_expression)
