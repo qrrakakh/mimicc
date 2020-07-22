@@ -271,3 +271,7 @@ void PrintLvar();
 // type helper function
 int GetTypeSize(Type *ty);
 int GetStructMemberOffset(int struct_id, int member_id);
+
+//////////
+// evaluator for constant
+int Eval(Node *node);

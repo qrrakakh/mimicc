@@ -60,51 +60,6 @@ int GetStructMemberOffset(int struct_id, int member_id) {
 }
 
 //////////
-// evaluator for constant
-
-int Eval(Node *node) {
-  switch(node->kind) {
-    case ND_ASSIGN:
-      ErrorAt(node->tok->str, "Assignment is not a constant.");
-    case ND_OR:
-      return Eval(node->children[0]) | Eval(node->children[1]);
-    case ND_XOR:
-      return Eval(node->children[0]) ^ Eval(node->children[1]);
-    case ND_AND:
-      return Eval(node->children[0]) & Eval(node->children[1]);
-    case ND_EQUIV:
-      return Eval(node->children[0]) == Eval(node->children[1]);
-    case ND_INEQUIV:
-      return Eval(node->children[0]) != Eval(node->children[1]);
-    case ND_LT:
-      return Eval(node->children[0]) < Eval(node->children[1]);
-    case ND_LE:
-      return Eval(node->children[0]) <= Eval(node->children[1]);
-    case ND_LSHIFT:
-      return Eval(node->children[0]) << Eval(node->children[1]);
-    case ND_RSHIFT:
-      return Eval(node->children[0]) >> Eval(node->children[1]);
-    case ND_MUL:
-      return Eval(node->children[0]) * Eval(node->children[1]);
-    case ND_DIV:
-      return Eval(node->children[0]) / Eval(node->children[1]);
-    case ND_MOD:
-      return Eval(node->children[0]) % Eval(node->children[1]);
-    case ND_ADD:
-      return Eval(node->children[0]) + Eval(node->children[1]);
-    case ND_SUB:
-      return Eval(node->children[0]) - Eval(node->children[1]);
-    case ND_NUM:
-    case ND_CHAR:
-      return node->val;
-    default:
-      break;
-  }
-  ErrorAt(node->tok->str, "Not a constant.");
-  return 0;
-}
-
-//////////
 // Code generate helper
 void StoreVar(Type *ty, int offset, _Bool eval) {
   printf("  pop rdi\n");

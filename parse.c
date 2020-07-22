@@ -1788,7 +1788,7 @@ int enumerator(int id, int my_val) {
   }
 
   if(Consume("=")) { // enumeration-constant "=" constant-expression
-    my_val = ExpectNumber();  // will be replaced to eval(constant_expression)
+    my_val = Eval(constant_expression());
   }
 
   AddEnumConst(id, my_val, node->tok);

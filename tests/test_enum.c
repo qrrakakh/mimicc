@@ -73,7 +73,7 @@ int enumtest_03_2() {
 
 int enumtest_03_3() {
   enum enum3 {
-    a3=1, b3=0, c3=20
+    a3=1, b3=0, c3=1<<4
   };
   return c3;
 }
@@ -192,7 +192,7 @@ int run_enum_tests() {
     return 1;
   }
 
-  expected=20;
+  expected=16;
   actual=enumtest_03_3();
   if (actual != expected)
   {
