@@ -2326,10 +2326,11 @@ Node *primary_expression() {
     ident_tok = ConsumeIdent();
     Symbol *s = FindSymbol(ident_tok);
     token = tok;
-    if (s && s->kind != SY_ENUMCONST) {
-      return identifier();
-    } else {
+    if ((!ident_tok) || // not identifier or pre-defined constant -> constant
+        (s && s->kind == SY_ENUMCONST)) {
       return constant();
+    } else {
+      return identifier();
     }
   }
 }
