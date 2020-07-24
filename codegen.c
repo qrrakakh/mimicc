@@ -764,6 +764,11 @@ void Generate(Node *node) {
 
       for(int i=0;i<node->num_args;++i) {
         Generate(node->children[i]);
+        printf("  push rax\n");
+      }
+
+      for(int i=node->num_args-1;i>=0;--i) {
+        printf("  pop rax\n");
         switch(GetVarSize(node->children[i]->ty)) {
           case 1:
             printf("  mov %s, al\n", x86_64_argreg_8bits[i]);
