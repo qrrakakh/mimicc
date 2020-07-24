@@ -40,6 +40,14 @@ Type *InitVoidType() {
   return ty;
 }
 
+Type *InitBoolType() {
+  Type *ty = calloc(1, sizeof(Type));
+  ty->kind = TYPE_BOOL;
+  ty->ptr_to = NULL;
+  ty->tq = 0;
+  return ty;
+}
+
 _Bool IsArithmeticType(Type *ty) {
   return ty->kind < TYPE_ARITHMETIC_LIMIT;
 }
@@ -677,9 +685,6 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
     case ND_AND:
     case ND_XOR:
     case ND_OR:
-    case ND_LAND:
-    case ND_LOR:
-    case ND_LSHIFT:
     case ND_RSHIFT:
       if (((!IsArithmeticType(lhs->ty)) || (!IsArithmeticType(rhs->ty))) &&
           (lhs->ty->kind != rhs->ty->kind)) {
@@ -688,6 +693,11 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
           lhs->ty->kind, rhs->ty->kind, current_scope->id);
       }
       node->ty = InitIntType();
+      break;
+    case ND_LAND:
+    case ND_LOR:
+    case ND_LSHIFT:
+      node->ty = InitBoolType();
       break;
     case ND_ASSIGN:
       if (IsArithmeticType(lhs->ty) && IsArithmeticType(rhs->ty)) {
