@@ -660,13 +660,13 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
   node->children[0] = lhs;
   node->children[1] = rhs;
 
-  if(lhs->ty->kind == TYPE_ARRAY) {
+  if(lhs->ty && lhs->ty->kind == TYPE_ARRAY) {
     node->children[0] = NewNodeUnaryOp(ND_ADDR, lhs);
     node->children[0]->ty->ptr_to = lhs->ty->ptr_to;  // type should be a pointer of the array target
     lhs = node->children[0];
   }
 
-  if(rhs->ty->kind == TYPE_ARRAY) {
+  if(rhs->ty && rhs->ty->kind == TYPE_ARRAY) {
     node->children[1] = NewNodeUnaryOp(ND_ADDR, rhs);
     node->children[1]->ty->ptr_to = rhs->ty->ptr_to;  // type should be a pointer of the array target
     rhs = node->children[1];
