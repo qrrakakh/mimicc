@@ -821,6 +821,14 @@ Node *NewNodeNum(Token *tok, int val) {
   return node;
 }
 
+Node *NewNodeDummy() {
+  Node *node = calloc(1, sizeof(Node));
+  node->children = NULL;
+  node->kind = ND_DUMMY;
+  node->ty = NULL;
+  return node;
+}
+
 Node *NewNodeIdent(Token *tok) {
   Node *node = calloc(1, sizeof(Node));
   node->children = NULL;
@@ -2335,6 +2343,8 @@ Node *postfix_expression() {
         Expect(")");
       }
       node = NewNodeFuncCall(node->tok, num_args, arg);
+    } else if(!node) {
+      return NewNodeDummy();
     } else if(node->kind == ND_IDENT) {
       if(IsGlobalVar(node->tok)) {
         node = NewNodeGvar(node->tok);
