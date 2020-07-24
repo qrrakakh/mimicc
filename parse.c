@@ -1012,6 +1012,7 @@ StorageSpec storage_class_specifier();
 Type *type_specifier();
 TypeQual type_qualifier();
 TypeQual type_qualifier_list();
+Type *type_name();
 Token *declarator(Type **ty);
 Type *pointer(Type *orig_ty);
 Node *init_declarator_list(DeclSpec *dspec);
@@ -1749,6 +1750,14 @@ TypeQual type_qualifier_list() {
   return tq;
 }
 
+Type *type_name() {
+  // type-name = specifier-qualidier-list abstract-declarator?
+  // abstract-declarator = pointer
+  //                     | pointer? direct-abstract-declarator ## not implemented
+
+  return pointer(specifier_qualifier_list());
+}
+
 Type *enum_specifier() {
   // enum-specifier = "enum" identifier? "{" enumerator-list ","? "}"
   //                | "enum" identifier
@@ -1837,6 +1846,10 @@ Type *pointer(Type *orig_ty) {
   // pointer = "*" type-qualifier-list? pointer?
 
   Type *ty, *tgt_ty;
+
+  if(!orig_ty) {
+    return orig_ty;
+  }
 
   ty = orig_ty;
   while(Consume("*")) {
@@ -2244,9 +2257,22 @@ Node *unary_expression() {
   //                    | -- unary-expression
   //                    | unary-operator cast-expression
   //                    | "sizeof" unary-expression
-  //                    | sizeof "(" type-name ")"  ## not implemented  
-  if (Consume("sizeof"))
+  //                    | sizeof "(" type-name ")"
+
+  Node *node;
+  Token *tok;
+  Type *ty;
+  if (Consume("sizeof")) {
+    tok = token;
+    if(Consume("(") && (ty = type_name())) {
+      Expect(")");
+      node = NewNodeUnaryOp(ND_SIZEOF, NULL);
+      node->ty->ptr_to = ty;
+      return node;
+    }
+    token = tok;
     return NewNodeUnaryOp(ND_SIZEOF, unary_expression());
+  }
   // unary-operators
   else if(Consume("&"))
     return NewNodeUnaryOp(ND_ADDR, cast_expression());

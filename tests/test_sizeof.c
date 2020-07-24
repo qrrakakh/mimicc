@@ -79,7 +79,91 @@ int Test_struct_sizeof3() {
   return sizeof(a);
 }
 
+int Test_struct_sizeof4() {
+  struct s {
+    int a;
+    char b1;
+    int c;
+    char b2;
+    char b3;
+  } a;
+  return sizeof(struct s);
+}
+
+int Test_typename_sizeof1() {
+  return sizeof(int);
+}
+
+int Test_typename_sizeof2() {
+  return sizeof(char);
+}
+
+int Test_typename_sizeof3() {
+  return sizeof(_Bool);
+}
+
+int Test_typename_sizeof4() {
+  return sizeof(void);
+}
+
+int Test_typename_sizeof5() {
+  typedef int DefinedInt;
+  return sizeof(DefinedInt);
+}
+
+int Test_typename_sizeof6() {
+  struct s {
+    int a;
+    char b1;
+    int c;
+    char b2;
+    char b3;
+  } a;
+  typedef struct s DefinedStruct;
+  return sizeof(DefinedStruct);
+}
+
+int Test_typename_sizeof7() {
+  typedef struct s {
+    int a;
+    char b1;
+    int c;
+    char b2;
+    char b3;
+  } DefinedStruct;
+  return sizeof(DefinedStruct);
+}
+
+int Test_typename_sizeof8() {
+  typedef struct s DefinedStruct;
+  struct s {
+    int a;
+    char b1;
+    int c;
+    char b2;
+    char b3;
+  } a;
+  return sizeof(DefinedStruct);
+}
+
+int Test_typename_sizeof9() {
+  return sizeof(int*);
+}
+
+int Test_typename_sizeof10() {
+  typedef struct s DefinedStruct;
+  struct s {
+    int a;
+    char b1;
+    int c;
+    char b2;
+    char b3;
+  } a;
+  return sizeof(DefinedStruct*);
+}
+
 int run_sizeof_tests() {
+
   int expected;
   int actual;
 
@@ -179,6 +263,94 @@ int run_sizeof_tests() {
   if (actual != expected)
   {
     printf("Test struct_sizeof3 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=16;
+  actual=Test_struct_sizeof4();
+  if (actual != expected)
+  {
+    printf("Test struct_sizeof4 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+ expected=4;
+  actual=Test_typename_sizeof1();
+  if (actual != expected)
+  {
+    printf("Test typename_sizeof1 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+ expected=1;
+  actual=Test_typename_sizeof2();
+  if (actual != expected)
+  {
+    printf("Test typename_sizeof2 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=1;
+  actual=Test_typename_sizeof3();
+  if (actual != expected)
+  {
+    printf("Test typename_sizeof3 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+ expected=1;
+  actual=Test_typename_sizeof4();
+  if (actual != expected)
+  {
+    printf("Test typename_sizeof4 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+ expected=4;
+  actual=Test_typename_sizeof5();
+  if (actual != expected)
+  {
+    printf("Test typename_sizeof5 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+ expected=16;
+  actual=Test_typename_sizeof6();
+  if (actual != expected)
+  {
+    printf("Test typename_sizeof6 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+ expected=16;
+  actual=Test_typename_sizeof7();
+  if (actual != expected)
+  {
+    printf("Test typename_sizeof7 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+ expected=16;
+  actual=Test_typename_sizeof8();
+  if (actual != expected)
+  {
+    printf("Test typename_sizeof8 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+ expected=8;
+  actual=Test_typename_sizeof9();
+  if (actual != expected)
+  {
+    printf("Test typename_sizeof9 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+ expected=8;
+  actual=Test_typename_sizeof10();
+  if (actual != expected)
+  {
+    printf("Test typename_sizeof10 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 

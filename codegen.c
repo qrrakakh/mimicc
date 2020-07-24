@@ -12,7 +12,7 @@ const int STRUCT_ALL_ALIGN_BYTES = 4;
 //////////
 // type helper function
 int GetTypeSize(Type *ty) {
-  if(ty->kind == TYPE_CHAR || ty->kind == TYPE_BOOL) {
+  if(ty->kind == TYPE_CHAR || ty->kind == TYPE_BOOL || ty->kind == TYPE_VOID) {
     return 1;
   } else if(ty->kind == TYPE_INT || ty->kind == TYPE_ENUM) {
     return 4;
@@ -565,8 +565,11 @@ void Generate(Node *node) {
       return;
 
     case ND_SIZEOF:
-      // TODO: when we implement struct, judge if the var is struct or not
-      printf("  mov rax,%d\n", GetTypeSize(node->children[0]->ty));
+      if (node->children[0]) {
+        printf("  mov rax,%d\n", GetTypeSize(node->children[0]->ty));
+      } else {
+        printf("  mov rax,%d\n", GetTypeSize(node->ty->ptr_to));
+      }
       return;
 
     case ND_NOT:

@@ -25,6 +25,9 @@ type-specifier  =  "int" | "char" | "void" | "_Bool"
 type-qualifier = "const"
                | "restrict" | "volatile" ## not implemented
 type-qualifier-list = type-qualifier-list? type-qualifier
+type-name = specifier-qualidier-list abstract-declarator?
+abstract-declarator = pointer
+                    | pointer? direct-abstract-declarator ## not implemented
 declarator = pointer? direct-declarator
 direct-declarator = identifier
                     | identifier array-declarator
@@ -118,7 +121,7 @@ unary-expression = postfix-expression
                    | -- unary-expression
                    | unary-operator cast-expression
                    | "sizeof" unary-expression
-                   | sizeof "(" type-name ")"  ## not implemented
+                   | sizeof "(" type-name ")"
 
 unary-operator = "&" | "*" | "+" | "-"
                  | "~" | "!"
