@@ -703,9 +703,13 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
       if (IsArithmeticType(lhs->ty) && IsArithmeticType(rhs->ty)) {
         node->ty = lhs->ty;
       } else if (lhs->ty->kind != rhs->ty->kind) {
-        ErrorAt(token->str, 
-          "different type cannot be assigned; lhs type: %d, rhs type: %d",
-          lhs->ty->kind, rhs->ty->kind, node->kind);
+        if (lhs->ty->kind == TYPE_PTR && rhs->kind == ND_NUM && rhs->val == 0) {
+          node->ty = lhs->ty;
+        } else {
+          ErrorAt(token->str, 
+            "different type cannot be assigned; lhs type: %d, rhs type: %d",
+            lhs->ty->kind, rhs->ty->kind, node->kind);
+        }
       } else {
         node->ty = lhs->ty;
       }
