@@ -702,6 +702,8 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
     case ND_ASSIGN:
       if (IsArithmeticType(lhs->ty) && IsArithmeticType(rhs->ty)) {
         node->ty = lhs->ty;
+      } else if(lhs->ty->kind == TYPE_BOOL) {
+        node->ty = lhs->ty;
       } else if (lhs->ty->kind != rhs->ty->kind) {
         if (lhs->ty->kind == TYPE_PTR && rhs->kind == ND_NUM && rhs->val == 0) {
           node->ty = lhs->ty;
