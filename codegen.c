@@ -414,7 +414,7 @@ void Generate(Node *node) {
   int label;
   int lvar_area_size;
   int num_lvar;
-  int lvar_idx;
+  int arg_idx;
   int diff;
   int prev_ctrl_depth;
   Node **stmt_list;
@@ -466,19 +466,19 @@ void Generate(Node *node) {
       }
 
       for(int i=0;i<node->num_args;++i) {
-        lvar_idx = node->num_args-1-i;
+        arg_idx = node->num_args-1-i;
         switch(GetVarSize(var->ty)) {
           case 1:
-            printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_8bits[lvar_idx]);
+            printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_8bits[arg_idx]);
             break;
           case 2:
-            printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_16bits[lvar_idx]);
+            printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_16bits[arg_idx]);
             break;
           case 4:
-            printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_32bits[lvar_idx]);
+            printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_32bits[arg_idx]);
             break;
           case 8:
-            printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_64bits[lvar_idx]);
+            printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_64bits[arg_idx]);
             break;
         }
         var = var->next;
