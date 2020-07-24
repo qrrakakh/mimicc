@@ -1288,9 +1288,7 @@ Node *labeled_statement() {
     tok = token;
     Node *cond = constant_expression();
     Expect(":");
-    if (cond->kind != ND_NUM) {
-      ErrorAt(tok->str, "Non-number is invalid for case expression right now.");
-    }
+    Eval(cond);
     int label_id = ++(current_switch->val);
     node = NewNodeSwLabel(label_id);
     Node *case_node = NewNodeSwCase(cond, current_switch->children[1], label_id);
