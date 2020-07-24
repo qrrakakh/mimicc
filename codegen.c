@@ -452,7 +452,8 @@ void Generate(Node *node) {
         var = var->next;
       }
 
-      //printf("  sub rsp, %d\n", get_num_lvars() * POINTER_SIZE_BYTES);
+      lvar_area_size =  (lvar_area_size  + 16 - 1) / 16 * 16;
+      
       printf("  sub rsp, %d\n", lvar_area_size);
 
       // copy passed argument values to the local variables
