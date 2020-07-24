@@ -10,6 +10,7 @@ extern int run_sizeof_tests();
 extern int run_enum_tests();
 extern int run_typedef_tests();
 extern int run_logical_ops_tests();
+extern int run_va_func_tests();
 
 // main function
 int main() {
@@ -44,6 +45,9 @@ int main() {
     return 1;
   }
   if(run_logical_ops_tests()!=0) {
+    return 1;
+  }
+  if(run_va_func_tests()!=0) {
     return 1;
   }
 

@@ -1,5 +1,5 @@
 /* extern declared functions and variables */
-extern void printf();
+extern void printf(char *fmt, ...);
 
 typedef int IntType, *IntPtrType;
 typedef char CharType, **CharPtrPtrType;

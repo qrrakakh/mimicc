@@ -142,7 +142,6 @@ Token *Tokenize(char *p) {
 
     // punctuators
     // Todo: implement
-    // ..., 
     // #, ##,
     // <:, :>, <%, %>, %:, %:%:
 
@@ -157,6 +156,13 @@ Token *Tokenize(char *p) {
 
       if(*p == '>' && *(p+1) == '>' && *(p+2) == '=') {
         // >>=
+        cur = NewToken(TK_RESERVED, cur, p, 3);
+        p+=3;
+        continue;
+      }
+
+      if(*p == '.' && *(p+1) == '.' && *(p+2) == '.') {
+        // ...
         cur = NewToken(TK_RESERVED, cur, p, 3);
         p+=3;
         continue;

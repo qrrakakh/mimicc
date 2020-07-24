@@ -379,7 +379,7 @@ Func *FindFunc(Token *tok) {
   return FindFuncByName(tok->str, tok->len);
 }
 
-Func *AddFunc(Token *tok, Type *ty, int num_args, int scope_id) {
+Func *AddFunc(Token *tok, Type *ty, int num_args, int scope_id, _Bool has_varargs) {
   Func *f;
   Symbol *s;
   if(FindSymbolDefinedInScope(tok, globals, scope_id)) {
@@ -400,6 +400,7 @@ Func *AddFunc(Token *tok, Type *ty, int num_args, int scope_id) {
   f->next = funcs; funcs = f;
   f->num_args = num_args;
   f->is_defined = 0;
+  f->has_varargs = has_varargs;
   return f;
 }
 
@@ -972,7 +973,7 @@ Node *NewNodeFuncCall(Token *tok, int num_args, Node *arg[]) {
   Func *f;
   if(!(f = FindFunc(tok))) {
     WarnAt(tok->str, "Implicitly declared function.");
-    f = AddFunc(tok, InitIntType(), 0, current_scope->id);
+    f = AddFunc(tok, InitIntType(), 0, current_scope->id, 1);
   }
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_CALL;
@@ -1113,6 +1114,13 @@ void translation_unit() {
   current_switch = NULL;
   InitScope();
 
+  // built-in function
+  Token *va_start_dummy_tok = calloc(1, sizeof(Token));
+  va_start_dummy_tok->kind = TK_IDENT;
+  va_start_dummy_tok->len=8;
+  va_start_dummy_tok->str="va_start";
+  AddFunc(va_start_dummy_tok, InitVoidType(), 2, 0, 0);
+
   codes = calloc(alloc_size, sizeof(Node*));
 
   while(!AtEOF()) {
@@ -1162,6 +1170,7 @@ Node *func() {
   DeclSpec *dspec;
   Node *block_node = NULL;
   int num_args;
+  _Bool has_varargs = 0;
 
   dspec=declaration_specifiers();
 
@@ -1186,6 +1195,10 @@ Node *func() {
     ++num_args;
     while(num_args<=6) {
       if(Consume(",")) {
+        if(Consume("...")) {
+          has_varargs = 1;
+          break;
+        }
         parameter_declaration();
         ++num_args;
       } else {
@@ -1196,7 +1209,7 @@ Node *func() {
   }
 
   if(!(current_func=FindFunc(ident_tok))) {
-    current_func=AddFunc(ident_tok, dspec->ty, num_args, current_scope->parent->id);
+    current_func=AddFunc(ident_tok, dspec->ty, num_args, current_scope->parent->id, has_varargs);
   }
 
   if(!Consume(";")) {

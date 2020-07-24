@@ -1,5 +1,5 @@
 /* extern declared functions and variables */
-extern void printf();
+extern void printf(char *fmt, ...);
 
 // Global variables and helper functions
 int var_Test13[2];

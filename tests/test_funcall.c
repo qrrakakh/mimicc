@@ -2,7 +2,7 @@
 extern int Alloc4(int **p, int a, int b, int c, int d);
 extern int PrintInt(int a);
 extern int Foo();
-extern void printf();
+extern void printf(char *fmt, ...);
 
 // Global variables and helper functions
 int fib(int a);

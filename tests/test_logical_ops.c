@@ -1,5 +1,5 @@
 /* extern declared functions and variables */
-extern void printf();
+extern void printf(char *fmt, ...);
 
 // Test functions
 int and_test_true()

@@ -1,5 +1,5 @@
 /* extern declared functions and variables */
-extern void printf();
+extern void printf(char *fmt, ...);
 
 char str_gvar_init[4] = "abc";
 char global_string_array_variable_length[][5] = {"ab", "abc", "abcd"};

@@ -438,7 +438,7 @@ void Generate(Node *node) {
       printf("  mov rbp, rsp\n");
 
       // calculate required reserved stack area sizeand offsets for each lvars
-      lvar_area_size = 0;
+      lvar_area_size = current_func->has_varargs? 56: 0;
       num_lvar = 0;
       var = locals;
       while (var->next) {
@@ -455,6 +455,17 @@ void Generate(Node *node) {
       lvar_area_size =  (lvar_area_size  + 16 - 1) / 16 * 16;
       
       printf("  sub rsp, %d\n", lvar_area_size);
+
+      // save register if the function has var args
+      if(current_func->has_varargs) {
+        printf("  mov dword ptr [rbp-8], %d\n", node->num_args * 8);
+        printf("  mov [rbp-16], r9\n");
+        printf("  mov [rbp-24], r8\n");
+        printf("  mov [rbp-32], rcx\n");
+        printf("  mov [rbp-40], rdx\n");
+        printf("  mov [rbp-48], rsi\n");
+        printf("  mov [rbp-56], rdi\n");
+      }
 
       // copy passed argument values to the local variables
       var = locals;
@@ -728,6 +739,26 @@ void Generate(Node *node) {
       return;
 
     case ND_CALL:
+      // built-in function: va_start
+      if(node->val == 8 && !memcmp(node->name, "va_start", 8)) {
+        Generate(node->children[0]);
+
+        // gp_offset
+        printf("  movsxd rdi, dword ptr [rbp-8]\n");
+        printf("  mov dword ptr [rax], edi\n");
+
+        // fp_offset (fp not supported, fixed value: 8 x 6 = 48)
+        printf("  mov dword ptr [rax+4], 48\n");
+
+        // overflow_arg_area (argument more than 6 is not supported, fixed value: NULL)
+        printf("  mov qword ptr [rax+8], 0\n");
+
+        // reg_save_area: rbp - 8 x (6+1) = rbp-56
+        printf("  mov [rax+16], rbp\n");
+        printf("  sub qword ptr [rax+16], 56\n");
+        return;
+      }
+
       for(int i=0;i<node->num_args;++i) {
         Generate(node->children[i]);
         switch(GetVarSize(node->children[i]->ty)) {

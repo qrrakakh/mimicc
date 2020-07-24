@@ -95,6 +95,7 @@ struct Func {  // defined variables
   Symbol *symbol;
   int num_args;
   _Bool is_defined;
+  _Bool has_varargs;
 };
 
 struct Token {  // Token type

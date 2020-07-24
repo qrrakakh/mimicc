@@ -1,5 +1,5 @@
 /* extern declared functions and variables */
-extern void printf();
+extern void printf(char *fmt, ...);
 
 struct structTest149_152 {
   int v1;
