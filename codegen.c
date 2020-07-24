@@ -315,6 +315,10 @@ void InitProgram() {
   int var_size, diff;
 
   while(s->next) {
+    if(!(s->members)) {
+      s = s->next;
+      continue;
+    }
     for(v=s->members;v->next;v=v->next);
 
     s->size = 0;
@@ -454,6 +458,10 @@ void Generate(Node *node) {
       // copy passed argument values to the local variables
       var = locals;
       while(num_lvar > node->num_args) {
+        if(var->kind != SY_VAR) {
+          var = var->next;
+          continue;
+        }
         var=var->next; --num_lvar;
       }
 
