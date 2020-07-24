@@ -678,13 +678,10 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
     break;
     // binary operator / compare operator
     // support type: INT/INT
-    case ND_EQUIV:
-    case ND_INEQUIV:
-    case ND_LE:
-    case ND_LT:
     case ND_AND:
     case ND_XOR:
     case ND_OR:
+    case ND_LSHIFT:
     case ND_RSHIFT:
       if (((!IsArithmeticType(lhs->ty)) || (!IsArithmeticType(rhs->ty))) &&
           (lhs->ty->kind != rhs->ty->kind)) {
@@ -694,9 +691,12 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
       }
       node->ty = InitIntType();
       break;
+    case ND_EQUIV:
+    case ND_INEQUIV:
+    case ND_LE:
+    case ND_LT:
     case ND_LAND:
     case ND_LOR:
-    case ND_LSHIFT:
       node->ty = InitBoolType();
       break;
     case ND_ASSIGN:
