@@ -10,6 +10,7 @@ int gvar_array_initializer2[4][3][2] = {{{1,2}, {4,8}, {16,32}},
                                         {{4,8}, {16,32}, {64,128}},
                                         {{16,32}, {64,128}, {256,512}},
                                         {{64,128}, {256,512}, {1024,2048}}};
+void array_arg_helper(int *a) { a[1] = 2; }
 int gvar_array_initializer3[] = {1, 2, 4};
 int gvar_array_initializer4[3] = {1, 2};
 
@@ -135,6 +136,12 @@ int Test148() {
   int a;
   TestHelperFunction148(&a);
   return a*2;
+}
+
+int array_arg_test() {
+  int a[3] = {0, 1, 2};
+  array_arg_helper(a);
+  return a[1];
 }
 
 int array_initializer_test1() {
@@ -376,6 +383,14 @@ int run_pointers_tests() {
   if (actual != expected)
   {
     printf("Test148 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=2;
+  actual=array_arg_test();
+  if (actual != expected)
+  {
+    printf("array_arg_test faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 

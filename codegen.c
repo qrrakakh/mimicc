@@ -635,7 +635,8 @@ void Generate(Node *node) {
     case ND_GVAR:
     case ND_LVAR:
       GenLval(node);
-      LoadVar(node->ty);
+      if(node->ty->kind != TYPE_ARRAY)
+        LoadVar(node->ty);
       return;
 
     case ND_INIT:
