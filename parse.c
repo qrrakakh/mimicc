@@ -2105,7 +2105,7 @@ Node *logical_and_expression() {
 
   Node *node = or_expression();
   if(Consume("&&")) {
-    node = NewNodeBinOp(ND_LAND, node, or_expression());
+    node = NewNodeBinOp(ND_LAND, node, logical_and_expression());
   }
   return node;
 }
@@ -2116,7 +2116,7 @@ Node *logical_or_expression() {
 
   Node *node = logical_and_expression();
   if(Consume("||")) {
-    node = NewNodeBinOp(ND_LOR, node, logical_and_expression());
+    node = NewNodeBinOp(ND_LOR, node, logical_or_expression());
   }
   return node;
 }

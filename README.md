@@ -214,3 +214,4 @@ designator = "[" constant-expression "]" | "." identifier
 * Struct for function argument is not suuported (struct pointer can be an argument.)
 * Neverthless the function is static or or defined externally, the code calculate the address of the function dynamically when it is called.
   * Will be implemented when `static` is supported.
+* Combined logical/bitwise operator should be tested (no implementation issue is founded yet.)
