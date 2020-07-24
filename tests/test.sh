@@ -1,6 +1,6 @@
 #!/bin/bash
 
-compiler_bin="./mimicc"
+compiler_bin=$1
 test_c_files="./tests/test_*.c"
 test_obj_files="./tests/test_*.o"
 test_bin_file="./test_bin"
