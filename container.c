@@ -217,3 +217,25 @@ int Eval(Node *node) {
   ErrorAt(node->tok->str, "Not a constant.");
   return 0;
 }
+
+//////////
+// global variable definition
+Token *token;         // current token pointer
+Node **codes;
+char *file_path;     // Input program path
+char *user_input;     // Input program
+Symbol *locals;
+Symbol *globals;
+Func *funcs;
+Func *current_func;
+Struct *structs;
+Enum *enums;
+int last_symbol_id;
+int last_struct_id;
+int last_enum_id;
+Node *current_switch;
+Const_Strings *cstrs;
+int label_index;
+int last_scope_id;
+int ctrl_depth;
+Scope *current_scope;

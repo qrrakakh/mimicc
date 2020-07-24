@@ -200,25 +200,25 @@ struct Enum {
 
 //////////
 // global variable definition
-Token *token;         // current token pointer
-Node **codes;
-char *file_path;     // Input program path
-char *user_input;     // Input program
-Symbol *locals;
-Symbol *globals;
-Func *funcs;
-Func *current_func;
-Struct *structs;
-Enum *enums;
-int last_symbol_id;
-int last_struct_id;
-int last_enum_id;
-Node *current_switch;
-Const_Strings *cstrs;
-int label_index;
-int last_scope_id;
-int ctrl_depth;
-Scope *current_scope;
+extern Token *token;         // current token pointer
+extern Node **codes;
+extern char *file_path;     // Input program path
+extern char *user_input;     // Input program
+extern Symbol *locals;
+extern Symbol *globals;
+extern Func *funcs;
+extern Func *current_func;
+extern Struct *structs;
+extern Enum *enums;
+extern int last_symbol_id;
+extern int last_struct_id;
+extern int last_enum_id;
+extern Node *current_switch;
+extern Const_Strings *cstrs;
+extern int label_index;
+extern int last_scope_id;
+extern int ctrl_depth;
+extern Scope *current_scope;
 
 extern char *builtin_type_names[];
 extern int num_builtin_types;
