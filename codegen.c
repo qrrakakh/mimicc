@@ -768,21 +768,7 @@ void Generate(Node *node) {
       }
 
       for(int i=node->num_args-1;i>=0;--i) {
-        printf("  pop rax\n");
-        switch(GetVarSize(node->children[i]->ty)) {
-          case 1:
-            printf("  mov %s, al\n", x86_64_argreg_8bits[i]);
-            break;  
-          case 2:
-            printf("  mov %s, ax\n", x86_64_argreg_16bits[i]);
-            break;  
-          case 4:
-            printf("  mov %s, eax\n", x86_64_argreg_32bits[i]);
-            break;  
-          case 8:
-            printf("  mov %s, rax\n", x86_64_argreg_64bits[i]);
-            break;  
-        }
+        printf("  pop %s\n", x86_64_argreg_64bits[i]);
       }
 
       // modify rsp as a multiply of 16
