@@ -35,7 +35,7 @@ int Test11()
 }
 int Test12() 
 {
-  int a[2];var_Test12=&a;*var_Test12 = 1;*(a + 1) = 2;return *a;
+  int a[2];var_Test12=a;*var_Test12 = 1;*(a + 1) = 2;return *a;
 }
 int Test14() 
 {

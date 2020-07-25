@@ -103,6 +103,8 @@ void StoreVar(Type *ty, int offset, _Bool eval) {
 }
 
 void LoadVar(Type *ty) {
+  if(ty->kind == TYPE_ARRAY)
+    return;
   switch(GetVarSize(ty)) {
     case 1:
       printf("  movsx rax, byte ptr [rax]\n");
@@ -649,8 +651,7 @@ void Generate(Node *node) {
     case ND_GVAR:
     case ND_LVAR:
       GenLval(node);
-      if(node->ty->kind != TYPE_ARRAY)
-        LoadVar(node->ty);
+      LoadVar(node->ty);
       return;
 
     case ND_INIT:
