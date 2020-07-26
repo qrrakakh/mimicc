@@ -823,7 +823,7 @@ void Generate(Node *node) {
   }
 
   Generate(node->children[1]);
-  rhs_ty = node->children[0]->ty;
+  rhs_ty = node->children[1]->ty;
   printf("  push rax\n");
   Generate(node->children[0]);
   lhs_ty = node->children[0]->ty;
