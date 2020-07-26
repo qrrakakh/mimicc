@@ -81,7 +81,13 @@ void PrintNode(Node *node, int num_lead_ws) {
   fprintf(stderr, "%*snum_args: %d\n",num_lead_ws*4,"",node->num_args);
   fprintf(stderr, "%*soffset: %d\n",num_lead_ws*4,"",node->offset);
   if(node->ty) {
-    fprintf(stderr, "%*stype kind: %d\n",num_lead_ws*4,"", node->ty->kind);
+    fprintf(stderr, "%*stype kind: %d",num_lead_ws*4,"", node->ty->kind);
+    Type *ty = node->ty;
+    while(ty->ptr_to) {
+      fprintf(stderr, "->%d", ty->ptr_to->kind);
+      ty = ty->ptr_to;
+    }
+    fprintf(stderr, "\n");
   }
   fprintf(stderr, "%*sfunc_name: %.*s\n",num_lead_ws*4,"",node->val, node->name);
   int num_children = 0;
