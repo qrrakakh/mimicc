@@ -2,14 +2,14 @@
 extern void printf(char *fmt, ...);
 
 int statement_expression_test1() {
-  int x = ({int y = 2; y*y;});
-  return x;
+  int y = ({int y = 2; y*y;});
+  return y;
 }
 
 int statement_expression_test2() {
-  int x;
-  x = ({int y = 2; y*y;});
-  return x;
+  int y;
+  y = ({int y = 2; y*y;});
+  return y;
 }
 
 int statement_expression_test3_helper(int x) {
@@ -17,8 +17,8 @@ int statement_expression_test3_helper(int x) {
 }
 
 int statement_expression_test3() {
-  int x = statement_expression_test3_helper(({int y = 2; y*y;}));
-  return x;
+  int y = statement_expression_test3_helper(({int y = 2; y*y;}));
+  return y;
 }
 
 int run_gccexpansion_tests() {
