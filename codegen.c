@@ -531,7 +531,6 @@ void Generate(Node *node) {
       while (*stmt_list != NULL) {
         Generate(*(stmt_list++));
       }
-      printf("  mov rax, 0\n");
       return;
 
     case ND_ADDR:

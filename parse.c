@@ -963,11 +963,11 @@ Node *NewNodeCondExpr(Node *cond, Node *stmt1, Node *stmt2) {
   return node;
 }
 
-Node *NewNodeBlock(Node **stmt_list) {
+Node *NewNodeBlock(Node **stmt_list, Type *ty) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_BLOCK;
   node->children = stmt_list;
-  node->ty = NULL;
+  node->ty = ty;
   return node;
 }
 
@@ -1311,6 +1311,7 @@ Node *compound_statement() {
 
   if(Consume("{")) {
     Node **stmt_list;
+    Type *ty = NULL;
     int alloc_unit = 10;
     int alloc_size = alloc_unit;
     int cur = 0;
@@ -1340,7 +1341,11 @@ Node *compound_statement() {
 
     stmt_list[cur] = NULL;
 
-    return NewNodeBlock(stmt_list);
+    if(cur>0) {
+      ty = stmt_list[cur-1]->ty;
+    }
+
+    return NewNodeBlock(stmt_list, ty);
   } else {
     return NULL;
   }
@@ -2157,10 +2162,25 @@ Node *logical_or_expression() {
 }
 
 Node * conditional_expression() {
-  // conditional-expression = logical-OR-expression
+  // conditional-expression = "(" compound-statement ")"  ## statement expression, GCC expansion
+  //                          | logical-OR-expression
   //                          | logical-OR-expression "?" expression ":" conditional-expression
 
-  Node *node = logical_or_expression(), *cond, *stmt1, *stmt2;
+  // statement expression
+  Token *tok = token;
+  Node *node, *cond, *stmt1, *stmt2;
+  if(Consume("(")) {
+    if(Consume("{")) {
+    token = tok;
+    Expect("(");
+    node = compound_statement();
+    Expect(")");
+    return node;
+    }
+  }
+  token = tok;
+
+  node = logical_or_expression();
   if(Consume("?")) {
     cond = node;
     stmt1 = expression();
