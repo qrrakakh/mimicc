@@ -212,17 +212,18 @@ int GetScopeDepth(int id, Scope *scope, int depth) {
   }
 }
 
-Symbol *FindSymbol(Token *tok) {
+Symbol *FindLocalSymbol(Token *tok, Symbol *head, SymbolKind sy_kind) {
   if(tok==NULL)
     return NULL;
   Symbol *symbol=NULL, *_symbol;
 
   // Translation limit defined in ISO/IEC 9899:1999->127 nesting levels of blocks
   int depth=128, _depth;
-  for(_symbol=locals;_symbol;_symbol=_symbol->next) {
+  for(_symbol=head;_symbol;_symbol=_symbol->next) {
     if(_symbol->len == tok->len && !memcmp(_symbol->name, tok->str, _symbol->len)) {
+      if(sy_kind!=SY_NULL && _symbol->kind!=sy_kind) continue;
       _depth = GetScopeDepth(_symbol->scope_id, current_scope, 0);
-      if(_depth<depth) {
+      if(_depth>=0 && _depth<depth) {
         symbol = _symbol;
         depth = _depth;
       }
@@ -231,9 +232,17 @@ Symbol *FindSymbol(Token *tok) {
   if(symbol) {
     return symbol;
   }
+  return NULL;
+}
+
+Symbol *FindGlobalSymbol(Token *tok, SymbolKind sy_kind) {
+  if(tok==NULL)
+    return NULL;
+  Symbol *symbol=NULL, *_symbol;
 
   for(_symbol=globals;_symbol;_symbol=_symbol->next) {
     if(_symbol->len == tok->len && !memcmp(_symbol->name, tok->str, _symbol->len)) {
+      if(sy_kind!=SY_NULL && _symbol->kind!=sy_kind) continue;
       symbol = _symbol;
       break;
     }
@@ -241,19 +250,20 @@ Symbol *FindSymbol(Token *tok) {
   return symbol;
 }
 
-Symbol *FindLvar(Token *tok) {
-  Symbol *symbol;
-  for(symbol=locals;symbol;symbol=symbol->next) {
-    if(symbol->kind != SY_VAR) continue;
-    if(symbol->len == tok->len && !memcmp(symbol->name, tok->str, symbol->len)) {
-      if(IsParentOfScopeId(symbol->scope_id, current_scope))
-        return symbol;
-    }
+Symbol *FindAnySymbol(Token *tok, SymbolKind sy_kind) {
+  Symbol *s;
+  s = FindLocalSymbol(tok, locals, sy_kind);
+  if(!s) {
+    s = FindGlobalSymbol(tok, sy_kind);
   }
-  return NULL;
+  return s;
 }
 
-Symbol *FindSymbolDefinedInScope(Token *tok, Symbol *head, int scope_id) {
+Symbol *FindLvar(Token *tok) {
+  return FindLocalSymbol(tok, locals, SY_VAR);
+}
+
+Symbol *FindLocalSymbolInScope(Token *tok, Symbol *head, int scope_id) {
   Symbol *s;
   for(s=head;s;s=s->next) {
     if(s->len == tok->len && !memcmp(s->name, tok->str, s->len) && s->scope_id == scope_id) {
@@ -265,7 +275,7 @@ Symbol *FindSymbolDefinedInScope(Token *tok, Symbol *head, int scope_id) {
 
 Symbol *AddLvar(Token *tok, Type *ty) {
   Symbol *symbol;
-  if(FindSymbolDefinedInScope(tok, locals, current_scope->id)) {
+  if(FindLocalSymbolInScope(tok, locals, current_scope->id)) {
     ErrorAt(tok->str, "Already declared symbol is used in local variable declaration.");
   } else if(ty->kind == TYPE_VOID) {
     ErrorAt(tok->str, "Local variable declared void.");
@@ -284,17 +294,10 @@ Symbol *AddLvar(Token *tok, Type *ty) {
 }
 
 Symbol *FindGvar(Token *tok) {
-  Symbol *symbol;
-  for(symbol=globals;symbol;symbol=symbol->next) {
-    if(symbol->kind != SY_VAR) continue;
-    if(symbol->len == tok->len && !memcmp(symbol->name, tok->str, symbol->len)) {
-      return symbol;
-    }
-  }
-  return NULL;
+  return FindGlobalSymbol(tok, SY_VAR);
 }
 
-Symbol *FindVarById(int id, Symbol *head) {
+Symbol *FindSymbolById(int id, Symbol *head) {
   Symbol *symbol;
   for(symbol=head;symbol;symbol=symbol->next) {
     if(symbol->id == id) {
@@ -309,13 +312,13 @@ void AddTypeDef(Token *tok, Type *ty) {
 
   symbol = calloc(1, sizeof(Symbol));
   if(current_scope->id==0) {
-    if(FindSymbolDefinedInScope(tok, globals, current_scope->id)) {
+    if(FindLocalSymbolInScope(tok, globals, current_scope->id)) {
       ErrorAt(tok->str, "Already declared symbol is used in typedef.");
     }
     symbol->next = globals; symbol->prev = NULL;
     globals->prev = symbol; globals = symbol;
   } else {
-    if(FindSymbolDefinedInScope(tok, locals, current_scope->id)) {
+    if(FindLocalSymbolInScope(tok, locals, current_scope->id)) {
       ErrorAt(tok->str, "Already declared symbol is used in typedef.");
     }
     symbol->next = locals; symbol->prev = NULL;
@@ -333,7 +336,7 @@ void AddTypeDef(Token *tok, Type *ty) {
 
 Symbol *AddGVar(Token *tok, Type *ty, _Bool is_extern) {
   Symbol *symbol;
-  if(FindSymbolDefinedInScope(tok, globals, current_scope->id)) {
+  if(FindLocalSymbolInScope(tok, globals, current_scope->id)) {
     ErrorAt(tok->str, "Already declared symbol is used in global variable declaration.");
   } else if(ty->kind == TYPE_VOID) {
     ErrorAt(tok->str, "Global variable declared void.");
@@ -358,11 +361,11 @@ Symbol *AddGVar(Token *tok, Type *ty, _Bool is_extern) {
 }
 
 Symbol *FindLvarById(int id) {
-  return FindVarById(id, locals);
+  return FindSymbolById(id, locals);
 }
 
 Symbol *FindGvarById(int id) {
-  return FindVarById(id, globals);
+  return FindSymbolById(id, globals);
 }
 
 void RequiresLval(Node *node, char *s) {
@@ -390,7 +393,7 @@ Func *FindFunc(Token *tok) {
 Func *AddFunc(Token *tok, Type *ty, int num_args, int scope_id, _Bool has_varargs) {
   Func *f;
   Symbol *s;
-  if(FindSymbolDefinedInScope(tok, globals, scope_id)) {
+  if(FindLocalSymbolInScope(tok, globals, scope_id)) {
     ErrorAt(tok->str, "Already declared symbol is used in function declaration.");
   }
 
@@ -578,29 +581,6 @@ _Bool IsGlobalVar(Token *tok) {
     return 1;
   else 
     return 0;
-}
-
-Symbol *FindConstSymbol(Token *tok) {
-  Symbol *symbol;
-
-  // find local variables
-  for(symbol=locals;symbol;symbol=symbol->next) {
-    if(symbol->kind != SY_ENUMCONST) continue;
-    if(symbol->len == tok->len && !memcmp(symbol->name, tok->str, symbol->len)) {
-      if(IsParentOfScopeId(symbol->scope_id, current_scope))
-        return symbol;
-    }
-  }
-
-  // find global variables
-  for(symbol=globals;symbol;symbol=symbol->next) {
-    if(symbol->kind != SY_ENUMCONST) continue;
-    if(symbol->len == tok->len && !memcmp(symbol->name, tok->str, symbol->len)) {
-      return symbol;
-    }
-  }
-
-  return NULL;
 }
 
 // Generate new node
@@ -888,8 +868,8 @@ Node *NewNodeGvar(Token *tok) {
 Node *NewNodeConstInt(Token *tok) {
   Node *node;
   Symbol *symbol;
-  
-  if (!(symbol=FindConstSymbol(tok)))
+
+  if (!(symbol=FindAnySymbol(tok, SY_ENUMCONST)))
     return NULL;
 
   node = calloc(1, sizeof(Node));
@@ -2421,7 +2401,10 @@ Node *primary_expression() {
     Token *tok, *ident_tok;
     tok = token;
     ident_tok = ConsumeIdent();
-    Symbol *s = FindSymbol(ident_tok);
+    Symbol *s;
+    
+    s = FindAnySymbol(ident_tok, SY_NULL);
+
     token = tok;
     if ((!ident_tok) || // not identifier or pre-defined constant -> constant
         (s && s->kind == SY_ENUMCONST)) {

@@ -37,6 +37,7 @@ typedef enum {
   TYPE_STRUCT,
 } TypeKind;
 typedef enum {
+  SY_NULL,
   SY_VAR,       // variable
   SY_FUNC,      // function
   SY_ENUMCONST, // enum const
