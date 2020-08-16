@@ -3,11 +3,11 @@ extern int a_test_func;
 extern int arr_test_func[4];
 extern void printf(char *fmt, ...);
 
-int Test73() 
+int Test73(void) 
 {
   return 18%7;
 }
-int Test74() 
+int Test74(void) 
 {
   return 23%4;
 }
