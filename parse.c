@@ -7,6 +7,8 @@ Type *InitArrayType(Type *_ty, size_t size) {
   ty->kind = TYPE_ARRAY;
   ty->ptr_to = _ty;
   ty->array_size = size;
+  ty->is_variable_length = 0;
+  ty->typedef_scope = -1;
   ty->tq = 0;
   if(size==0) {
     ty->is_variable_length = 1;
@@ -20,6 +22,8 @@ Type *InitIntType() {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TYPE_INT;
   ty->ptr_to = NULL;
+  ty->is_variable_length = 0;
+  ty->typedef_scope = -1;
   ty->tq = 0;
   return ty;
 }
@@ -28,6 +32,8 @@ Type *InitCharType() {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TYPE_CHAR;
   ty->ptr_to = NULL;
+  ty->is_variable_length = 0;
+  ty->typedef_scope = -1;
   ty->tq = 0;
   return ty;
 }
@@ -36,6 +42,8 @@ Type *InitVoidType() {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TYPE_VOID;
   ty->ptr_to = NULL;
+  ty->is_variable_length = 0;
+  ty->typedef_scope = -1;
   ty->tq = 0;
   return ty;
 }
@@ -44,6 +52,8 @@ Type *InitBoolType() {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TYPE_BOOL;
   ty->ptr_to = NULL;
+  ty->is_variable_length = 0;
+  ty->typedef_scope = -1;
   ty->tq = 0;
   return ty;
 }
@@ -328,7 +338,15 @@ void AddTypeDef(Token *tok, Type *ty) {
   symbol->kind = SY_TYPEDEF;
   symbol->name = tok->str;
   symbol->len = tok->len;
-  symbol->ty = ty;
+  symbol->ty = calloc(1, sizeof(Type));
+  symbol->ty->array_size = ty->array_size;
+  symbol->ty->id = ty->id;
+  symbol->ty->typedef_scope = current_scope->id;
+  symbol->ty->is_variable_length = ty->is_variable_length;
+  symbol->ty->kind = ty->kind;
+  symbol->ty->ptr_to = ty->ptr_to;
+  symbol->ty->tq = ty->tq;
+
   symbol->scope_id = current_scope->id;
 
   symbol->id = ++last_symbol_id;
@@ -438,6 +456,8 @@ Struct *AddStruct(Token *tok) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TYPE_STRUCT;
   ty->id = ++last_struct_id;
+  ty->is_variable_length = 0;
+  ty->typedef_scope = -1;
 
   Struct *s = calloc(1, sizeof(Struct));
   s->next = structs; structs = s;
@@ -459,6 +479,8 @@ Symbol *AddEnumConst(int id, int val, Token *tok) {
   Type *ty = calloc(1, sizeof(Type));
   ty->id = id;
   ty->kind = TYPE_ENUM;
+  ty->is_variable_length = 0;
+  ty->typedef_scope = -1;
   
   Symbol *s = calloc(1, sizeof(Symbol));
   if(current_scope->id==0) {
@@ -484,6 +506,8 @@ Enum *AddEnum(Token *tok) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TYPE_ENUM;
   ty->id = ++last_enum_id;
+  ty->is_variable_length = 0;
+  ty->typedef_scope = -1;
 
   Enum *e = calloc(1, sizeof(Enum));
   e->next = enums; enums = e;
@@ -611,6 +635,8 @@ Node *NewNodeUnaryOp(NodeKind kind, Node *valnode) {
     case ND_ADDR:
       node->ty = calloc(1, sizeof(Type));
       node->ty->kind = TYPE_PTR;
+      node->ty->is_variable_length = 0;
+      node->ty->typedef_scope = -1;
       node->ty->ptr_to = node->children[0]->ty;
       break;
     case ND_DEREF:
@@ -1483,11 +1509,16 @@ Type *specifier_qualifier_list() {
     // currently multiple type specifier is not supported.
     _ty = type_specifier();
     if(_ty) {
-      if (ty) {
-        ErrorAt(tok->str, "multiple type specifier is not supported");
+      if(ty) {
+        if(_ty->typedef_scope == current_scope->id) {
+          ErrorAt(tok->str, "multiple type specifier is not supported");
+        } else {
+          token = tok;
+        }
+      } else {
+        ty = _ty;
+        continue;
       }
-      ty = _ty;
-      continue;
     }
 
     tq = type_qualifier();
@@ -1649,11 +1680,16 @@ DeclSpec *declaration_specifiers() {
     // currently multiple type specifier is not supported.
     ty = type_specifier();
     if(ty) {
-      if (dspec->ty) {
-        ErrorAt(tok->str, "multiple type specifier is not supported.");
+      if(dspec->ty) {
+        if(ty->typedef_scope == current_scope->id) {
+          ErrorAt(tok->str, "multiple type specifier is not supported");
+        } else {
+          token = tok;
+        }
+      } else {
+        dspec->ty = ty;
+        continue;
       }
-      dspec->ty = ty;
-      continue;
     }
 
     _tq = type_qualifier();
@@ -1683,21 +1719,8 @@ Type *_typedef_name() {
     return NULL;
   }
 
-  Symbol *symbol;
-  for(symbol=locals;symbol;symbol=symbol->next) {
-    if(symbol->kind != SY_TYPEDEF) continue;
-    if(symbol->len == tok->len && !memcmp(symbol->name, tok->str, symbol->len)) {
-      if(IsParentOfScopeId(symbol->scope_id, current_scope))
-        return symbol->ty;
-    }
-  }
-
-  for(symbol=globals;symbol;symbol=symbol->next) {
-    if(symbol->kind != SY_TYPEDEF) continue;
-    if(symbol->len == tok->len && !memcmp(symbol->name, tok->str, symbol->len)) {
-      return symbol->ty;
-    }
-  }
+  Symbol *symbol = FindAnySymbol(tok, SY_TYPEDEF);
+  if(symbol) return symbol->ty;
 
   token = _tok;
   return NULL;
@@ -1727,6 +1750,8 @@ Type *type_specifier() {
       ty = calloc(1, sizeof(Type));
       ty->kind = builtin_type_enum[i];
       ty->ptr_to = NULL;
+      ty->is_variable_length = 0;
+      ty->typedef_scope = -1;
       ty->tq = 0;
       break;
     }
@@ -1866,6 +1891,8 @@ Type *pointer(Type *orig_ty) {
     ty = calloc(1, sizeof(Type));
     ty->kind = TYPE_PTR;
     ty->ptr_to = tgt_ty;
+    ty->is_variable_length = 0;
+    ty->typedef_scope = -1;
     ty->ptr_to->tq = type_qualifier_list();
   }
 
