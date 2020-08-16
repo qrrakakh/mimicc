@@ -30,9 +30,9 @@ typedef enum {
   TYPE_CHAR,
   TYPE_INT,
   TYPE_ENUM,
+  TYPE_PTR,
   TYPE_ARITHMETIC_LIMIT,
   TYPE_VOID,
-  TYPE_PTR,
   TYPE_ARRAY,
   TYPE_STRUCT,
 } TypeKind;

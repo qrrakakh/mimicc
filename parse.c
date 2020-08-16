@@ -719,18 +719,25 @@ Node *NewNodeBinOp(NodeKind kind, Node *lhs, Node *rhs) {
     case ND_ADD:
       // add
       // support type: ARI/ARI, ARI/PTR, PTR/ARI
-      if(lhs->ty->kind == TYPE_PTR && rhs->ty->kind == TYPE_PTR) {
-        ErrorAt(token->str, "adding pointer to pointer is not valid.");
+      if(lhs->ty->kind == TYPE_PTR) {
+        node->ty = lhs->ty;
+      } else if(rhs->ty->kind == TYPE_PTR) {
+        node->ty = rhs->ty;
+      } else {
+        node->ty = lhs->ty;
       }
-      node->ty = lhs->ty;
+      
       break;
     case ND_SUB:
       // sub
       // support type: ARI/ARI, PTR/ARI (not ARI/PTR)
-      if(rhs->ty->kind == TYPE_PTR) {
-        ErrorAt(token->str, "subtracting pointer is not valid.");
+      if(lhs->ty->kind == TYPE_PTR) {
+        node->ty = lhs->ty;
+      } else if(rhs->ty->kind == TYPE_PTR) {
+        node->ty = rhs->ty;
+      } else {
+        node->ty = lhs->ty;
       }
-      node->ty = lhs->ty;
       break;
     // mul/div
     // support type: ARI/ARI

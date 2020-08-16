@@ -178,6 +178,16 @@ int ptr_gvar_init3_test() {
   return *ptr_gvar_init3;
 }
 
+int reverse_blacket_operator_test1() {
+   int x[3]; *x=3; x[1]=4; 2[x]=5; return *(x+2); 
+}
+
+int reverse_blacket_operator_test2() {
+   int x[3], *y = x+2;
+   *x=3; (-1)[y]=4; 2[x]=5;
+   return *(x+1); 
+}
+
 int run_pointers_tests() {
   int expected;
   int actual;
@@ -483,6 +493,22 @@ int run_pointers_tests() {
   if (actual != expected)
   {
     printf("ptr_gvar_init3_test faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=5;
+  actual=reverse_blacket_operator_test1();
+  if (actual != expected)
+  {
+    printf("reverse_blacket_operator_test1 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=4;
+  actual=reverse_blacket_operator_test2();
+  if (actual != expected)
+  {
+    printf("reverse_blacket_operator_test2 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 
