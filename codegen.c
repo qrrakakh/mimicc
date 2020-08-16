@@ -319,29 +319,38 @@ void InitProgram() {
   // calculate size and offsets of each structs
   Struct *s = structs;
   Symbol *v;
-  int var_size, diff;
+  int member_size, alignment, diff, max_align;
 
   while(s->next) {
     if(!(s->members)) {
       s = s->next;
       continue;
     }
+    // get the tail of members list; begin from the initially declared member
     for(v=s->members;v->next;v=v->next);
 
     s->size = 0;
+    max_align = 1;
     for(v=v->prev;v;v=v->prev) {
       v->offset_bytes = s->size;
-      var_size = GetTypeSize(v->ty);
-      s->size += var_size;
-      diff = v->offset_bytes % var_size;
-      if (diff>0) {
-        v->offset_bytes += var_size - diff;
+      if(v->ty->kind == TYPE_ARRAY) {
+        alignment = GetTypeSize(v->ty->ptr_to);
+        member_size = alignment * v->ty->array_size;
+      } else {
+        member_size = GetTypeSize(v->ty);
+        alignment = member_size;
       }
-      s->size = v->offset_bytes + var_size;
+      s->size += member_size;
+      diff = v->offset_bytes % alignment;
+      if (diff>0) {
+        v->offset_bytes += alignment - diff;
+      }
+      s->size = v->offset_bytes + member_size;
+      max_align = (alignment > max_align)? alignment: max_align;
     }
 
-    if (s->size % STRUCT_ALL_ALIGN_BYTES > 0) {
-      s->size = (s->size / STRUCT_ALL_ALIGN_BYTES + 1) * STRUCT_ALL_ALIGN_BYTES;
+    if (s->size % max_align > 0) {
+      s->size = (s->size / max_align + 1) * max_align;
     }
 
     s = s->next;

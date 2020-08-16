@@ -90,6 +90,22 @@ int Test_struct_sizeof4() {
   return sizeof(struct s);
 }
 
+int Test_struct_sizeof5() {
+  struct s {
+    char c1;
+    char c2;
+  } a;
+  return sizeof(a);
+}
+
+int Test_struct_sizeof6() {
+  struct s {
+    char c1[3];
+    char c2[5];
+  } a;
+  return sizeof(a);
+}
+
 int Test_typename_sizeof1() {
   return sizeof(int);
 }
@@ -271,6 +287,22 @@ int run_sizeof_tests() {
   if (actual != expected)
   {
     printf("Test struct_sizeof4 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=2;
+  actual=Test_struct_sizeof5();
+  if (actual != expected)
+  {
+    printf("Test struct_sizeof5 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=8;
+  actual=Test_struct_sizeof6();
+  if (actual != expected)
+  {
+    printf("Test struct_sizeof6 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 
