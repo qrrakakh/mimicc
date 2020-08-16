@@ -228,7 +228,12 @@ void InitLvar(Node *node, int offset, _Bool eval) {
 void InitGvar(Node *node);
 
 void InitOrdinaryGvar(Node *node) {
-  printf("  .%dbyte %d\n", GetTypeSize(node->ty), Eval(node->children[0]));
+  int type_size = GetTypeSize(node->ty);
+  if(type_size==1) {
+    printf("  .byte %d\n", Eval(node->children[0]));
+  } else {
+    printf("  .%dbyte %d\n", type_size, Eval(node->children[0]));
+  }
 }
 
 void InitArrayGvar(Node *node) {

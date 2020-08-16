@@ -13,7 +13,7 @@ int var_Test19;int TestHelperFunction19() {return var_Test19;}
 // 10
 int int_gvar_init = ((((((((((2+3)-3)*10)/5)<<1)>>2)+1)%2)+5)/6)*10;
 // 97
-int char_gvar_init = 'a';
+char char_gvar_init = 'a';
 // 1 + 0 + 4 + 8 + 0 + 32 = 45
 int bit_gvar_init = (1&1) + (2&0) + (4|4) + (8|0) + (16^16) + (32^0);
 // 1 + 0 + 4 + 0 + 16 + 32 + 0 + 0 + 256 = 309
