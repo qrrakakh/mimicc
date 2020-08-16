@@ -2315,7 +2315,7 @@ Node *unary_expression() {
   Type *ty;
   if (Consume("sizeof")) {
     tok = token;
-    if(Consume("(") && (ty = type_name())) {
+    if(Consume("(") && (ty = array_declarator(type_name()))) {
       Expect(")");
       node = NewNodeUnaryOp(ND_SIZEOF, NULL);
       node->ty->ptr_to = ty;

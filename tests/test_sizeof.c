@@ -178,6 +178,14 @@ int Test_typename_sizeof10() {
   return sizeof(DefinedStruct*);
 }
 
+int Test_array_sizeof1() {
+  return sizeof(int[3]);
+}
+
+int Test_array_sizeof2() {
+  return sizeof(int[3][5]);
+}
+
 int run_sizeof_tests() {
 
   int expected;
@@ -383,6 +391,22 @@ int run_sizeof_tests() {
   if (actual != expected)
   {
     printf("Test typename_sizeof10 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=12;
+  actual=Test_array_sizeof1();
+  if (actual != expected)
+  {
+    printf("Test array_sizeof1 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+
+  expected=60;
+  actual=Test_array_sizeof2();
+  if (actual != expected)
+  {
+    printf("Test array_sizeof2 faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
 
