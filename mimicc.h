@@ -96,6 +96,7 @@ struct Func {  // defined variables
   Func *next;
   Symbol *symbol;
   int num_args;
+  Type *ty;
   _Bool is_defined;
   _Bool has_varargs;
 };

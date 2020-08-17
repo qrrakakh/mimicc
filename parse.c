@@ -428,6 +428,7 @@ Func *AddFunc(Token *tok, Type *ty, int num_args, int scope_id, _Bool has_vararg
   f->symbol = s;
   f->next = funcs; funcs = f;
   f->num_args = num_args;
+  f->ty = ty;
   f->is_defined = 0;
   f->has_varargs = has_varargs;
   return f;

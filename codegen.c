@@ -168,10 +168,15 @@ void CstrData(Const_Strings *cstr) {
 
 void InitLvar(Node *node, int offset, _Bool eval);
 
-void InitOrdinaryLvar(Node *node, int offset, _Bool eval) {
+void InitOrdinaryLvar(Node *node, int offset, _Bool eval, _Bool is_bool) {
   // assume that the head address is stored in rax.
   printf("  push rax\n");
   Generate(node->children[0]);
+  if(is_bool) {
+    printf("  cmp al, 0x0\n");
+    printf("  setne al\n");
+    printf("  movzb rax, al\n");
+  }
   printf("  push rax\n");
   StoreVar(node->ty, offset, eval);
 }
@@ -221,18 +226,22 @@ void InitLvar(Node *node, int offset, _Bool eval) {
   } else if(node->ty->kind == TYPE_STRUCT) {
     Error("struct initialization is not supported.");
   } else {
-    InitOrdinaryLvar(node, offset, eval);
+    InitOrdinaryLvar(node, offset, eval, node->ty->kind == TYPE_BOOL);
   }
 }
 
 void InitGvar(Node *node);
 
-void InitOrdinaryGvar(Node *node) {
+void InitOrdinaryGvar(Node *node, _Bool is_bool) {
   int type_size = GetTypeSize(node->ty);
+  int val = Eval(node->children[0]);
+  if (is_bool) {
+    val = (val==0);
+  }
   if(type_size==1) {
-    printf("  .byte %d\n", Eval(node->children[0]));
+    printf("  .byte %d\n", val);
   } else {
-    printf("  .%dbyte %d\n", type_size, Eval(node->children[0]));
+    printf("  .%dbyte %d\n", type_size, val);
   }
 }
 
@@ -309,7 +318,7 @@ void InitGvar(Node *node) {
   } else if(node->ty->kind == TYPE_STRUCT) {
     Error("struct initialization is not supported.");
   } else {
-    InitOrdinaryGvar(node);
+    InitOrdinaryGvar(node, node->ty->kind == TYPE_BOOL);
   }
 }
 
@@ -509,6 +518,10 @@ void Generate(Node *node) {
             printf("  mov [rbp-%d], %s\n", var->offset_bytes, x86_64_argreg_64bits[arg_idx]);
             break;
         }
+        if(var->ty->kind == TYPE_BOOL) {
+          printf("  cmp byte ptr [rbp-%d], 0x0\n",  var->offset_bytes);
+          printf("  setne [rbp-%d]\n",  var->offset_bytes);
+        }
         var = var->next;
       }
 
@@ -529,6 +542,31 @@ void Generate(Node *node) {
     case ND_RETURN:
       if(node->children[0])
         Generate(node->children[0]);
+      if(!(current_func->ty)) {
+          printf("mov eax, eax\n");
+      } else if (current_func->ty->kind == TYPE_VOID) {
+      } else {
+        switch(GetVarSize(current_func->ty)) {
+          case 1:
+          printf("movzb rax, al\n");
+          break;
+          case 2:
+          printf("movzw rax, ax\n");
+          break;
+          case 4:
+          printf("mov eax, eax\n");
+          break;
+          case 8:
+          break;
+        }
+        if(current_func->ty->kind == TYPE_BOOL) {
+          printf("  cmp al, 0x0\n");
+          printf("  setne al\n");
+          printf("  movzb rax, al\n");
+        }
+      }
+
+
       printf("  jmp .L.ret%.*s\n", current_func->symbol->len, current_func->symbol->name);
       return;
 
@@ -679,6 +717,11 @@ void Generate(Node *node) {
       GenLval(node->children[0]);
       printf("  push rax\n");
       Generate(node->children[1]);
+      if(node->children[0]->ty->kind == TYPE_BOOL) {
+        printf("  cmp al, 0x0\n");
+        printf("  setne al\n");
+        printf("  movzb rax, al\n");
+      }
       printf("  push rax\n");
       StoreVar(node->ty, 0, 1);
       return;
