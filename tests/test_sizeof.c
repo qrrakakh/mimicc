@@ -50,6 +50,9 @@ int Test54()
 {
   return sizeof(sizeof(1));
 }
+int Test_charconst_sizeof() {
+  return sizeof('a');
+}
 int Test_struct_sizeof1() {
   struct {
     int a;
@@ -266,6 +269,13 @@ int run_sizeof_tests() {
   if (actual != expected)
   {
     printf("Test53 faild, %d expected, but got %d\n", expected, actual);
+    return 1;
+  }
+  expected=4;
+  actual=Test_charconst_sizeof();
+  if (actual != expected)
+  {
+    printf("Test charconst_sizeof faild, %d expected, but got %d\n", expected, actual);
     return 1;
   }
   expected=12;

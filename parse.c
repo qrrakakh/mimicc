@@ -814,7 +814,7 @@ Node *NewNodeChar(Token *tok) {
     node->val = *(tok->str);
   }
   node->tok = tok;
-  node->ty = InitCharType();
+  node->ty = InitIntType();
   return node;
 }
 
