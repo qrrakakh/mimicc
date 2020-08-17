@@ -8,7 +8,7 @@ int TestHelperFunction144_146(int a) {
     case 1:
       b = 1;
       break;
-    case 2:
+    case 2+1:
       b = 4;
       break;
     default:
@@ -97,10 +97,10 @@ int Test144() {
   return TestHelperFunction144_146(1);
 }
 int Test145() {
-  return TestHelperFunction144_146(2);
+  return TestHelperFunction144_146(3);
 }
 int Test146() {
-  return TestHelperFunction144_146(3);
+  return TestHelperFunction144_146(2);
 }
 int Test147() {
   return TestHelperFunction147(3);

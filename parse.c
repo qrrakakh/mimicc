@@ -1307,7 +1307,6 @@ Node *labeled_statement() {
     tok = token;
     Node *cond = constant_expression();
     Expect(":");
-    Eval(cond);
     int label_id = ++(current_switch->val);
     node = NewNodeSwLabel(label_id);
     Node *case_node = NewNodeSwCase(cond, current_switch->children[1], label_id);

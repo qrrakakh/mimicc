@@ -765,7 +765,7 @@ void Generate(Node *node) {
       printf("  mov r10, rax\n");
       node_cur = node->children[1];
       while(node_cur) {
-        printf("  cmp r10, %d\n", node_cur->children[0]->val);
+        printf("  cmp r10, %d\n", Eval(node_cur->children[0]));
         printf("  je .L.sw%06d.case%06d\n", ctrl_depth, node_cur->val);
         node_cur = node_cur->children[1];
       }
@@ -780,7 +780,7 @@ void Generate(Node *node) {
       return;
 
     case ND_SWLABEL:
-      printf(".L.sw%06d.case%06d:", ctrl_depth, node->val);
+      printf(".L.sw%06d.case%06d:\n", ctrl_depth, node->val);
       return;
 
     case ND_IF:
