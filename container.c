@@ -214,6 +214,16 @@ int Eval(Node *node) {
       return Eval(node->children[0]) + Eval(node->children[1]);
     case ND_SUB:
       return Eval(node->children[0]) - Eval(node->children[1]);
+    case ND_CONDEXPR:
+      return Eval(node->children[0])? Eval(node->children[1]): Eval(node->children[2]);
+    case ND_LNOT:
+      return !Eval(node->children[0]);
+    case ND_NOT:
+      return ~Eval(node->children[0]);
+    case ND_LAND:
+      return Eval(node->children[0]) && Eval(node->children[1]);
+    case ND_LOR:
+      return Eval(node->children[0]) || Eval(node->children[1]);
     case ND_NUM:
     case ND_CHAR:
       return node->val;
