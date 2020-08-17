@@ -1903,21 +1903,22 @@ Type *pointer(Type *orig_ty) {
 Type *array_declarator(Type *root_ty) {
   // array-declarator = "[" integer-constant "]"
 
-  Token *tok, *len_tok;
+  Token *tok;
+  Node *len_node;
   int size;
 
   if(!Consume("[")) {
     return root_ty;
   }
   tok = token;
-  len_tok = ConsumeNumber();
-  if(len_tok) {
-    size = len_tok->val;
+  len_node = constant_expression();
+  if(!len_node || len_node->kind == ND_DUMMY) {
+    size = 0;
+  } else {
+    size = Eval(len_node);
     if(size<1) {
       ErrorAt(tok->str, "Array whose length less than 1 is invalid.");
     }
-  } else {
-    size = 0;
   }
   Expect("]");
   return InitArrayType(array_declarator(root_ty), size);
