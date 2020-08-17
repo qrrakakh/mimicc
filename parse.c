@@ -1229,12 +1229,11 @@ Node *func() {
   EnterScope();
   Expect("(");
   num_args = 0;
+  tok = token;
   // unnamed padameter void must be only item; ad-hook parse
-  if(Consume("void")) {
-    Expect(")");
-  } else if(Consume(")")) {
-
+  if( (Consume("void") && Consume(")")) || Consume(")")) {
   } else {
+    token = tok;
     parameter_declaration();
     ++num_args;
     while(num_args<=6) {
