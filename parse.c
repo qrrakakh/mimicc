@@ -1702,7 +1702,11 @@ DeclSpec *declaration_specifiers() {
   }
 
   if (!(dspec->ty)) {
-    return NULL;
+    if(tq == 0 && dspec->sspec == NOSTORAGESPEC) {
+      return NULL;
+    } else {
+      dspec->ty = InitIntType();
+    }
   }
   dspec->ty->tq = tq;
 
