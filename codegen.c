@@ -23,20 +23,20 @@ int GetTypeSize(Type *ty) {
   } else if(ty->kind == TYPE_STRUCT) {
     return FindStructById(ty->id)->size;
   } else {
-    Error("Unexpected type is input.");
+    Error("Unexpected type is input. %d", ty->kind);
     return -1;
   }
 }
 
 int GetVarSize(Type *ty) {
-  if(ty->kind == TYPE_CHAR || ty->kind == TYPE_BOOL) {
+  if(ty->kind == TYPE_CHAR || ty->kind == TYPE_BOOL || ty->kind == TYPE_VOID) {
     return 1;
   } else if(ty->kind == TYPE_INT || ty->kind == TYPE_ENUM) {
     return 4;
   } else if(ty->kind == TYPE_PTR || ty->kind == TYPE_ARRAY) {
     return 8;
   } else {
-    Error("Unexpected type is input.");
+    Error("Unexpected type is input. %d", ty->kind);
     return -1;
   }
 }
@@ -844,6 +844,25 @@ void Generate(Node *node) {
       printf("  call r10\n");
       printf("  add rsp, 8\n");
       printf(".L.end%06d:\n", label);
+
+      if(node->ty->kind == TYPE_BOOL) {
+        printf("  cmp al, 0x0\n");
+        printf("  setne al\n");
+        printf("  movzb rax, al\n");
+      }
+      switch(GetVarSize(node->ty)) {
+          case 1:
+          printf("movzb rax, al\n");
+          break;
+          case 2:
+          printf("movzw rax, ax\n");
+          break;
+          case 4:
+          printf("mov eax, eax\n");
+          break;
+          case 8:
+          break;
+      }
       return;
   }
 
